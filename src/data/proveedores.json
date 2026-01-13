@@ -1,0 +1,72 @@
+[
+  {
+    "id": "PROV-001",
+    "nombre": "Aceros del Norte SA",
+    "rfc": "ADN950315XY2",
+    "contacto": "Ing. Roberto Méndez",
+    "telefono": "555-1234-5678",
+    "email": "ventas@acerosdelnorte.com",
+    "lineaCredito": 500000,
+    "diasCredito": 30,
+    "vencimientoLinea": "2025-12-31",
+    "saldoPendiente": 204644,
+    "createdAt": "2024-01-10T00:00:00.000Z",
+    "updatedAt": "2025-01-13T09:15:00.000Z"
+  },
+  {
+    "id": "PROV-002",
+    "nombre": "Cementos y Agregados SA",
+    "rfc": "CAG880420AB3",
+    "contacto": "Lic. María González",
+    "telefono": "555-2345-6789",
+    "email": "comercial@cementosagregados.com",
+    "lineaCredito": 750000,
+    "diasCredito": 45,
+    "vencimientoLinea": "2025-12-31",
+    "saldoPendiente": 29986,
+    "createdAt": "2024-01-10T00:00:00.000Z",
+    "updatedAt": "2025-01-12T08:30:00.000Z"
+  },
+  {
+    "id": "PROV-003",
+    "nombre": "Materiales Eléctricos del Centro",
+    "rfc": "MEC920815CD4",
+    "contacto": "Sr. Juan Pérez",
+    "telefono": "555-3456-7890",
+    "email": "ventas@materialeselectricos.com",
+    "lineaCredito": 300000,
+    "diasCredito": 30,
+    "vencimientoLinea": "2025-06-30",
+    "saldoPendiente": 33930,
+    "createdAt": "2024-01-10T00:00:00.000Z",
+    "updatedAt": "2025-01-09T16:45:00.000Z"
+  },
+  {
+    "id": "PROV-004",
+    "nombre": "Ferreterías Industriales SA",
+    "rfc": "FIS910520EF5",
+    "contacto": "Arq. Laura Sánchez",
+    "telefono": "555-4567-8901",
+    "email": "contacto@ferreteriaindustrial.com",
+    "lineaCredito": 400000,
+    "diasCredito": 30,
+    "vencimientoLinea": "2025-12-31",
+    "saldoPendiente": 0,
+    "createdAt": "2024-01-10T00:00:00.000Z",
+    "updatedAt": "2025-01-11T10:00:00.000Z"
+  },
+  {
+    "id": "PROV-005",
+    "nombre": "Pinturas y Recubrimientos SA",
+    "rfc": "PRS870910GH6",
+    "contacto": "Ing. Carlos Ramírez",
+    "telefono": "555-5678-9012",
+    "email": "ventas@pinturasrecubrimientos.com",
+    "lineaCredito": 200000,
+    "diasCredito": 15,
+    "vencimientoLinea": "2025-12-31",
+    "saldoPendiente": 12086,
+    "createdAt": "2024-01-10T00:00:00.000Z",
+    "updatedAt": "2025-01-12T14:00:00.000Z"
+  }
+]

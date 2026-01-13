@@ -1,0 +1,240 @@
+[
+  {
+    "id": "1736780400001",
+    "codigoRequisicion": "REQ227-1MAT",
+    "obraCode": "227",
+    "obraNombre": "CASTELLO E",
+    "residente": "Ing. Miguel Ángel Torres",
+    "residenteIniciales": "MAT",
+    "fecha": "2025-01-05T10:30:00.000Z",
+    "materiales": [
+      {
+        "concepto": "Cemento gris 50kg",
+        "unidad": "bulto",
+        "cantidad": 150,
+        "precioUnitario": 185,
+        "total": 27750
+      },
+      {
+        "concepto": "Arena de río",
+        "unidad": "m3",
+        "cantidad": 10,
+        "precioUnitario": 450,
+        "total": 4500
+      },
+      {
+        "concepto": "Grava 3/4",
+        "unidad": "m3",
+        "cantidad": 8,
+        "precioUnitario": 480,
+        "total": 3840
+      }
+    ],
+    "total": 36090,
+    "status": "Completada",
+    "notas": "Material para cimentación zona norte",
+    "createdAt": "2025-01-05T10:30:00.000Z",
+    "updatedAt": "2025-01-06T14:20:00.000Z"
+  },
+  {
+    "id": "1736866800002",
+    "codigoRequisicion": "REQ227-2MAT",
+    "obraCode": "227",
+    "obraNombre": "CASTELLO E",
+    "residente": "Ing. Miguel Ángel Torres",
+    "residenteIniciales": "MAT",
+    "fecha": "2025-01-06T08:15:00.000Z",
+    "materiales": [
+      {
+        "concepto": "Varilla 3/8\" corrugada",
+        "unidad": "ton",
+        "cantidad": 3.5,
+        "precioUnitario": 18500,
+        "total": 64750
+      },
+      {
+        "concepto": "Alambrón",
+        "unidad": "kg",
+        "cantidad": 50,
+        "precioUnitario": 28,
+        "total": 1400
+      }
+    ],
+    "total": 66150,
+    "status": "Completada",
+    "notas": "Acero para columnas planta baja",
+    "createdAt": "2025-01-06T08:15:00.000Z",
+    "updatedAt": "2025-01-07T09:30:00.000Z"
+  },
+  {
+    "id": "1736953200003",
+    "codigoRequisicion": "REQ228-1LM",
+    "obraCode": "228",
+    "obraNombre": "CASTELLO F",
+    "residente": "Arq. Laura Martínez",
+    "residenteIniciales": "LM",
+    "fecha": "2025-01-07T11:00:00.000Z",
+    "materiales": [
+      {
+        "concepto": "Block hueco 15x20x40",
+        "unidad": "pza",
+        "cantidad": 5000,
+        "precioUnitario": 12.5,
+        "total": 62500
+      },
+      {
+        "concepto": "Mortero premezclado",
+        "unidad": "bulto",
+        "cantidad": 80,
+        "precioUnitario": 95,
+        "total": 7600
+      }
+    ],
+    "total": 70100,
+    "status": "Aprobada",
+    "notas": "Muros divisorios nivel 1 y 2",
+    "createdAt": "2025-01-07T11:00:00.000Z",
+    "updatedAt": "2025-01-08T10:15:00.000Z"
+  },
+  {
+    "id": "1737039600004",
+    "codigoRequisicion": "REQ228-2LM",
+    "obraCode": "228",
+    "obraNombre": "CASTELLO F",
+    "residente": "Arq. Laura Martínez",
+    "residenteIniciales": "LM",
+    "fecha": "2025-01-08T09:30:00.000Z",
+    "materiales": [
+      {
+        "concepto": "Cable calibre 12 AWG",
+        "unidad": "rollo",
+        "cantidad": 10,
+        "precioUnitario": 1850,
+        "total": 18500
+      },
+      {
+        "concepto": "Tubo conduit 3/4\"",
+        "unidad": "pza",
+        "cantidad": 100,
+        "precioUnitario": 85,
+        "total": 8500
+      },
+      {
+        "concepto": "Chalupas metálicas",
+        "unidad": "caja",
+        "cantidad": 5,
+        "precioUnitario": 450,
+        "total": 2250
+      }
+    ],
+    "total": 29250,
+    "status": "En Proceso",
+    "notas": "Instalación eléctrica primer nivel",
+    "createdAt": "2025-01-08T09:30:00.000Z",
+    "updatedAt": "2025-01-09T16:45:00.000Z"
+  },
+  {
+    "id": "1737126000005",
+    "codigoRequisicion": "REQ230-1PG",
+    "obraCode": "230",
+    "obraNombre": "CASTELLO H",
+    "residente": "Ing. Patricia Gómez",
+    "residenteIniciales": "PG",
+    "fecha": "2025-01-09T13:20:00.000Z",
+    "materiales": [
+      {
+        "concepto": "Pintura vinílica blanca 19L",
+        "unidad": "cubeta",
+        "cantidad": 25,
+        "precioUnitario": 580,
+        "total": 14500
+      },
+      {
+        "concepto": "Sellador acrílico 19L",
+        "unidad": "cubeta",
+        "cantidad": 15,
+        "precioUnitario": 420,
+        "total": 6300
+      },
+      {
+        "concepto": "Brochas y rodillos",
+        "unidad": "lote",
+        "cantidad": 3,
+        "precioUnitario": 850,
+        "total": 2550
+      }
+    ],
+    "total": 23350,
+    "status": "Completada",
+    "notas": "Acabados interiores edificio A",
+    "createdAt": "2025-01-09T13:20:00.000Z",
+    "updatedAt": "2025-01-10T11:00:00.000Z"
+  },
+  {
+    "id": "1737212400006",
+    "codigoRequisicion": "REQ229-1RS",
+    "obraCode": "229",
+    "obraNombre": "CASTELLO G",
+    "residente": "Ing. Roberto Sánchez",
+    "residenteIniciales": "RS",
+    "fecha": "2025-01-10T10:00:00.000Z",
+    "materiales": [
+      {
+        "concepto": "Concreto premezclado f'c=250 kg/cm2",
+        "unidad": "m3",
+        "cantidad": 45,
+        "precioUnitario": 1850,
+        "total": 83250
+      },
+      {
+        "concepto": "Aditivo acelerante",
+        "unidad": "litro",
+        "cantidad": 20,
+        "precioUnitario": 125,
+        "total": 2500
+      }
+    ],
+    "total": 85750,
+    "status": "Pendiente",
+    "notas": "Colado de losa nivel 1 - URGENTE",
+    "createdAt": "2025-01-10T10:00:00.000Z",
+    "updatedAt": "2025-01-10T10:00:00.000Z"
+  },
+  {
+    "id": "1737298800007",
+    "codigoRequisicion": "REQ232-1SV",
+    "obraCode": "232",
+    "obraNombre": "BALVANERA",
+    "residente": "Arq. Sofia Vargas",
+    "residenteIniciales": "SV",
+    "fecha": "2025-01-11T14:30:00.000Z",
+    "materiales": [
+      {
+        "concepto": "Loseta cerámica 40x40cm",
+        "unidad": "caja",
+        "cantidad": 80,
+        "precioUnitario": 385,
+        "total": 30800
+      },
+      {
+        "concepto": "Adhesivo para cerámica",
+        "unidad": "bulto",
+        "cantidad": 35,
+        "precioUnitario": 165,
+        "total": 5775
+      },
+      {
+        "concepto": "Boquilla blanca",
+        "unidad": "bulto",
+        "cantidad": 15,
+        "precioUnitario": 145,
+        "total": 2175
+      }
+    ],
+    "total": 38750,
+    "status": "Aprobada",
+    "notas": "Pisos para áreas comunes",
+    "createdAt": "2025-01-11T14:30:00.000Z",
+    "updatedAt": "2025-01-12T09:00:00.000Z"
+  }
+]
