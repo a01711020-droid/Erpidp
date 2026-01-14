@@ -1,9 +1,26 @@
 /**
  * Servicio para conectarse al backend FastAPI
  * Maneja lógica compleja: distribución de gastos, validaciones, reportes
+ * 
+ * NOTA: Este servicio es OPCIONAL. Solo se usa si tienes el backend FastAPI deployado.
+ * Si no lo tienes, el sistema funciona normalmente con los datos mock.
  */
 
-const FASTAPI_URL = import.meta.env.VITE_FASTAPI_URL || "http://localhost:8000";
+const FASTAPI_URL = import.meta.env.VITE_FASTAPI_URL || "";
+
+// Helper para verificar si FastAPI está configurado
+const isFastAPIEnabled = () => {
+  return FASTAPI_URL && FASTAPI_URL.length > 0;
+};
+
+// Helper para manejar errores de API
+const handleAPIError = async (response: Response) => {
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Error desconocido" }));
+    throw new Error(error.detail || "Error en la petición");
+  }
+  return response.json();
+};
 
 export interface DistribucionGastosIndirectos {
   obra_id: string;
@@ -82,6 +99,10 @@ export const fastApiService = {
    * Calcula y guarda la distribución de gastos indirectos entre obras
    */
   async calcularDistribucionGastosIndirectos(mes: string): Promise<CalculoDistribucionResponse> {
+    if (!isFastAPIEnabled()) {
+      throw new Error("FastAPI no está configurado");
+    }
+
     const response = await fetch(
       `${FASTAPI_URL}/api/gastos-indirectos/calcular-distribucion?mes=${mes}`,
       {
@@ -92,26 +113,20 @@ export const fastApiService = {
       }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Error al calcular distribución");
-    }
-
-    return response.json();
+    return handleAPIError(response);
   },
 
   /**
    * Obtiene la distribución de gastos indirectos ya calculada
    */
   async obtenerDistribucionMes(mes: string): Promise<CalculoDistribucionResponse> {
-    const response = await fetch(`${FASTAPI_URL}/api/gastos-indirectos/distribucion/${mes}`);
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Error al obtener distribución");
+    if (!isFastAPIEnabled()) {
+      throw new Error("FastAPI no está configurado");
     }
 
-    return response.json();
+    const response = await fetch(`${FASTAPI_URL}/api/gastos-indirectos/distribucion/${mes}`);
+
+    return handleAPIError(response);
   },
 
   /**
@@ -122,16 +137,15 @@ export const fastApiService = {
     fechaInicio: string,
     fechaFin: string
   ): Promise<ReporteObraFinanciero> {
+    if (!isFastAPIEnabled()) {
+      throw new Error("FastAPI no está configurado");
+    }
+
     const response = await fetch(
       `${FASTAPI_URL}/api/reportes/obra-financiero/${obraId}?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Error al generar reporte");
-    }
-
-    return response.json();
+    return handleAPIError(response);
   },
 
   /**
@@ -141,6 +155,10 @@ export const fastApiService = {
     proveedorId: string,
     montoNuevo: number
   ): Promise<ValidacionLineaCredito> {
+    if (!isFastAPIEnabled()) {
+      throw new Error("FastAPI no está configurado");
+    }
+
     const response = await fetch(`${FASTAPI_URL}/api/proveedores/validar-linea-credito`, {
       method: "POST",
       headers: {
@@ -152,26 +170,20 @@ export const fastApiService = {
       }),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Error al validar línea de crédito");
-    }
-
-    return response.json();
+    return handleAPIError(response);
   },
 
   /**
    * Obtiene alertas de órdenes próximas a vencer
    */
   async obtenerAlertasVencimiento(): Promise<AlertaVencimiento[]> {
-    const response = await fetch(`${FASTAPI_URL}/api/alertas/vencimientos-credito`);
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Error al obtener alertas");
+    if (!isFastAPIEnabled()) {
+      throw new Error("FastAPI no está configurado");
     }
 
-    return response.json();
+    const response = await fetch(`${FASTAPI_URL}/api/alertas/vencimientos-credito`);
+
+    return handleAPIError(response);
   },
 
   /**
@@ -181,22 +193,25 @@ export const fastApiService = {
     fechaInicio: string,
     fechaFin: string
   ): Promise<EstadisticasCompras> {
+    if (!isFastAPIEnabled()) {
+      throw new Error("FastAPI no está configurado");
+    }
+
     const response = await fetch(
       `${FASTAPI_URL}/api/estadisticas/compras?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Error al obtener estadísticas");
-    }
-
-    return response.json();
+    return handleAPIError(response);
   },
 
   /**
    * Verifica que la API esté funcionando
    */
   async healthCheck(): Promise<{ status: string; timestamp: string; version: string }> {
+    if (!isFastAPIEnabled()) {
+      throw new Error("FastAPI no está configurado");
+    }
+
     const response = await fetch(`${FASTAPI_URL}/health`);
 
     if (!response.ok) {
