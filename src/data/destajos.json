@@ -1,0 +1,327 @@
+[
+  {
+    "id": "1736694000301",
+    "fecha": "2025-01-12T16:00:00.000Z",
+    "semana": "Semana 1 - Enero 2025",
+    "obras": [
+      {
+        "codigoObra": "227",
+        "nombreObra": "CASTELLO E",
+        "destajistas": [
+          {
+            "inicial": "AC",
+            "nombre": "Arturo Carmona",
+            "importe": 15000
+          },
+          {
+            "inicial": "JR",
+            "nombre": "Juan Rodríguez",
+            "importe": 12500
+          },
+          {
+            "inicial": "LG",
+            "nombre": "Luis García",
+            "importe": 18000
+          },
+          {
+            "inicial": "MH",
+            "nombre": "Mario Hernández",
+            "importe": 9500
+          }
+        ],
+        "totalObra": 55000
+      },
+      {
+        "codigoObra": "228",
+        "nombreObra": "CASTELLO F",
+        "destajistas": [
+          {
+            "inicial": "PR",
+            "nombre": "Pedro Ramírez",
+            "importe": 22000
+          },
+          {
+            "inicial": "CF",
+            "nombre": "Carlos Flores",
+            "importe": 16500
+          },
+          {
+            "inicial": "RS",
+            "nombre": "Ricardo Sánchez",
+            "importe": 14000
+          }
+        ],
+        "totalObra": 52500
+      },
+      {
+        "codigoObra": "230",
+        "nombreObra": "CASTELLO H",
+        "destajistas": [
+          {
+            "inicial": "JM",
+            "nombre": "Jorge Martínez",
+            "importe": 19000
+          },
+          {
+            "inicial": "AM",
+            "nombre": "Andrés Morales",
+            "importe": 13500
+          }
+        ],
+        "totalObra": 32500
+      }
+    ],
+    "totalGeneral": 140000,
+    "archivoNombre": "destajos-semana1-enero2025.xlsx"
+  },
+  {
+    "id": "1737298800302",
+    "fecha": "2025-01-19T16:00:00.000Z",
+    "semana": "Semana 2 - Enero 2025",
+    "obras": [
+      {
+        "codigoObra": "227",
+        "nombreObra": "CASTELLO E",
+        "destajistas": [
+          {
+            "inicial": "AC",
+            "nombre": "Arturo Carmona",
+            "importe": 16500
+          },
+          {
+            "inicial": "JR",
+            "nombre": "Juan Rodríguez",
+            "importe": 11000
+          },
+          {
+            "inicial": "LG",
+            "nombre": "Luis García",
+            "importe": 19500
+          },
+          {
+            "inicial": "MH",
+            "nombre": "Mario Hernández",
+            "importe": 10500
+          },
+          {
+            "inicial": "FV",
+            "nombre": "Fernando Vargas",
+            "importe": 8500
+          }
+        ],
+        "totalObra": 66000
+      },
+      {
+        "codigoObra": "228",
+        "nombreObra": "CASTELLO F",
+        "destajistas": [
+          {
+            "inicial": "PR",
+            "nombre": "Pedro Ramírez",
+            "importe": 24000
+          },
+          {
+            "inicial": "CF",
+            "nombre": "Carlos Flores",
+            "importe": 18000
+          },
+          {
+            "inicial": "RS",
+            "nombre": "Ricardo Sánchez",
+            "importe": 15500
+          }
+        ],
+        "totalObra": 57500
+      },
+      {
+        "codigoObra": "229",
+        "nombreObra": "CASTELLO G",
+        "destajistas": [
+          {
+            "inicial": "GM",
+            "nombre": "Gustavo Mendoza",
+            "importe": 28000
+          },
+          {
+            "inicial": "DL",
+            "nombre": "Daniel López",
+            "importe": 21000
+          }
+        ],
+        "totalObra": 49000
+      },
+      {
+        "codigoObra": "230",
+        "nombreObra": "CASTELLO H",
+        "destajistas": [
+          {
+            "inicial": "JM",
+            "nombre": "Jorge Martínez",
+            "importe": 17500
+          },
+          {
+            "inicial": "AM",
+            "nombre": "Andrés Morales",
+            "importe": 14500
+          }
+        ],
+        "totalObra": 32000
+      },
+      {
+        "codigoObra": "232",
+        "nombreObra": "BALVANERA",
+        "destajistas": [
+          {
+            "inicial": "EC",
+            "nombre": "Eduardo Castro",
+            "importe": 25000
+          },
+          {
+            "inicial": "OP",
+            "nombre": "Oscar Pérez",
+            "importe": 18500
+          }
+        ],
+        "totalObra": 43500
+      }
+    ],
+    "totalGeneral": 248000,
+    "archivoNombre": "destajos-semana2-enero2025.xlsx"
+  },
+  {
+    "id": "1737903600303",
+    "fecha": "2025-01-26T16:00:00.000Z",
+    "semana": "Semana 3 - Enero 2025",
+    "obras": [
+      {
+        "codigoObra": "227",
+        "nombreObra": "CASTELLO E",
+        "destajistas": [
+          {
+            "inicial": "AC",
+            "nombre": "Arturo Carmona",
+            "importe": 14000
+          },
+          {
+            "inicial": "LG",
+            "nombre": "Luis García",
+            "importe": 17000
+          },
+          {
+            "inicial": "FV",
+            "nombre": "Fernando Vargas",
+            "importe": 12000
+          }
+        ],
+        "totalObra": 43000
+      },
+      {
+        "codigoObra": "228",
+        "nombreObra": "CASTELLO F",
+        "destajistas": [
+          {
+            "inicial": "PR",
+            "nombre": "Pedro Ramírez",
+            "importe": 26000
+          },
+          {
+            "inicial": "CF",
+            "nombre": "Carlos Flores",
+            "importe": 19500
+          },
+          {
+            "inicial": "RS",
+            "nombre": "Ricardo Sánchez",
+            "importe": 16000
+          },
+          {
+            "inicial": "NG",
+            "nombre": "Néstor Gutiérrez",
+            "importe": 11000
+          }
+        ],
+        "totalObra": 72500
+      },
+      {
+        "codigoObra": "229",
+        "nombreObra": "CASTELLO G",
+        "destajistas": [
+          {
+            "inicial": "GM",
+            "nombre": "Gustavo Mendoza",
+            "importe": 30000
+          },
+          {
+            "inicial": "DL",
+            "nombre": "Daniel López",
+            "importe": 22500
+          },
+          {
+            "inicial": "HT",
+            "nombre": "Hugo Torres",
+            "importe": 18000
+          }
+        ],
+        "totalObra": 70500
+      },
+      {
+        "codigoObra": "230",
+        "nombreObra": "CASTELLO H",
+        "destajistas": [
+          {
+            "inicial": "JM",
+            "nombre": "Jorge Martínez",
+            "importe": 18500
+          },
+          {
+            "inicial": "AM",
+            "nombre": "Andrés Morales",
+            "importe": 15000
+          }
+        ],
+        "totalObra": 33500
+      },
+      {
+        "codigoObra": "231",
+        "nombreObra": "DOZA A",
+        "destajistas": [
+          {
+            "inicial": "IV",
+            "nombre": "Iván Vega",
+            "importe": 20000
+          },
+          {
+            "inicial": "SM",
+            "nombre": "Sergio Mejía",
+            "importe": 16000
+          }
+        ],
+        "totalObra": 36000
+      },
+      {
+        "codigoObra": "232",
+        "nombreObra": "BALVANERA",
+        "destajistas": [
+          {
+            "inicial": "EC",
+            "nombre": "Eduardo Castro",
+            "importe": 27000
+          },
+          {
+            "inicial": "OP",
+            "nombre": "Oscar Pérez",
+            "importe": 20000
+          },
+          {
+            "inicial": "RA",
+            "nombre": "Raúl Aguilar",
+            "importe": 14500
+          }
+        ],
+        "totalObra": 61500
+      }
+    ],
+    "totalGeneral": 317000,
+    "archivoNombre": "destajos-semana3-enero2025.xlsx"
+  }
+]

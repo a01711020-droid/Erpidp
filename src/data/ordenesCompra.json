@@ -1,0 +1,310 @@
+[
+  {
+    "id": "1736866800100",
+    "codigoOC": "227-A1JR-CEM",
+    "obraCode": "227",
+    "obraNombre": "CASTELLO E",
+    "proveedor": "Cementos y Agregados SA",
+    "proveedorId": "PROV-002",
+    "comprador": "Juan Ramírez",
+    "compradorIniciales": "JR",
+    "fecha": "2025-01-06T14:20:00.000Z",
+    "fechaEntrega": "2025-01-10T00:00:00.000Z",
+    "materiales": [
+      {
+        "concepto": "Cemento gris 50kg",
+        "unidad": "bulto",
+        "cantidad": 150,
+        "precioUnitario": 185,
+        "total": 27750
+      },
+      {
+        "concepto": "Arena de río",
+        "unidad": "m3",
+        "cantidad": 10,
+        "precioUnitario": 450,
+        "total": 4500
+      },
+      {
+        "concepto": "Grava 3/4",
+        "unidad": "m3",
+        "cantidad": 8,
+        "precioUnitario": 480,
+        "total": 3840
+      }
+    ],
+    "subtotal": 36090,
+    "iva": 5774.4,
+    "total": 41864.4,
+    "formaPago": "Crédito",
+    "diasCredito": 45,
+    "status": "Pagada",
+    "montoPagado": 41864.4,
+    "saldoPendiente": 0,
+    "requisicionesVinculadas": ["1736780400001"],
+    "notas": "Entrega en zona norte de la obra",
+    "createdAt": "2025-01-06T14:20:00.000Z",
+    "updatedAt": "2025-01-11T10:30:00.000Z"
+  },
+  {
+    "id": "1736953200101",
+    "codigoOC": "227-A2JR-ACE",
+    "obraCode": "227",
+    "obraNombre": "CASTELLO E",
+    "proveedor": "Aceros del Norte SA",
+    "proveedorId": "PROV-001",
+    "comprador": "Juan Ramírez",
+    "compradorIniciales": "JR",
+    "fecha": "2025-01-07T09:30:00.000Z",
+    "fechaEntrega": "2025-01-12T00:00:00.000Z",
+    "materiales": [
+      {
+        "concepto": "Varilla 3/8\" corrugada",
+        "unidad": "ton",
+        "cantidad": 3.5,
+        "precioUnitario": 18500,
+        "total": 64750
+      },
+      {
+        "concepto": "Alambrón",
+        "unidad": "kg",
+        "cantidad": 50,
+        "precioUnitario": 28,
+        "total": 1400
+      }
+    ],
+    "subtotal": 66150,
+    "iva": 10584,
+    "total": 76734,
+    "formaPago": "Crédito",
+    "diasCredito": 30,
+    "status": "Parcial",
+    "montoPagado": 40000,
+    "saldoPendiente": 36734,
+    "requisicionesVinculadas": ["1736866800002"],
+    "notas": "Acero certificado grado 42",
+    "createdAt": "2025-01-07T09:30:00.000Z",
+    "updatedAt": "2025-01-10T15:00:00.000Z"
+  },
+  {
+    "id": "1737039600102",
+    "codigoOC": "228-A1MC-MAT",
+    "obraCode": "228",
+    "obraNombre": "CASTELLO F",
+    "proveedor": "Materiales Eléctricos del Centro",
+    "proveedorId": "PROV-003",
+    "comprador": "María Castro",
+    "compradorIniciales": "MC",
+    "fecha": "2025-01-09T16:45:00.000Z",
+    "fechaEntrega": "2025-01-15T00:00:00.000Z",
+    "materiales": [
+      {
+        "concepto": "Cable calibre 12 AWG",
+        "unidad": "rollo",
+        "cantidad": 10,
+        "precioUnitario": 1850,
+        "total": 18500
+      },
+      {
+        "concepto": "Tubo conduit 3/4\"",
+        "unidad": "pza",
+        "cantidad": 100,
+        "precioUnitario": 85,
+        "total": 8500
+      },
+      {
+        "concepto": "Chalupas metálicas",
+        "unidad": "caja",
+        "cantidad": 5,
+        "precioUnitario": 450,
+        "total": 2250
+      }
+    ],
+    "subtotal": 29250,
+    "iva": 4680,
+    "total": 33930,
+    "formaPago": "Crédito",
+    "diasCredito": 30,
+    "status": "Pendiente",
+    "montoPagado": 0,
+    "saldoPendiente": 33930,
+    "requisicionesVinculadas": ["1737039600004"],
+    "notas": "Material certificado UL",
+    "createdAt": "2025-01-09T16:45:00.000Z",
+    "updatedAt": "2025-01-09T16:45:00.000Z"
+  },
+  {
+    "id": "1737126000103",
+    "codigoOC": "230-A1JR-PIN",
+    "obraCode": "230",
+    "obraNombre": "CASTELLO H",
+    "proveedor": "Pinturas y Recubrimientos SA",
+    "proveedorId": "PROV-005",
+    "comprador": "Juan Ramírez",
+    "compradorIniciales": "JR",
+    "fecha": "2025-01-10T11:00:00.000Z",
+    "fechaEntrega": "2025-01-14T00:00:00.000Z",
+    "materiales": [
+      {
+        "concepto": "Pintura vinílica blanca 19L",
+        "unidad": "cubeta",
+        "cantidad": 25,
+        "precioUnitario": 580,
+        "total": 14500
+      },
+      {
+        "concepto": "Sellador acrílico 19L",
+        "unidad": "cubeta",
+        "cantidad": 15,
+        "precioUnitario": 420,
+        "total": 6300
+      },
+      {
+        "concepto": "Brochas y rodillos",
+        "unidad": "lote",
+        "cantidad": 3,
+        "precioUnitario": 850,
+        "total": 2550
+      }
+    ],
+    "subtotal": 23350,
+    "iva": 3736,
+    "total": 27086,
+    "formaPago": "Crédito",
+    "diasCredito": 15,
+    "status": "Parcial",
+    "montoPagado": 15000,
+    "saldoPendiente": 12086,
+    "requisicionesVinculadas": ["1737126000005"],
+    "notas": "Pintura rendidora premium",
+    "createdAt": "2025-01-10T11:00:00.000Z",
+    "updatedAt": "2025-01-12T14:00:00.000Z"
+  },
+  {
+    "id": "1737212400104",
+    "codigoOC": "228-A2JR-FER",
+    "obraCode": "228",
+    "obraNombre": "CASTELLO F",
+    "proveedor": "Ferreterías Industriales SA",
+    "proveedorId": "PROV-004",
+    "comprador": "Juan Ramírez",
+    "compradorIniciales": "JR",
+    "fecha": "2025-01-11T10:00:00.000Z",
+    "fechaEntrega": "2025-01-16T00:00:00.000Z",
+    "materiales": [
+      {
+        "concepto": "Tornillos galvanizados 3\"",
+        "unidad": "caja",
+        "cantidad": 20,
+        "precioUnitario": 185,
+        "total": 3700
+      },
+      {
+        "concepto": "Clavos de acero diversos",
+        "unidad": "kg",
+        "cantidad": 100,
+        "precioUnitario": 35,
+        "total": 3500
+      },
+      {
+        "concepto": "Herramienta menor",
+        "unidad": "lote",
+        "cantidad": 2,
+        "precioUnitario": 4500,
+        "total": 9000
+      }
+    ],
+    "subtotal": 16200,
+    "iva": 2592,
+    "total": 18792,
+    "formaPago": "Efectivo",
+    "diasCredito": 0,
+    "status": "Pagada",
+    "montoPagado": 18792,
+    "saldoPendiente": 0,
+    "requisicionesVinculadas": [],
+    "notas": "Pago contra entrega",
+    "createdAt": "2025-01-11T10:00:00.000Z",
+    "updatedAt": "2025-01-11T10:00:00.000Z"
+  },
+  {
+    "id": "1737298800105",
+    "codigoOC": "227-A3MC-CEM",
+    "obraCode": "227",
+    "obraNombre": "CASTELLO E",
+    "proveedor": "Cementos y Agregados SA",
+    "proveedorId": "PROV-002",
+    "comprador": "María Castro",
+    "compradorIniciales": "MC",
+    "fecha": "2025-01-12T08:30:00.000Z",
+    "fechaEntrega": "2025-01-18T00:00:00.000Z",
+    "materiales": [
+      {
+        "concepto": "Cemento blanco 50kg",
+        "unidad": "bulto",
+        "cantidad": 80,
+        "precioUnitario": 245,
+        "total": 19600
+      },
+      {
+        "concepto": "Yeso para acabados",
+        "unidad": "bulto",
+        "cantidad": 50,
+        "precioUnitario": 125,
+        "total": 6250
+      }
+    ],
+    "subtotal": 25850,
+    "iva": 4136,
+    "total": 29986,
+    "formaPago": "Crédito",
+    "diasCredito": 45,
+    "status": "Pendiente",
+    "montoPagado": 0,
+    "saldoPendiente": 29986,
+    "requisicionesVinculadas": [],
+    "notas": "Para acabados finos",
+    "createdAt": "2025-01-12T08:30:00.000Z",
+    "updatedAt": "2025-01-12T08:30:00.000Z"
+  },
+  {
+    "id": "1737385200106",
+    "codigoOC": "230-A2MC-ACE",
+    "obraCode": "230",
+    "obraNombre": "CASTELLO H",
+    "proveedor": "Aceros del Norte SA",
+    "proveedorId": "PROV-001",
+    "comprador": "María Castro",
+    "compradorIniciales": "MC",
+    "fecha": "2025-01-13T09:15:00.000Z",
+    "fechaEntrega": "2025-01-20T00:00:00.000Z",
+    "materiales": [
+      {
+        "concepto": "Varilla 1/2\" corrugada",
+        "unidad": "ton",
+        "cantidad": 5,
+        "precioUnitario": 19200,
+        "total": 96000
+      },
+      {
+        "concepto": "Varilla 5/8\" corrugada",
+        "unidad": "ton",
+        "cantidad": 2.5,
+        "precioUnitario": 19500,
+        "total": 48750
+      }
+    ],
+    "subtotal": 144750,
+    "iva": 23160,
+    "total": 167910,
+    "formaPago": "Crédito",
+    "diasCredito": 30,
+    "status": "Pendiente",
+    "montoPagado": 0,
+    "saldoPendiente": 167910,
+    "requisicionesVinculadas": [],
+    "notas": "Acero para estructura nivel 2",
+    "createdAt": "2025-01-13T09:15:00.000Z",
+    "updatedAt": "2025-01-13T09:15:00.000Z"
+  }
+]
