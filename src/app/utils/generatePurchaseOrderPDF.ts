@@ -1,8 +1,40 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PurchaseOrder } from "@/app/components/PurchaseOrderForm";
-import logoIdp from "figma:asset/e4a354a4de736b4c56b26cd7758109f44b471b4f.png";
-import { imageToBase64 } from "./imageToBase64";
+
+// Función helper para cargar imagen desde URL pública
+const loadImageAsBase64 = (url: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("No se pudo obtener el contexto del canvas"));
+          return;
+        }
+        
+        ctx.drawImage(img, 0, 0);
+        const base64 = canvas.toDataURL("image/png");
+        resolve(base64);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    
+    img.onerror = () => {
+      reject(new Error("Error al cargar la imagen"));
+    };
+    
+    img.src = url;
+  });
+};
 
 export const generatePurchaseOrderPDF = async (order: PurchaseOrder) => {
   const doc = new jsPDF();
@@ -31,17 +63,25 @@ export const generatePurchaseOrderPDF = async (order: PurchaseOrder) => {
   const logoHeight = 25;
   
   try {
-    // Convertir logo a base64 y agregarlo al PDF
-    const logoBase64 = await imageToBase64(logoIdp);
+    // Intentar cargar el logo desde la ruta pública
+    // Nota: El logo SVG debe ser convertido a PNG para jsPDF
+    // Por ahora usamos un placeholder si falla
+    const logoBase64 = await loadImageAsBase64("/logo-idp.svg");
     doc.addImage(logoBase64, 'PNG', logoX, logoY, logoWidth, logoHeight);
   } catch (error) {
     console.error('Error al cargar logo:', error);
-    // Fallback: dibujar placeholder si falla
+    // Fallback: dibujar placeholder si falla (SVG no es compatible con jsPDF directamente)
     doc.setFillColor(goldenYellow[0], goldenYellow[1], goldenYellow[2]);
     doc.rect(logoX, logoY, logoWidth, logoHeight, "F");
     doc.setDrawColor(navyBlue[0], navyBlue[1], navyBlue[2]);
     doc.setLineWidth(1.5);
     doc.rect(logoX, logoY, logoWidth, logoHeight, "S");
+    
+    // Agregar texto "IDP" en el placeholder
+    doc.setTextColor(navyBlue[0], navyBlue[1], navyBlue[2]);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("IDP", logoX + logoWidth / 2, logoY + logoHeight / 2 + 2, { align: "center" });
   }
   
   // Información de la empresa (texto blanco)

@@ -10,8 +10,8 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-// Logo IDP
-import logoIdp from "figma:asset/f8466b45551caf0d2ba4727b71061c2b0b7fdee1.png";
+// Logo IDP - SVG desde public
+const logoIdp = "/logo-idp.svg";
 
 type Module = "dashboard" | "requisitions" | "purchases" | "payments";
 

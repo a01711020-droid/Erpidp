@@ -19,8 +19,8 @@ import PaymentManagement from "./PaymentManagement";
 import ContractTracking from "./ContractTracking";
 import ExpenseDetails from "./ExpenseDetails";
 
-// Logo IDP
-import logoIdp from "figma:asset/f8466b45551caf0d2ba4727b71061c2b0b7fdee1.png";
+// Logo IDP - SVG desde public
+const logoIdp = "/logo-idp.svg";
 
 type Module =
   | "home"
@@ -203,7 +203,7 @@ export default function MainApp() {
       {/* Main Content Area */}
       <main className="mx-auto max-w-[1800px] px-4 sm:px-6 lg:px-8 py-6">
         {activeModule === "dashboard" && hasAccess("dashboard") && (
-          <GlobalDashboard onSelectProject={handleSelectProject} />
+          <GlobalDashboard />
         )}
 
         {activeModule === "requisitions" && hasAccess("requisitions") && (
