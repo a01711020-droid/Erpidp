@@ -1,4 +1,5 @@
 import { Card } from "./components/ui/card";
+import { useNavigate } from "react-router-dom";
 import {
   ShoppingCart,
   CreditCard,
@@ -8,25 +9,19 @@ import {
   Building2,
   Users,
   TrendingUp,
+  Package,
 } from "lucide-react";
 
 // Logo IDP - SVG desde public
 const logoIdp = "/logo-idp.svg";
 
-type Module = "dashboard" | "requisitions" | "purchases" | "payments";
-
-interface HomeProps {
-  onSelectModule: (module: Module) => void;
-  userRole: "admin" | "residente" | "compras" | "pagos";
-  userName: string;
-}
-
-// Configuración de módulos
+// Configuración de módulos principales (4 funcionales + 1 futuro)
 const modules = [
   {
-    id: "dashboard" as Module,
+    id: "dashboard",
+    path: "/dashboard",
     title: "Dashboard Global",
-    description: "Vista general del sistema empresarial con todas las métricas y estadísticas",
+    description: "Vista general del sistema empresarial con todas las métricas y estadísticas por obra",
     icon: LayoutDashboard,
     color: "from-slate-800 to-slate-900",
     bgGradient: "from-slate-100 to-slate-200",
@@ -35,9 +30,26 @@ const modules = [
     iconColor: "text-slate-800",
     hoverBorder: "hover:border-slate-500",
     allowedRoles: ["admin"],
+    enabled: true,
   },
   {
-    id: "requisitions" as Module,
+    id: "purchases",
+    path: "/compras",
+    title: "Compras",
+    description: "Gestión completa de órdenes de compra, proveedores y generación de PDFs",
+    icon: ShoppingCart,
+    color: "from-blue-700 to-blue-800",
+    bgGradient: "from-blue-50 to-blue-100",
+    borderColor: "border-blue-300",
+    iconBg: "bg-blue-100",
+    iconColor: "text-blue-700",
+    hoverBorder: "hover:border-blue-500",
+    allowedRoles: ["admin", "compras"],
+    enabled: true,
+  },
+  {
+    id: "requisitions",
+    path: "/requisiciones",
     title: "Requisiciones de Material",
     description: "Gestión de solicitudes de material desde obra con sistema de urgencia y aprobaciones",
     icon: ClipboardList,
@@ -48,23 +60,12 @@ const modules = [
     iconColor: "text-amber-700",
     hoverBorder: "hover:border-amber-500",
     allowedRoles: ["admin", "residente", "compras"],
+    enabled: true,
   },
   {
-    id: "purchases" as Module,
-    title: "Órdenes de Compra",
-    description: "Gestión completa de órdenes de compra, proveedores y generación de PDFs",
-    icon: ShoppingCart,
-    color: "from-blue-700 to-blue-800",
-    bgGradient: "from-blue-50 to-blue-100",
-    borderColor: "border-blue-300",
-    iconBg: "bg-blue-100",
-    iconColor: "text-blue-700",
-    hoverBorder: "hover:border-blue-500",
-    allowedRoles: ["admin", "compras"],
-  },
-  {
-    id: "payments" as Module,
-    title: "Módulo de Pagos",
+    id: "payments",
+    path: "/pagos",
+    title: "Pagos",
     description: "Control de pagos a proveedores, vinculación con OCs y pagos parciales",
     icon: CreditCard,
     color: "from-emerald-700 to-emerald-800",
@@ -74,17 +75,49 @@ const modules = [
     iconColor: "text-emerald-700",
     hoverBorder: "hover:border-emerald-500",
     allowedRoles: ["admin", "pagos"],
+    enabled: true,
+  },
+  {
+    id: "deliveries",
+    path: "#",
+    title: "Entregas",
+    description: "Módulo de seguimiento de entregas - Próximamente disponible",
+    icon: Package,
+    color: "from-purple-700 to-purple-800",
+    bgGradient: "from-purple-50 to-purple-100",
+    borderColor: "border-purple-300",
+    iconBg: "bg-purple-100",
+    iconColor: "text-purple-700",
+    hoverBorder: "hover:border-purple-400",
+    allowedRoles: ["admin", "compras"],
+    enabled: false, // Módulo futuro
   },
 ];
 
-export default function Home({ onSelectModule, userRole, userName }: HomeProps) {
+// Por ahora simulamos un usuario admin para mostrar todos los módulos
+const currentUser = {
+  role: "admin" as const,
+  name: "Sistema de Gestión",
+};
+
+export default function Home() {
+  const navigate = useNavigate();
+
   const hasAccess = (allowedRoles: string[]) => {
-    return allowedRoles.includes(userRole);
+    return allowedRoles.includes(currentUser.role);
   };
 
   const accessibleModules = modules.filter((module) =>
     hasAccess(module.allowedRoles)
   );
+
+  const handleModuleClick = (module: typeof modules[0]) => {
+    if (!module.enabled) {
+      alert("Este módulo estará disponible próximamente");
+      return;
+    }
+    navigate(module.path);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50">
@@ -108,15 +141,15 @@ export default function Home({ onSelectModule, userRole, userName }: HomeProps) 
             <div className="inline-flex items-center gap-2 bg-slate-700/50 px-4 py-2 rounded-full mt-4">
               <Users className="h-5 w-5 text-slate-300" />
               <span className="text-slate-200">
-                Bienvenido, <span className="font-semibold text-white">{userName}</span>
+                Bienvenido, <span className="font-semibold text-white">{currentUser.name}</span>
               </span>
               <span className="text-slate-400">•</span>
               <span className="text-slate-300 capitalize">
-                {userRole === "admin"
+                {currentUser.role === "admin"
                   ? "Administrador"
-                  : userRole === "residente"
+                  : currentUser.role === "residente"
                   ? "Residente de Obra"
-                  : userRole === "compras"
+                  : currentUser.role === "compras"
                   ? "Departamento de Compras"
                   : "Departamento de Pagos"}
               </span>
@@ -136,14 +169,16 @@ export default function Home({ onSelectModule, userRole, userName }: HomeProps) 
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {accessibleModules.map((module) => {
             const Icon = module.icon;
             return (
               <Card
                 key={module.id}
-                className={`relative overflow-hidden border-2 ${module.borderColor} ${module.hoverBorder} transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] cursor-pointer group`}
-                onClick={() => onSelectModule(module.id)}
+                className={`relative overflow-hidden border-2 ${module.borderColor} ${module.hoverBorder} transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] cursor-pointer group ${
+                  !module.enabled ? "opacity-60" : ""
+                }`}
+                onClick={() => handleModuleClick(module)}
               >
                 <div className={`absolute inset-0 bg-gradient-to-br ${module.bgGradient} opacity-50`}></div>
                 <div className="relative p-8">
@@ -161,6 +196,13 @@ export default function Home({ onSelectModule, userRole, userName }: HomeProps) 
                   <p className="text-gray-600 leading-relaxed">
                     {module.description}
                   </p>
+                  {!module.enabled && (
+                    <div className="mt-3">
+                      <span className="inline-block bg-purple-100 text-purple-800 text-xs font-semibold px-3 py-1 rounded-full">
+                        Próximamente
+                      </span>
+                    </div>
+                  )}
                 </div>
               </Card>
             );
@@ -195,7 +237,7 @@ export default function Home({ onSelectModule, userRole, userName }: HomeProps) 
                   Módulos Activos
                 </p>
                 <p className="text-3xl font-bold text-blue-900">
-                  {accessibleModules.length}
+                  {accessibleModules.filter(m => m.enabled).length}
                 </p>
               </div>
               <TrendingUp className="h-8 w-8 text-blue-600" />
@@ -209,11 +251,11 @@ export default function Home({ onSelectModule, userRole, userName }: HomeProps) 
                   Tu Acceso
                 </p>
                 <p className="text-xl font-bold text-purple-900 capitalize">
-                  {userRole === "admin"
+                  {currentUser.role === "admin"
                     ? "Completo"
-                    : userRole === "residente"
+                    : currentUser.role === "residente"
                     ? "Requisiciones"
-                    : userRole === "compras"
+                    : currentUser.role === "compras"
                     ? "Compras"
                     : "Pagos"}
                 </p>

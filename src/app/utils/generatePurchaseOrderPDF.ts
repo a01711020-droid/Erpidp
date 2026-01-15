@@ -64,9 +64,9 @@ export const generatePurchaseOrderPDF = async (order: PurchaseOrder) => {
   
   try {
     // Intentar cargar el logo desde la ruta pública
-    // Nota: El logo SVG debe ser convertido a PNG para jsPDF
-    // Por ahora usamos un placeholder si falla
-    const logoBase64 = await loadImageAsBase64("/logo-idp.svg");
+    // Nota: Usamos el logo alternativo (amarillo) para PDFs de Órdenes de Compra
+    // El logo SVG debe ser convertido a PNG para jsPDF
+    const logoBase64 = await loadImageAsBase64("/logo-idp-alt.svg");
     doc.addImage(logoBase64, 'PNG', logoX, logoY, logoWidth, logoHeight);
   } catch (error) {
     console.error('Error al cargar logo:', error);

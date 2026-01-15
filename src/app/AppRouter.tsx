@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Home from "./Home";
 import GlobalDashboard from "./GlobalDashboard";
 import MaterialRequisitions from "./MaterialRequisitions";
 import PurchaseOrderManagement from "./PurchaseOrderManagement";
@@ -11,28 +12,27 @@ export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Ruta principal - Dashboard Global */}
-        <Route path="/" element={<GlobalDashboard />} />
+        {/* Ruta principal - Home (Pantalla de selección) */}
+        <Route path="/" element={<Home />} />
+        
+        {/* Dashboard Global */}
+        <Route path="/dashboard" element={<GlobalDashboard />} />
+        
+        {/* Sub-rutas del Dashboard por obra */}
+        <Route path="/dashboard/:obraSlug/contratos" element={<ContractTracking />} />
+        <Route path="/dashboard/:obraSlug/gastos" element={<ExpenseDetails />} />
+        <Route path="/dashboard/:obraSlug/destajos" element={<DestajosModule />} />
+        
+        {/* Módulo de Compras (antes Órdenes de Compra) */}
+        <Route path="/compras" element={<PurchaseOrderManagement />} />
         
         {/* Módulo de Requisiciones */}
         <Route path="/requisiciones" element={<MaterialRequisitions />} />
         
-        {/* Módulo de Órdenes de Compra */}
-        <Route path="/ordenes-compra" element={<PurchaseOrderManagement />} />
-        
         {/* Módulo de Pagos */}
         <Route path="/pagos" element={<PaymentManagement />} />
         
-        {/* Módulo de Destajos */}
-        <Route path="/destajos" element={<DestajosModule />} />
-        
-        {/* Módulo de Contratos (Físico) */}
-        <Route path="/contratos" element={<ContractTracking />} />
-        
-        {/* Módulo de Gastos */}
-        <Route path="/gastos" element={<ExpenseDetails />} />
-        
-        {/* Ruta no encontrada - redirige al dashboard */}
+        {/* Ruta no encontrada - redirige al home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

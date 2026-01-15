@@ -37,6 +37,8 @@ export interface Obra {
   resident: string;
   residentInitials: string;
   residentPassword: string;
+  residentPhone?: string; // Teléfono del residente
+  address?: string; // Domicilio de la obra
   status: "Activa" | "Archivada";
   actualBalance: number;
   totalEstimates: number;
@@ -50,8 +52,11 @@ export interface Obra {
 export interface Proveedor {
   id: string;
   nombre: string;
+  razonSocial?: string; // Razón social completa
   rfc: string;
+  direccion?: string; // Dirección del proveedor
   contacto: string;
+  vendedor?: string; // Nombre del vendedor asignado
   telefono: string;
   email: string;
   lineaCredito: number;
