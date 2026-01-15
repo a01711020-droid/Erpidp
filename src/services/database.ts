@@ -1,550 +1,645 @@
 /**
- * SERVICIO DE BASE DE DATOS CENTRALIZADO
+ * SERVICIO DE BASE DE DATOS - PRODUCCIÓN
  * 
- * Este servicio maneja TODA la lógica de datos de la aplicación.
- * - Obras
- * - Requisiciones
- * - Órdenes de Compra
- * - Pagos
- * - Destajos
- * - Proveedores
+ * Este servicio es un ADAPTADOR que conecta con la API REST.
+ * Reemplaza el storage local (localStorage/JSON) por llamadas HTTP reales.
  * 
- * IMPORTANTE: Todo módulo debe usar este servicio para mantener
- * la integridad referencial y actualizar totales automáticamente.
+ * MODO DEMO: Si la API no está disponible, cae en modo demo con localStorage.
  */
 
-import obrasData from '@/data/obras.json';
-import proveedoresData from '@/data/proveedores.json';
-import requisicionesData from '@/data/requisiciones.json';
-import ordenesCompraData from '@/data/ordenesCompra.json';
-import pagosData from '@/data/pagos.json';
-import destajosData from '@/data/destajos.json';
+import {
+  obrasAPI,
+  proveedoresAPI,
+  requisicionesAPI,
+  ordenesCompraAPI,
+  pagosAPI,
+  destajosAPI,
+  dashboardAPI,
+  healthAPI,
+} from './api';
 
-// ============================================
-// INTERFACES Y TIPOS
-// ============================================
+import type {
+  Obra,
+  Proveedor,
+  Requisicion,
+  OrdenCompra,
+  Pago,
+  CargaSemanal,
+} from '@/types';
 
-export interface Obra {
-  code: string;
-  name: string;
-  client: string;
-  contractNumber: string;
-  contractAmount: number;
-  advancePercentage: number;
-  retentionPercentage: number;
-  startDate: string;
-  estimatedEndDate: string;
-  resident: string;
-  residentInitials: string;
-  residentPassword: string;
-  residentPhone?: string; // Teléfono del residente
-  address?: string; // Domicilio de la obra
-  status: "Activa" | "Archivada";
-  actualBalance: number;
-  totalEstimates: number;
-  totalExpenses: number;
-  totalExpensesFromOCs: number;
-  totalExpensesFromDestajos: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Proveedor {
-  id: string;
-  nombre: string;
-  razonSocial?: string; // Razón social completa
-  rfc: string;
-  direccion?: string; // Dirección del proveedor
-  contacto: string;
-  vendedor?: string; // Nombre del vendedor asignado
-  telefono: string;
-  email: string;
-  lineaCredito: number;
-  diasCredito: number;
-  vencimientoLinea: string;
-  saldoPendiente: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface MaterialRequisicion {
-  concepto: string;
-  unidad: string;
-  cantidad: number;
-  precioUnitario: number;
-  total: number;
-}
-
-export interface Requisicion {
-  id: string;
-  codigoRequisicion: string;
-  obraCode: string;
-  obraNombre: string;
-  residente: string;
-  residenteIniciales: string;
-  fecha: string;
-  materiales: MaterialRequisicion[];
-  total: number;
-  status: "Pendiente" | "Aprobada" | "Rechazada" | "En Proceso" | "Completada";
-  notas?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface MaterialOrdenCompra {
-  concepto: string;
-  unidad: string;
-  cantidad: number;
-  precioUnitario: number;
-  total: number;
-}
-
-export interface OrdenCompra {
-  id: string;
-  codigoOC: string;
-  obraCode: string;
-  obraNombre: string;
-  proveedor: string;
-  proveedorId: string;
-  comprador: string;
-  compradorIniciales: string;
-  fecha: string;
-  fechaEntrega: string;
-  materiales: MaterialOrdenCompra[];
-  subtotal: number;
-  iva: number;
-  total: number;
-  formaPago: string;
-  diasCredito: number;
-  status: "Pendiente" | "Parcial" | "Pagada" | "Cancelada";
-  montoPagado: number;
-  saldoPendiente: number;
-  requisicionesVinculadas: string[];
-  notas?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Pago {
-  id: string;
-  fecha: string;
-  ordenCompraId: string;
-  codigoOC: string;
-  proveedor: string;
-  monto: number;
-  metodoPago: string;
-  referencia: string;
-  banco?: string;
-  cuentaBancaria?: string;
-  notas?: string;
-  createdAt: string;
-}
-
-export interface DestajistaEntry {
-  inicial: string;
-  nombre: string;
-  importe: number;
-}
-
-export interface DestajosPorObra {
-  codigoObra: string;
-  nombreObra: string;
-  destajistas: DestajistaEntry[];
-  totalObra: number;
-}
-
-export interface CargaSemanal {
-  id: string;
-  fecha: string;
-  semana: string;
-  obras: DestajosPorObra[];
-  totalGeneral: number;
-  archivoNombre: string;
-}
-
-// ============================================
-// CLASE DATABASE SERVICE
-// ============================================
+// Datos de fallback para modo demo
+import obrasDataJSON from '@/data/obras.json';
+import proveedoresDataJSON from '@/data/proveedores.json';
+import requisicionesDataJSON from '@/data/requisiciones.json';
+import ordenesCompraDataJSON from '@/data/ordenesCompra.json';
+import pagosDataJSON from '@/data/pagos.json';
+import destajosDataJSON from '@/data/destajos.json';
 
 class DatabaseService {
   private static instance: DatabaseService;
-  
-  // Caché en memoria (simulando base de datos)
-  private obras: Obra[] = [];
-  private proveedores: Proveedor[] = [];
-  private requisiciones: Requisicion[] = [];
-  private ordenesCompra: OrdenCompra[] = [];
-  private pagos: Pago[] = [];
-  private destajos: CargaSemanal[] = [];
+  private apiAvailable: boolean = false;
+  private checkingAPI: boolean = false;
 
   private constructor() {
-    this.loadFromStorage();
+    this.init();
   }
 
-  public static getInstance(): DatabaseService {
+  static getInstance(): DatabaseService {
     if (!DatabaseService.instance) {
       DatabaseService.instance = new DatabaseService();
     }
     return DatabaseService.instance;
   }
 
-  // ============================================
-  // CARGA Y PERSISTENCIA
-  // ============================================
-
-  private loadFromStorage() {
-    // Cargar desde localStorage o usar datos iniciales de JSON
-    this.obras = this.getFromLocalStorage('obras', obrasData as Obra[]);
-    this.proveedores = this.getFromLocalStorage('proveedores', proveedoresData as Proveedor[]);
-    this.requisiciones = this.getFromLocalStorage('requisiciones', requisicionesData as Requisicion[]);
-    this.ordenesCompra = this.getFromLocalStorage('ordenesCompra', ordenesCompraData as OrdenCompra[]);
-    this.pagos = this.getFromLocalStorage('pagos', pagosData as Pago[]);
-    this.destajos = this.getFromLocalStorage('destajosCargas', destajosData as CargaSemanal[]);
+  /**
+   * Inicializar y verificar disponibilidad de API
+   */
+  private async init() {
+    await this.checkAPIHealth();
   }
 
-  private getFromLocalStorage<T>(key: string, defaultValue: T): T {
-    try {
-      const stored = localStorage.getItem(key);
-      return stored ? JSON.parse(stored) : defaultValue;
-    } catch (error) {
-      console.error(`Error loading ${key} from localStorage:`, error);
-      return defaultValue;
-    }
-  }
-
-  private saveToLocalStorage<T>(key: string, data: T) {
-    try {
-      localStorage.setItem(key, JSON.stringify(data));
-    } catch (error) {
-      console.error(`Error saving ${key} to localStorage:`, error);
-    }
-  }
-
-  // ============================================
-  // OBRAS - CRUD
-  // ============================================
-
-  public getObras(): Obra[] {
-    return [...this.obras];
-  }
-
-  public getObraByCode(code: string): Obra | undefined {
-    return this.obras.find(o => o.code === code);
-  }
-
-  public createObra(obra: Omit<Obra, 'createdAt' | 'updatedAt' | 'totalExpensesFromOCs' | 'totalExpensesFromDestajos'>): Obra {
-    const newObra: Obra = {
-      ...obra,
-      totalExpensesFromOCs: 0,
-      totalExpensesFromDestajos: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    this.obras.push(newObra);
-    this.saveToLocalStorage('obras', this.obras);
-    return newObra;
-  }
-
-  public updateObra(code: string, updates: Partial<Obra>): Obra | null {
-    const index = this.obras.findIndex(o => o.code === code);
-    if (index === -1) return null;
-
-    this.obras[index] = {
-      ...this.obras[index],
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    };
-    this.saveToLocalStorage('obras', this.obras);
-    return this.obras[index];
-  }
-
-  public deleteObra(code: string): boolean {
-    const index = this.obras.findIndex(o => o.code === code);
-    if (index === -1) return false;
-
-    this.obras.splice(index, 1);
-    this.saveToLocalStorage('obras', this.obras);
-    return true;
-  }
-
-  // ============================================
-  // OBRAS - RECALCULAR TOTALES
-  // ============================================
-
-  public recalcularTotalesObra(obraCode: string) {
-    const obra = this.getObraByCode(obraCode);
-    if (!obra) return;
-
-    // Calcular total de OCs de esta obra
-    const totalOCs = this.ordenesCompra
-      .filter(oc => oc.obraCode === obraCode && oc.status !== 'Cancelada')
-      .reduce((sum, oc) => sum + oc.total, 0);
-
-    // Calcular total de destajos de esta obra
-    const totalDestajos = this.destajos
-      .flatMap(carga => carga.obras)
-      .filter(obraDestajo => obraDestajo.codigoObra === obraCode)
-      .reduce((sum, obraDestajo) => sum + obraDestajo.totalObra, 0);
-
-    // Actualizar totales
-    this.updateObra(obraCode, {
-      totalExpensesFromOCs: totalOCs,
-      totalExpensesFromDestajos: totalDestajos,
-      totalExpenses: totalOCs + totalDestajos,
-    });
-  }
-
-  // ============================================
-  // PROVEEDORES - CRUD
-  // ============================================
-
-  public getProveedores(): Proveedor[] {
-    return [...this.proveedores];
-  }
-
-  public getProveedorById(id: string): Proveedor | undefined {
-    return this.proveedores.find(p => p.id === id);
-  }
-
-  public createProveedor(proveedor: Omit<Proveedor, 'id' | 'createdAt' | 'updatedAt'>): Proveedor {
-    const newId = `PROV-${String(this.proveedores.length + 1).padStart(3, '0')}`;
-    const newProveedor: Proveedor = {
-      ...proveedor,
-      id: newId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    this.proveedores.push(newProveedor);
-    this.saveToLocalStorage('proveedores', this.proveedores);
-    return newProveedor;
-  }
-
-  public updateProveedor(id: string, updates: Partial<Proveedor>): Proveedor | null {
-    const index = this.proveedores.findIndex(p => p.id === id);
-    if (index === -1) return null;
-
-    this.proveedores[index] = {
-      ...this.proveedores[index],
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    };
-    this.saveToLocalStorage('proveedores', this.proveedores);
-    return this.proveedores[index];
-  }
-
-  public recalcularSaldoProveedor(proveedorId: string) {
-    const saldoPendiente = this.ordenesCompra
-      .filter(oc => oc.proveedorId === proveedorId && oc.status !== 'Cancelada')
-      .reduce((sum, oc) => sum + oc.saldoPendiente, 0);
-
-    this.updateProveedor(proveedorId, { saldoPendiente });
-  }
-
-  // ============================================
-  // REQUISICIONES - CRUD
-  // ============================================
-
-  public getRequisiciones(): Requisicion[] {
-    return [...this.requisiciones];
-  }
-
-  public getRequisicionesByObra(obraCode: string): Requisicion[] {
-    return this.requisiciones.filter(r => r.obraCode === obraCode);
-  }
-
-  public createRequisicion(requisicion: Omit<Requisicion, 'id' | 'createdAt' | 'updatedAt'>): Requisicion {
-    const newRequisicion: Requisicion = {
-      ...requisicion,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    this.requisiciones.push(newRequisicion);
-    this.saveToLocalStorage('requisiciones', this.requisiciones);
-    return newRequisicion;
-  }
-
-  public updateRequisicion(id: string, updates: Partial<Requisicion>): Requisicion | null {
-    const index = this.requisiciones.findIndex(r => r.id === id);
-    if (index === -1) return null;
-
-    this.requisiciones[index] = {
-      ...this.requisiciones[index],
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    };
-    this.saveToLocalStorage('requisiciones', this.requisiciones);
-    return this.requisiciones[index];
-  }
-
-  // ============================================
-  // ÓRDENES DE COMPRA - CRUD
-  // ============================================
-
-  public getOrdenesCompra(): OrdenCompra[] {
-    return [...this.ordenesCompra];
-  }
-
-  public getOrdenesCompraByObra(obraCode: string): OrdenCompra[] {
-    return this.ordenesCompra.filter(oc => oc.obraCode === obraCode);
-  }
-
-  public createOrdenCompra(ordenCompra: Omit<OrdenCompra, 'id' | 'createdAt' | 'updatedAt'>): OrdenCompra {
-    const newOrdenCompra: OrdenCompra = {
-      ...ordenCompra,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    this.ordenesCompra.push(newOrdenCompra);
-    this.saveToLocalStorage('ordenesCompra', this.ordenesCompra);
-
-    // IMPORTANTE: Recalcular totales de la obra
-    this.recalcularTotalesObra(ordenCompra.obraCode);
+  /**
+   * Verificar si la API está disponible
+   */
+  async checkAPIHealth(): Promise<boolean> {
+    if (this.checkingAPI) return this.apiAvailable;
     
-    // Recalcular saldo del proveedor
-    this.recalcularSaldoProveedor(ordenCompra.proveedorId);
-
-    return newOrdenCompra;
+    this.checkingAPI = true;
+    try {
+      this.apiAvailable = await healthAPI.check();
+      console.log(this.apiAvailable ? '✅ API conectada' : '⚠️ API no disponible - usando modo DEMO');
+    } catch {
+      this.apiAvailable = false;
+      console.warn('⚠️ API no disponible - usando modo DEMO con localStorage');
+    } finally {
+      this.checkingAPI = false;
+    }
+    
+    return this.apiAvailable;
   }
 
-  public updateOrdenCompra(id: string, updates: Partial<OrdenCompra>): OrdenCompra | null {
-    const index = this.ordenesCompra.findIndex(oc => oc.id === id);
+  /**
+   * Helper para localStorage (modo demo)
+   */
+  private getFromLocalStorage<T>(key: string, defaultData: T[]): T[] {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : defaultData;
+  }
+
+  private saveToLocalStorage<T>(key: string, data: T[]) {
+    localStorage.setItem(key, JSON.stringify(data));
+  }
+
+  // ==========================================
+  // OBRAS
+  // ==========================================
+
+  async getObras(): Promise<Obra[]> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await obrasAPI.getAll();
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    // Modo demo
+    return this.getFromLocalStorage<Obra>('obras', obrasDataJSON as Obra[]);
+  }
+
+  async getObraByCode(code: string): Promise<Obra | undefined> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await obrasAPI.getByCode(code);
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    // Modo demo
+    const obras = this.getFromLocalStorage<Obra>('obras', obrasDataJSON as Obra[]);
+    return obras.find(o => o.code === code);
+  }
+
+  async createObra(obra: Omit<Obra, 'id' | 'createdAt' | 'updatedAt'>): Promise<Obra> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await obrasAPI.create(obra);
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    // Modo demo
+    const nuevaObra: Obra = {
+      ...obra,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as Obra;
+    
+    const obras = this.getFromLocalStorage<Obra>('obras', obrasDataJSON as Obra[]);
+    obras.push(nuevaObra);
+    this.saveToLocalStorage('obras', obras);
+    return nuevaObra;
+  }
+
+  async updateObra(code: string, updates: Partial<Obra>): Promise<Obra | null> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await obrasAPI.update(code, updates);
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    // Modo demo
+    const obras = this.getFromLocalStorage<Obra>('obras', obrasDataJSON as Obra[]);
+    const index = obras.findIndex(o => o.code === code);
     if (index === -1) return null;
-
-    const obraCodeAnterior = this.ordenesCompra[index].obraCode;
-    const proveedorIdAnterior = this.ordenesCompra[index].proveedorId;
-
-    this.ordenesCompra[index] = {
-      ...this.ordenesCompra[index],
+    
+    obras[index] = {
+      ...obras[index],
       ...updates,
       updatedAt: new Date().toISOString(),
     };
-    this.saveToLocalStorage('ordenesCompra', this.ordenesCompra);
-
-    // Recalcular totales
-    this.recalcularTotalesObra(obraCodeAnterior);
-    if (updates.obraCode && updates.obraCode !== obraCodeAnterior) {
-      this.recalcularTotalesObra(updates.obraCode);
-    }
-
-    // Recalcular proveedor
-    this.recalcularSaldoProveedor(proveedorIdAnterior);
-    if (updates.proveedorId && updates.proveedorId !== proveedorIdAnterior) {
-      this.recalcularSaldoProveedor(updates.proveedorId);
-    }
-
-    return this.ordenesCompra[index];
+    this.saveToLocalStorage('obras', obras);
+    return obras[index];
   }
 
-  // ============================================
-  // PAGOS - CRUD
-  // ============================================
-
-  public getPagos(): Pago[] {
-    return [...this.pagos];
-  }
-
-  public getPagosByOrdenCompra(ordenCompraId: string): Pago[] {
-    return this.pagos.filter(p => p.ordenCompraId === ordenCompraId);
-  }
-
-  public createPago(pago: Omit<Pago, 'id' | 'createdAt'>): Pago {
-    const newPago: Pago = {
-      ...pago,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-    this.pagos.push(newPago);
-    this.saveToLocalStorage('pagos', this.pagos);
-
-    // Actualizar estado de la OC
-    const oc = this.ordenesCompra.find(o => o.id === pago.ordenCompraId);
-    if (oc) {
-      const totalPagado = this.getPagosByOrdenCompra(oc.id)
-        .reduce((sum, p) => sum + p.monto, 0);
-      
-      const nuevoSaldo = oc.total - totalPagado;
-      let nuevoStatus: OrdenCompra['status'] = 'Pendiente';
-      
-      if (nuevoSaldo <= 0) {
-        nuevoStatus = 'Pagada';
-      } else if (totalPagado > 0) {
-        nuevoStatus = 'Parcial';
+  async deleteObra(code: string): Promise<boolean> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        await obrasAPI.delete(code);
+        return true;
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
       }
-
-      this.updateOrdenCompra(oc.id, {
-        montoPagado: totalPagado,
-        saldoPendiente: nuevoSaldo,
-        status: nuevoStatus,
-      });
     }
-
-    return newPago;
+    
+    // Modo demo
+    const obras = this.getFromLocalStorage<Obra>('obras', obrasDataJSON as Obra[]);
+    const filtered = obras.filter(o => o.code !== code);
+    this.saveToLocalStorage('obras', filtered);
+    return filtered.length < obras.length;
   }
 
-  // ============================================
-  // DESTAJOS - CRUD
-  // ============================================
+  // ==========================================
+  // PROVEEDORES
+  // ==========================================
 
-  public getDestajos(): CargaSemanal[] {
-    return [...this.destajos];
+  async getProveedores(): Promise<Proveedor[]> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await proveedoresAPI.getAll();
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    return this.getFromLocalStorage<Proveedor>('proveedores', proveedoresDataJSON as Proveedor[]);
   }
 
-  public createCargaDestajo(carga: CargaSemanal): CargaSemanal {
-    this.destajos.unshift(carga);
-    this.saveToLocalStorage('destajosCargas', this.destajos);
+  async getProveedorById(id: string): Promise<Proveedor | undefined> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await proveedoresAPI.getById(id);
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    const proveedores = this.getFromLocalStorage<Proveedor>('proveedores', proveedoresDataJSON as Proveedor[]);
+    return proveedores.find(p => p.id === id);
+  }
 
-    // Recalcular totales de todas las obras afectadas
-    carga.obras.forEach(obra => {
-      this.recalcularTotalesObra(obra.codigoObra);
+  async createProveedor(proveedor: Omit<Proveedor, 'id' | 'createdAt' | 'updatedAt'>): Promise<Proveedor> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await proveedoresAPI.create(proveedor);
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    // Modo demo
+    const nuevoProveedor: Proveedor = {
+      ...proveedor,
+      id: `PROV-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as Proveedor;
+    
+    const proveedores = this.getFromLocalStorage<Proveedor>('proveedores', proveedoresDataJSON as Proveedor[]);
+    proveedores.push(nuevoProveedor);
+    this.saveToLocalStorage('proveedores', proveedores);
+    return nuevoProveedor;
+  }
+
+  async updateProveedor(id: string, updates: Partial<Proveedor>): Promise<Proveedor | null> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await proveedoresAPI.update(id, updates);
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    // Modo demo
+    const proveedores = this.getFromLocalStorage<Proveedor>('proveedores', proveedoresDataJSON as Proveedor[]);
+    const index = proveedores.findIndex(p => p.id === id);
+    if (index === -1) return null;
+    
+    proveedores[index] = {
+      ...proveedores[index],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    this.saveToLocalStorage('proveedores', proveedores);
+    return proveedores[index];
+  }
+
+  // ==========================================
+  // REQUISICIONES
+  // ==========================================
+
+  async getRequisiciones(): Promise<Requisicion[]> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await requisicionesAPI.getAll();
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    return this.getFromLocalStorage<Requisicion>('requisiciones', requisicionesDataJSON as Requisicion[]);
+  }
+
+  async getRequisicionesByObra(obraCode: string): Promise<Requisicion[]> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await requisicionesAPI.getByObra(obraCode);
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    const requisiciones = this.getFromLocalStorage<Requisicion>('requisiciones', requisicionesDataJSON as Requisicion[]);
+    return requisiciones.filter(r => r.obraCode === obraCode);
+  }
+
+  async createRequisicion(requisicion: Omit<Requisicion, 'id' | 'createdAt' | 'updatedAt'>): Promise<Requisicion> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await requisicionesAPI.create(requisicion);
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    // Modo demo
+    const nuevaRequisicion: Requisicion = {
+      ...requisicion,
+      id: `REQ-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as Requisicion;
+    
+    const requisiciones = this.getFromLocalStorage<Requisicion>('requisiciones', requisicionesDataJSON as Requisicion[]);
+    requisiciones.push(nuevaRequisicion);
+    this.saveToLocalStorage('requisiciones', requisiciones);
+    return nuevaRequisicion;
+  }
+
+  async updateRequisicion(id: string, updates: Partial<Requisicion>): Promise<Requisicion | null> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await requisicionesAPI.update(id, updates);
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    // Modo demo
+    const requisiciones = this.getFromLocalStorage<Requisicion>('requisiciones', requisicionesDataJSON as Requisicion[]);
+    const index = requisiciones.findIndex(r => r.id === id);
+    if (index === -1) return null;
+    
+    requisiciones[index] = {
+      ...requisiciones[index],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    this.saveToLocalStorage('requisiciones', requisiciones);
+    return requisiciones[index];
+  }
+
+  // ==========================================
+  // ÓRDENES DE COMPRA
+  // ==========================================
+
+  async getOrdenesCompra(): Promise<OrdenCompra[]> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await ordenesCompraAPI.getAll();
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    return this.getFromLocalStorage<OrdenCompra>('ordenesCompra', ordenesCompraDataJSON as OrdenCompra[]);
+  }
+
+  async getOrdenesCompraByObra(obraCode: string): Promise<OrdenCompra[]> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await ordenesCompraAPI.getByObra(obraCode);
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    const ordenes = this.getFromLocalStorage<OrdenCompra>('ordenesCompra', ordenesCompraDataJSON as OrdenCompra[]);
+    return ordenes.filter(oc => oc.obraCode === obraCode);
+  }
+
+  async createOrdenCompra(ordenCompra: Omit<OrdenCompra, 'id' | 'createdAt' | 'updatedAt'>): Promise<OrdenCompra> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await ordenesCompraAPI.create(ordenCompra);
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    // Modo demo
+    const nuevaOC: OrdenCompra = {
+      ...ordenCompra,
+      id: `OC-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as OrdenCompra;
+    
+    const ordenes = this.getFromLocalStorage<OrdenCompra>('ordenesCompra', ordenesCompraDataJSON as OrdenCompra[]);
+    ordenes.push(nuevaOC);
+    this.saveToLocalStorage('ordenesCompra', ordenes);
+    return nuevaOC;
+  }
+
+  async updateOrdenCompra(id: string, updates: Partial<OrdenCompra>): Promise<OrdenCompra | null> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await ordenesCompraAPI.update(id, updates);
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    // Modo demo
+    const ordenes = this.getFromLocalStorage<OrdenCompra>('ordenesCompra', ordenesCompraDataJSON as OrdenCompra[]);
+    const index = ordenes.findIndex(oc => oc.id === id);
+    if (index === -1) return null;
+    
+    ordenes[index] = {
+      ...ordenes[index],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    this.saveToLocalStorage('ordenesCompra', ordenes);
+    return ordenes[index];
+  }
+
+  // ==========================================
+  // PAGOS
+  // ==========================================
+
+  async getPagos(): Promise<Pago[]> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await pagosAPI.getAll();
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    return this.getFromLocalStorage<Pago>('pagos', pagosDataJSON as Pago[]);
+  }
+
+  async getPagosByOrdenCompra(ordenCompraId: string): Promise<Pago[]> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await pagosAPI.getByOrdenCompra(ordenCompraId);
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    const pagos = this.getFromLocalStorage<Pago>('pagos', pagosDataJSON as Pago[]);
+    return pagos.filter(p => p.ordenCompraId === ordenCompraId);
+  }
+
+  async createPago(pago: Omit<Pago, 'id' | 'createdAt'>): Promise<Pago> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await pagosAPI.create(pago);
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    // Modo demo
+    const nuevoPago: Pago = {
+      ...pago,
+      id: `PAG-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    } as Pago;
+    
+    const pagos = this.getFromLocalStorage<Pago>('pagos', pagosDataJSON as Pago[]);
+    pagos.push(nuevoPago);
+    this.saveToLocalStorage('pagos', pagos);
+    
+    // Actualizar estado de OC
+    await this.actualizarEstadoOrdenCompra(pago.ordenCompraId);
+    
+    return nuevoPago;
+  }
+
+  private async actualizarEstadoOrdenCompra(ordenCompraId: string) {
+    const ordenes = await this.getOrdenesCompra();
+    const orden = ordenes.find(oc => oc.id === ordenCompraId);
+    if (!orden) return;
+    
+    const pagos = await this.getPagosByOrdenCompra(ordenCompraId);
+    const totalPagado = pagos.reduce((sum, p) => sum + p.monto, 0);
+    
+    let nuevoEstado: OrdenCompra['status'];
+    if (totalPagado === 0) {
+      nuevoEstado = 'Pendiente';
+    } else if (totalPagado < orden.total) {
+      nuevoEstado = 'Parcial';
+    } else {
+      nuevoEstado = 'Pagada';
+    }
+    
+    await this.updateOrdenCompra(ordenCompraId, {
+      status: nuevoEstado,
+      montoPagado: totalPagado,
+      saldoPendiente: orden.total - totalPagado,
     });
+  }
 
+  // ==========================================
+  // DESTAJOS
+  // ==========================================
+
+  async getDestajos(): Promise<CargaSemanal[]> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await destajosAPI.getAll();
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    return this.getFromLocalStorage<CargaSemanal>('destajosCargas', destajosDataJSON as CargaSemanal[]);
+  }
+
+  async createCargaDestajo(carga: CargaSemanal): Promise<CargaSemanal> {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await destajosAPI.create(carga);
+      } catch (error) {
+        console.error('Error API, usando modo demo:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    // Modo demo
+    const cargas = this.getFromLocalStorage<CargaSemanal>('destajosCargas', destajosDataJSON as CargaSemanal[]);
+    cargas.push(carga);
+    this.saveToLocalStorage('destajosCargas', cargas);
     return carga;
   }
 
-  // ============================================
-  // ESTADÍSTICAS GLOBALES
-  // ============================================
+  // ==========================================
+  // UTILIDADES
+  // ==========================================
 
-  public getEstadisticasGlobales() {
-    const obrasActivas = this.obras.filter(o => o.status === 'Activa');
+  async getEstadisticasGlobales() {
+    await this.checkAPIHealth();
+    
+    if (this.apiAvailable) {
+      try {
+        return await dashboardAPI.getEstadisticasGlobales();
+      } catch (error) {
+        console.error('Error API, calculando estadísticas localmente:', error);
+        this.apiAvailable = false;
+      }
+    }
+    
+    // Modo demo - calcular localmente
+    const obras = await this.getObras();
+    const ordenes = await this.getOrdenesCompra();
+    const pagos = await this.getPagos();
+    const requisiciones = await this.getRequisiciones();
+    
+    const montoTotalOrdenes = ordenes.reduce((sum, oc) => sum + oc.total, 0);
+    const montoTotalPagado = pagos.reduce((sum, p) => sum + p.monto, 0);
     
     return {
-      totalObrasActivas: obrasActivas.length,
-      totalContratos: obrasActivas.reduce((sum, o) => sum + o.contractAmount, 0),
-      totalSaldo: obrasActivas.reduce((sum, o) => sum + o.actualBalance, 0),
-      totalEstimaciones: obrasActivas.reduce((sum, o) => sum + o.totalEstimates, 0),
-      totalGastos: obrasActivas.reduce((sum, o) => sum + o.totalExpenses, 0),
-      totalGastosOCs: obrasActivas.reduce((sum, o) => sum + o.totalExpensesFromOCs, 0),
-      totalGastosDestajos: obrasActivas.reduce((sum, o) => sum + o.totalExpensesFromDestajos, 0),
-      totalRequisiciones: this.requisiciones.length,
-      totalOrdenesCompra: this.ordenesCompra.length,
-      totalProveedores: this.proveedores.length,
+      totalObras: obras.length,
+      obrasActivas: obras.filter(o => o.status === 'Activa').length,
+      totalOrdenes: ordenes.length,
+      totalRequisiciones: requisiciones.length,
+      totalPagos: pagos.length,
+      montoTotalOrdenes,
+      montoTotalPagado,
+      montoPendientePago: montoTotalOrdenes - montoTotalPagado,
     };
   }
 
-  // ============================================
-  // UTILIDADES
-  // ============================================
-
-  public generarCodigoRequisicion(obraCode: string): string {
-    const requisicionesObra = this.getRequisicionesByObra(obraCode);
+  generarCodigoRequisicion(obraCode: string, residenteIniciales: string): string {
+    const requisiciones = this.getFromLocalStorage<Requisicion>('requisiciones', requisicionesDataJSON as Requisicion[]);
+    const requisicionesObra = requisiciones.filter(r => r.obraCode === obraCode);
     const numero = requisicionesObra.length + 1;
-    const obra = this.getObraByCode(obraCode);
-    const iniciales = obra?.residentInitials || 'XX';
-    return `REQ${obraCode}-${numero}${iniciales}`;
+    return `REQ${obraCode}-${numero}${residenteIniciales}`;
   }
 
-  public generarCodigoOC(obraCode: string, compradorIniciales: string, proveedor: string): string {
-    const ocsObra = this.getOrdenesCompraByObra(obraCode);
-    const numero = ocsObra.length + 1;
-    const letra = String.fromCharCode(65 + Math.floor(numero / 100)); // A, B, C...
-    const numCorto = numero % 100;
-    const provShort = proveedor.substring(0, 3).toUpperCase();
-    return `${obraCode}-${letra}${numCorto}${compradorIniciales}-${provShort}`;
+  generarCodigoOC(obraCode: string, compradorIniciales: string, proveedorNombre: string): string {
+    const ordenes = this.getFromLocalStorage<OrdenCompra>('ordenesCompra', ordenesCompraDataJSON as OrdenCompra[]);
+    const ordenesObra = ordenes.filter(oc => oc.obraCode === obraCode);
+    const numero = ordenesObra.length + 1;
+    const letra = String.fromCharCode(65 + Math.floor(numero / 100)); // A-Z
+    const num = numero % 100;
+    const provShort = proveedorNombre.substring(0, 3).toUpperCase();
+    return `${obraCode}-${letra}${num}${compradorIniciales}-${provShort}`;
   }
 }
 
 // Exportar instancia única
 export const db = DatabaseService.getInstance();
+export default db;

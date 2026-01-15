@@ -4,6 +4,17 @@
 
 Sistema integral de gestión empresarial diseñado específicamente para **IDP Construcción, Consultoría y Diseño**. Permite controlar y administrar múltiples obras constructivas desde un punto centralizado, gestionando compras, requisiciones, pagos y destajos.
 
+## ⚠️ IMPORTANTE - VERSIÓN PRODUCCIÓN
+
+Este sistema está configurado como **aplicación REAL** con:
+- ✅ **Backend**: FastAPI + PostgreSQL
+- ✅ **Frontend**: React + TypeScript + Vite
+- ✅ **API REST**: Comunicación HTTP con endpoints CRUD
+- ✅ **Base de datos**: PostgreSQL (persistencia real)
+- ✅ **Modo demo**: Fallback automático si API no disponible
+
+Para instalación y deploy, ver: [README-PRODUCCION.md](./README-PRODUCCION.md)
+
 ---
 
 ## 🏗️ Arquitectura del Sistema
@@ -265,7 +276,7 @@ Módulo de tracking de entregas de materiales.
   status: "Activa" | "Archivada";
   actualBalance: number;        // Balance actual
   totalEstimates: number;       // Estimaciones totales
-  totalExpenses: number;        // Gastos totales
+  totalExpenses: number;       // Gastos totales
   totalExpensesFromOCs: number; // Gastos de OCs
   totalExpensesFromDestajos: number; // Gastos de destajos
   // ... más campos de control
@@ -285,7 +296,7 @@ Módulo de tracking de entregas de materiales.
   telefono: string;             // Teléfono
   email: string;                // Email
   lineaCredito: number;         // Límite de crédito
-  diasCredito: number;          // 15, 30, 45 días...
+  diasCredito: number;         // 15, 30, 45 días...
   vencimientoLinea: string;     // Fecha de vencimiento
   saldoPendiente: number;       // Calculado automáticamente
   // ... campos de control
