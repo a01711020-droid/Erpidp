@@ -1,40 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200">
-  <!-- Fondo azul -->
-  <rect width="600" height="200" fill="#1e3a8a"/>
+<svg width="200" height="60" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- IDP Logo -->
+  <rect width="200" height="60" fill="white"/>
   
-  <!-- Líneas decorativas superiores -->
-  <line x1="60" y1="20" x2="540" y2="20" stroke="white" stroke-width="2"/>
-  <line x1="60" y1="26" x2="540" y2="26" stroke="white" stroke-width="1"/>
-  <line x1="60" y1="20" x2="60" y2="180" stroke="white" stroke-width="2"/>
-  <line x1="66" y1="20" x2="66" y2="180" stroke="white" stroke-width="1"/>
-  <line x1="540" y1="20" x2="540" y2="180" stroke="white" stroke-width="2"/>
-  <line x1="534" y1="20" x2="534" y2="180" stroke="white" stroke-width="1"/>
+  <!-- Circle background -->
+  <circle cx="30" cy="30" r="22" fill="#1E40AF"/>
   
-  <!-- Grúa estilizada (izquierda) -->
-  <g transform="translate(100, 60)">
-    <!-- Base de la grúa -->
-    <rect x="10" y="80" width="30" height="40" fill="white"/>
-    <!-- Torre -->
-    <rect x="20" y="20" width="10" height="60" fill="white"/>
-    <!-- Brazo horizontal -->
-    <rect x="0" y="15" width="60" height="5" fill="white"/>
-    <!-- Cable -->
-    <line x1="50" y1="20" x2="50" y2="70" stroke="white" stroke-width="2"/>
-    <!-- Gancho -->
-    <path d="M 45 70 Q 50 75 55 70" stroke="white" fill="none" stroke-width="2"/>
-    <ellipse cx="50" cy="82" rx="15" ry="8" fill="white"/>
-  </g>
+  <!-- Letter I -->
+  <rect x="24" y="18" width="4" height="24" fill="white"/>
   
-  <!-- Texto "CONSTRUCCIÓN" -->
-  <text x="300" y="55" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle" letter-spacing="4">CONSTRUCCIÓN</text>
+  <!-- Letter D -->
+  <path d="M32 18H36C40.4183 18 44 21.5817 44 26V34C44 38.4183 40.4183 42 36 42H32V18Z" fill="white"/>
+  <path d="M36 22H36C37.6569 22 39 23.3431 39 25V37C39 38.6569 37.6569 40 36 40H36V22Z" fill="#1E40AF"/>
   
-  <!-- Texto "IDP" (grande y centrado) -->
-  <text x="300" y="125" font-family="Arial Black, sans-serif" font-size="72" font-weight="900" fill="white" text-anchor="middle" letter-spacing="8">IDP</text>
+  <!-- Letter P -->
+  <path d="M48 18H52C56.4183 18 60 21.5817 60 26V28C60 32.4183 56.4183 36 52 36H52V42H48V18Z" fill="white"/>
+  <path d="M52 22H52C53.6569 22 55 23.3431 55 25V29C55 30.6569 53.6569 32 52 32H52V22Z" fill="#1E40AF"/>
   
-  <!-- Texto "CONSULTORÍA Y DISEÑO" -->
-  <text x="300" y="165" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle" letter-spacing="4">CONSULTORÍA Y DISEÑO</text>
-  
-  <!-- Líneas decorativas inferiores -->
-  <line x1="60" y1="180" x2="540" y2="180" stroke="white" stroke-width="2"/>
-  <line x1="60" y1="186" x2="540" y2="186" stroke="white" stroke-width="1"/>
+  <!-- Text -->
+  <text x="70" y="35" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1E40AF">INMOBILIARIA</text>
+  <text x="70" y="50" font-family="Arial, sans-serif" font-size="12" fill="#64748B">DE PROYECTOS</text>
 </svg>

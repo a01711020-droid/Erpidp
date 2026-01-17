@@ -1,1053 +1,836 @@
 """
-FastAPI Backend para Sistema IDP Construcción
-CRUD Completo para todas las entidades
+FastAPI Backend - Sistema de Gestión Empresarial IDP
+Main application con CRUD completo
 """
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Optional
-from datetime import datetime
 from pydantic import BaseModel, Field
+from typing import Optional, List, Dict, Any
+from datetime import datetime, date
+from decimal import Decimal
 import os
-from dotenv import load_dotenv
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import asyncpg
+from contextlib import asynccontextmanager
 
-load_dotenv()
+# =====================================================
+# CONFIGURACIÓN DE BASE DE DATOS
+# =====================================================
 
-# ==========================================
-# CONFIGURACIÓN DE LA BASE DE DATOS
-# ==========================================
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://user:password@localhost:5432/idp_db"
+)
 
-def get_db_connection():
-    """Obtiene conexión a PostgreSQL (Supabase o Render)"""
-    try:
-        conn = psycopg2.connect(
-            host=os.getenv("DATABASE_HOST", "localhost"),
-            port=os.getenv("DATABASE_PORT", "5432"),
-            dbname=os.getenv("DATABASE_NAME", "idp_construccion"),
-            user=os.getenv("DATABASE_USER", "postgres"),
-            password=os.getenv("DATABASE_PASSWORD"),
-            cursor_factory=RealDictCursor
-        )
-        return conn
-    except Exception as e:
-        print(f"❌ Error conectando a la base de datos: {e}")
-        raise
+# Pool de conexiones global
+db_pool = None
 
-# ==========================================
-# MODELOS PYDANTIC
-# ==========================================
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    global db_pool
+    db_pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=10)
+    yield
+    # Shutdown
+    await db_pool.close()
 
-class MaterialBase(BaseModel):
-    concepto: str
-    unidad: str
-    cantidad: float
-    precioUnitario: float
-    total: float
-
-class ObraBase(BaseModel):
-    code: str
-    name: str
-    client: str
-    contractNumber: str
-    contractAmount: float
-    advancePercentage: float = 0
-    retentionPercentage: float = 0
-    startDate: str
-    estimatedEndDate: str
-    resident: str
-    residentInitials: str
-    residentPassword: str
-    residentPhone: Optional[str] = None
-    address: Optional[str] = None
-    status: str = "Activa"
-    actualBalance: float = 0
-    totalEstimates: float = 0
-    totalExpenses: float = 0
-    totalExpensesFromOCs: float = 0
-    totalExpensesFromDestajos: float = 0
-
-class ObraCreate(ObraBase):
-    pass
-
-class Obra(ObraBase):
-    id: int
-    createdAt: str
-    updatedAt: str
-
-class ProveedorBase(BaseModel):
-    nombre: str
-    razonSocial: Optional[str] = None
-    rfc: str
-    direccion: Optional[str] = None
-    contacto: str
-    vendedor: Optional[str] = None
-    telefono: str
-    email: str
-    lineaCredito: float = 0
-    diasCredito: int = 0
-    vencimientoLinea: str
-    saldoPendiente: float = 0
-
-class ProveedorCreate(ProveedorBase):
-    pass
-
-class Proveedor(ProveedorBase):
-    id: int
-    createdAt: str
-    updatedAt: str
-
-class RequisicionBase(BaseModel):
-    codigoRequisicion: str
-    obraCode: str
-    obraNombre: str
-    residente: str
-    residenteIniciales: str
-    fecha: str
-    materiales: List[MaterialBase]
-    total: float
-    status: str = "Pendiente"
-    notas: Optional[str] = None
-
-class RequisicionCreate(RequisicionBase):
-    pass
-
-class Requisicion(RequisicionBase):
-    id: int
-    createdAt: str
-    updatedAt: str
-
-class OrdenCompraBase(BaseModel):
-    codigoOC: str
-    obraCode: str
-    obraNombre: str
-    proveedor: str
-    proveedorId: int
-    comprador: str
-    compradorIniciales: str
-    fecha: str
-    fechaEntrega: str
-    materiales: List[MaterialBase]
-    subtotal: float
-    iva: float
-    total: float
-    formaPago: str = "Crédito"
-    diasCredito: int = 0
-    status: str = "Pendiente"
-    montoPagado: float = 0
-    saldoPendiente: float = 0
-    requisicionesVinculadas: List[str] = []
-
-class OrdenCompraCreate(OrdenCompraBase):
-    pass
-
-class OrdenCompra(OrdenCompraBase):
-    id: int
-    createdAt: str
-    updatedAt: str
-
-class PagoBase(BaseModel):
-    fecha: str
-    ordenCompraId: int
-    codigoOC: str
-    proveedor: str
-    monto: float
-    metodoPago: str
-    referencia: str
-    banco: Optional[str] = None
-    cuentaBancaria: Optional[str] = None
-    notas: Optional[str] = None
-
-class PagoCreate(PagoBase):
-    pass
-
-class Pago(PagoBase):
-    id: int
-    createdAt: str
-
-class CargaSemanalBase(BaseModel):
-    obraId: str
-    obraCode: str
-    semana: str
-    destajista: str
-    concepto: str
-    unidad: str
-    cantidad: float
-    precioUnitario: float
-    total: float
-
-class CargaSemanalCreate(CargaSemanalBase):
-    pass
-
-class CargaSemanal(CargaSemanalBase):
-    id: int
-    createdAt: str
-
-# ==========================================
-# INICIALIZAR FASTAPI
-# ==========================================
+# =====================================================
+# APLICACIÓN FASTAPI
+# =====================================================
 
 app = FastAPI(
-    title="API IDP Construcción",
-    description="Backend completo para gestión de construcción",
-    version="1.0.0"
+    title="IDP Gestión Empresarial API",
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:4173",
-        "https://*.onrender.com",
-        "*"  # En producción, especificar dominios exactos
-    ],
+    allow_origins=["*"],  # En producción, especificar dominios
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ==========================================
-# HEALTH CHECK
-# ==========================================
+# =====================================================
+# MODELOS PYDANTIC
+# =====================================================
 
-@app.get("/health")
-async def health_check():
-    """Verificar que la API está funcionando"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT 1")
-        cursor.close()
-        conn.close()
-        db_status = "connected"
-    except Exception as e:
-        db_status = f"error: {str(e)}"
-    
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "version": "1.0.0",
-        "database": db_status
-    }
+class ObraBase(BaseModel):
+    codigo: str
+    nombre: str
+    numero_contrato: str
+    cliente: str
+    residente: str
+    direccion: Optional[str] = None
+    monto_contratado: Decimal
+    fecha_inicio: date
+    fecha_fin_programada: date
+    plazo_ejecucion: int
+    estado: str
+
+class ObraCreate(ObraBase):
+    pass
+
+class Obra(ObraBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class ProveedorBase(BaseModel):
+    razon_social: str
+    nombre_comercial: Optional[str] = None
+    rfc: str
+    direccion: Optional[str] = None
+    ciudad: Optional[str] = None
+    codigo_postal: Optional[str] = None
+    telefono: Optional[str] = None
+    email: Optional[str] = None
+    contacto_principal: Optional[str] = None
+    banco: Optional[str] = None
+    numero_cuenta: Optional[str] = None
+    clabe: Optional[str] = None
+    tipo_proveedor: str
+    credito_dias: int = 0
+    limite_credito: Decimal = 0
+    activo: bool = True
+
+class ProveedorCreate(ProveedorBase):
+    pass
+
+class Proveedor(ProveedorBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class RequisicionItemBase(BaseModel):
+    cantidad: Decimal
+    unidad: str
+    descripcion: str
+
+class RequisicionItemCreate(RequisicionItemBase):
+    pass
+
+class RequisicionItem(RequisicionItemBase):
+    id: str
+    requisicion_id: str
+    created_at: datetime
+
+class RequisicionBase(BaseModel):
+    numero_requisicion: str
+    obra_id: str
+    solicitado_por: str
+    urgencia: str
+    estado: str
+    observaciones: Optional[str] = None
+    aprobado_por: Optional[str] = None
+    fecha_aprobacion: Optional[datetime] = None
+    motivo_rechazo: Optional[str] = None
+
+class RequisicionCreate(BaseModel):
+    obra_id: str
+    solicitado_por: str
+    urgencia: str
+    observaciones: Optional[str] = None
+    items: List[RequisicionItemCreate]
+
+class Requisicion(RequisicionBase):
+    id: str
+    fecha_solicitud: datetime
+    created_at: datetime
+    updated_at: datetime
+    items: List[RequisicionItem] = []
+
+    class Config:
+        from_attributes = True
+
+class OrdenCompraItemBase(BaseModel):
+    cantidad: Decimal
+    unidad: str
+    descripcion: str
+    precio_unitario: Decimal
+    total: Decimal
+
+class OrdenCompraItemCreate(OrdenCompraItemBase):
+    pass
+
+class OrdenCompraItem(OrdenCompraItemBase):
+    id: str
+    orden_compra_id: str
+    created_at: datetime
+
+class OrdenCompraBase(BaseModel):
+    numero_orden: str
+    obra_id: str
+    proveedor_id: str
+    requisicion_id: Optional[str] = None
+    fecha_entrega: date
+    estado: str
+    tipo_entrega: str
+    subtotal: Decimal
+    descuento: Decimal = 0
+    descuento_monto: Decimal = 0
+    iva: Decimal = 0
+    total: Decimal
+    observaciones: Optional[str] = None
+    creado_por: Optional[str] = None
+
+class OrdenCompraCreate(BaseModel):
+    obra_id: str
+    proveedor_id: str
+    requisicion_id: Optional[str] = None
+    fecha_entrega: date
+    tipo_entrega: str
+    observaciones: Optional[str] = None
+    creado_por: Optional[str] = None
+    items: List[OrdenCompraItemCreate]
+
+class OrdenCompra(OrdenCompraBase):
+    id: str
+    fecha_emision: datetime
+    created_at: datetime
+    updated_at: datetime
+    items: List[OrdenCompraItem] = []
+
+    class Config:
+        from_attributes = True
+
+class PagoBase(BaseModel):
+    numero_pago: str
+    obra_id: str
+    proveedor_id: str
+    orden_compra_id: str
+    monto: Decimal
+    metodo_pago: str
+    fecha_programada: date
+    estado: str
+    referencia: Optional[str] = None
+    comprobante: Optional[str] = None
+    observaciones: Optional[str] = None
+    procesado_por: Optional[str] = None
+
+class PagoCreate(BaseModel):
+    obra_id: str
+    proveedor_id: str
+    orden_compra_id: str
+    monto: Decimal
+    metodo_pago: str
+    fecha_programada: date
+    referencia: Optional[str] = None
+    observaciones: Optional[str] = None
+
+class Pago(PagoBase):
+    id: str
+    fecha_procesado: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class PaginatedResponse(BaseModel):
+    data: List[Any]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+# =====================================================
+# HELPER: GENERAR NÚMEROS AUTOMÁTICOS
+# =====================================================
+
+async def generate_numero_requisicion(conn) -> str:
+    """Genera número de requisición: REQ-YYYY-XXX"""
+    year = datetime.now().year
+    query = """
+        SELECT numero_requisicion FROM requisiciones 
+        WHERE numero_requisicion LIKE $1 
+        ORDER BY numero_requisicion DESC LIMIT 1
+    """
+    result = await conn.fetchval(query, f"REQ-{year}-%")
+    if result:
+        last_num = int(result.split("-")[-1])
+        new_num = last_num + 1
+    else:
+        new_num = 1
+    return f"REQ-{year}-{new_num:03d}"
+
+async def generate_numero_orden(conn) -> str:
+    """Genera número de OC: OC-YYYY-XXX"""
+    year = datetime.now().year
+    query = """
+        SELECT numero_orden FROM ordenes_compra 
+        WHERE numero_orden LIKE $1 
+        ORDER BY numero_orden DESC LIMIT 1
+    """
+    result = await conn.fetchval(query, f"OC-{year}-%")
+    if result:
+        last_num = int(result.split("-")[-1])
+        new_num = last_num + 1
+    else:
+        new_num = 1
+    return f"OC-{year}-{new_num:03d}"
+
+async def generate_numero_pago(conn) -> str:
+    """Genera número de pago: PAG-YYYY-XXX"""
+    year = datetime.now().year
+    query = """
+        SELECT numero_pago FROM pagos 
+        WHERE numero_pago LIKE $1 
+        ORDER BY numero_pago DESC LIMIT 1
+    """
+    result = await conn.fetchval(query, f"PAG-{year}-%")
+    if result:
+        last_num = int(result.split("-")[-1])
+        new_num = last_num + 1
+    else:
+        new_num = 1
+    return f"PAG-{year}-{new_num:03d}"
+
+# =====================================================
+# ENDPOINTS: HEALTH CHECK
+# =====================================================
 
 @app.get("/")
 async def root():
-    """Endpoint raíz"""
-    return {
-        "message": "API IDP Construcción",
-        "docs": "/docs",
-        "health": "/health"
-    }
+    return {"status": "ok", "message": "IDP Gestión Empresarial API"}
 
-# ==========================================
-# CRUD: OBRAS
-# ==========================================
-
-@app.get("/api/obras", response_model=List[Obra])
-async def get_obras():
-    """Obtener todas las obras"""
+@app.get("/health")
+async def health_check():
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM obras ORDER BY code")
-        obras = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return obras
+        async with db_pool.acquire() as conn:
+            await conn.fetchval("SELECT 1")
+        return {"status": "healthy", "database": "connected"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener obras: {str(e)}")
+        return {"status": "unhealthy", "error": str(e)}
 
-@app.get("/api/obras/{code}", response_model=Obra)
-async def get_obra(code: str):
-    """Obtener obra por código"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM obras WHERE code = %s", (code,))
-        obra = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        
-        if not obra:
-            raise HTTPException(status_code=404, detail="Obra no encontrada")
-        
-        return obra
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener obra: {str(e)}")
+# =====================================================
+# ENDPOINTS: OBRAS
+# =====================================================
 
-@app.post("/api/obras", response_model=Obra, status_code=status.HTTP_201_CREATED)
-async def create_obra(obra: ObraCreate):
-    """Crear nueva obra"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            INSERT INTO obras (
-                code, name, client, contract_number, contract_amount,
-                advance_percentage, retention_percentage, start_date,
-                estimated_end_date, resident, resident_initials,
-                resident_password, resident_phone, address, status,
-                actual_balance, total_estimates, total_expenses,
-                total_expenses_from_ocs, total_expenses_from_destajos
-            ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s
-            ) RETURNING *
-        """, (
-            obra.code, obra.name, obra.client, obra.contractNumber,
-            obra.contractAmount, obra.advancePercentage, obra.retentionPercentage,
-            obra.startDate, obra.estimatedEndDate, obra.resident,
-            obra.residentInitials, obra.residentPassword, obra.residentPhone,
-            obra.address, obra.status, obra.actualBalance, obra.totalEstimates,
-            obra.totalExpenses, obra.totalExpensesFromOCs, obra.totalExpensesFromDestajos
-        ))
-        
-        nueva_obra = cursor.fetchone()
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return nueva_obra
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al crear obra: {str(e)}")
-
-@app.put("/api/obras/{code}", response_model=Obra)
-async def update_obra(code: str, updates: dict):
-    """Actualizar obra"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Construir query dinámicamente
-        set_clauses = []
-        values = []
-        
-        for key, value in updates.items():
-            # Convertir camelCase a snake_case
-            db_key = ''.join(['_'+c.lower() if c.isupper() else c for c in key]).lstrip('_')
-            set_clauses.append(f"{db_key} = %s")
-            values.append(value)
-        
-        values.append(code)
-        
-        query = f"UPDATE obras SET {', '.join(set_clauses)}, updated_at = CURRENT_TIMESTAMP WHERE code = %s RETURNING *"
-        cursor.execute(query, values)
-        
-        obra_actualizada = cursor.fetchone()
-        
-        if not obra_actualizada:
-            raise HTTPException(status_code=404, detail="Obra no encontrada")
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return obra_actualizada
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al actualizar obra: {str(e)}")
-
-@app.delete("/api/obras/{code}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_obra(code: str):
-    """Eliminar obra"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM obras WHERE code = %s", (code,))
-        conn.commit()
-        
-        if cursor.rowcount == 0:
-            raise HTTPException(status_code=404, detail="Obra no encontrada")
-        
-        cursor.close()
-        conn.close()
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al eliminar obra: {str(e)}")
-
-# ==========================================
-# CRUD: PROVEEDORES
-# ==========================================
-
-@app.get("/api/proveedores", response_model=List[Proveedor])
-async def get_proveedores():
-    """Obtener todos los proveedores"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM proveedores ORDER BY nombre")
-        proveedores = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return proveedores
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener proveedores: {str(e)}")
-
-@app.get("/api/proveedores/{id}", response_model=Proveedor)
-async def get_proveedor(id: int):
-    """Obtener proveedor por ID"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM proveedores WHERE id = %s", (id,))
-        proveedor = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        
-        if not proveedor:
-            raise HTTPException(status_code=404, detail="Proveedor no encontrado")
-        
-        return proveedor
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener proveedor: {str(e)}")
-
-@app.post("/api/proveedores", response_model=Proveedor, status_code=status.HTTP_201_CREATED)
-async def create_proveedor(proveedor: ProveedorCreate):
-    """Crear nuevo proveedor"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            INSERT INTO proveedores (
-                nombre, razon_social, rfc, direccion, contacto, vendedor,
-                telefono, email, linea_credito, dias_credito,
-                vencimiento_linea, saldo_pendiente
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING *
-        """, (
-            proveedor.nombre, proveedor.razonSocial, proveedor.rfc,
-            proveedor.direccion, proveedor.contacto, proveedor.vendedor,
-            proveedor.telefono, proveedor.email, proveedor.lineaCredito,
-            proveedor.diasCredito, proveedor.vencimientoLinea,
-            proveedor.saldoPendiente
-        ))
-        
-        nuevo_proveedor = cursor.fetchone()
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return nuevo_proveedor
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al crear proveedor: {str(e)}")
-
-@app.put("/api/proveedores/{id}", response_model=Proveedor)
-async def update_proveedor(id: int, updates: dict):
-    """Actualizar proveedor"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        set_clauses = []
-        values = []
-        
-        for key, value in updates.items():
-            db_key = ''.join(['_'+c.lower() if c.isupper() else c for c in key]).lstrip('_')
-            set_clauses.append(f"{db_key} = %s")
-            values.append(value)
-        
-        values.append(id)
-        
-        query = f"UPDATE proveedores SET {', '.join(set_clauses)}, updated_at = CURRENT_TIMESTAMP WHERE id = %s RETURNING *"
-        cursor.execute(query, values)
-        
-        proveedor_actualizado = cursor.fetchone()
-        
-        if not proveedor_actualizado:
-            raise HTTPException(status_code=404, detail="Proveedor no encontrado")
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return proveedor_actualizado
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al actualizar proveedor: {str(e)}")
-
-@app.delete("/api/proveedores/{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_proveedor(id: int):
-    """Eliminar proveedor"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM proveedores WHERE id = %s", (id,))
-        conn.commit()
-        
-        if cursor.rowcount == 0:
-            raise HTTPException(status_code=404, detail="Proveedor no encontrado")
-        
-        cursor.close()
-        conn.close()
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al eliminar proveedor: {str(e)}")
-
-# ==========================================
-# CRUD: REQUISICIONES
-# ==========================================
-
-@app.get("/api/requisiciones", response_model=List[Requisicion])
-async def get_requisiciones():
-    """Obtener todas las requisiciones"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM requisiciones ORDER BY created_at DESC")
-        requisiciones = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return requisiciones
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener requisiciones: {str(e)}")
-
-@app.get("/api/requisiciones/obra/{obra_code}", response_model=List[Requisicion])
-async def get_requisiciones_by_obra(obra_code: str):
-    """Obtener requisiciones por obra"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM requisiciones WHERE obra_code = %s ORDER BY created_at DESC", (obra_code,))
-        requisiciones = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return requisiciones
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener requisiciones: {str(e)}")
-
-@app.get("/api/requisiciones/{id}", response_model=Requisicion)
-async def get_requisicion(id: int):
-    """Obtener requisición por ID"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM requisiciones WHERE id = %s", (id,))
-        requisicion = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        
-        if not requisicion:
-            raise HTTPException(status_code=404, detail="Requisición no encontrada")
-        
-        return requisicion
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener requisición: {str(e)}")
-
-@app.post("/api/requisiciones", response_model=Requisicion, status_code=status.HTTP_201_CREATED)
-async def create_requisicion(requisicion: RequisicionCreate):
-    """Crear nueva requisición"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Convertir materiales a JSON
-        import json
-        materiales_json = json.dumps([m.dict() for m in requisicion.materiales])
-        
-        cursor.execute("""
-            INSERT INTO requisiciones (
-                codigo_requisicion, obra_code, obra_nombre, residente,
-                residente_iniciales, fecha, materiales, total, status, notas
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING *
-        """, (
-            requisicion.codigoRequisicion, requisicion.obraCode,
-            requisicion.obraNombre, requisicion.residente,
-            requisicion.residenteIniciales, requisicion.fecha,
-            materiales_json, requisicion.total, requisicion.status,
-            requisicion.notas
-        ))
-        
-        nueva_requisicion = cursor.fetchone()
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return nueva_requisicion
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al crear requisición: {str(e)}")
-
-@app.put("/api/requisiciones/{id}", response_model=Requisicion)
-async def update_requisicion(id: int, updates: dict):
-    """Actualizar requisición"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        set_clauses = []
-        values = []
-        
-        for key, value in updates.items():
-            db_key = ''.join(['_'+c.lower() if c.isupper() else c for c in key]).lstrip('_')
-            set_clauses.append(f"{db_key} = %s")
-            values.append(value)
-        
-        values.append(id)
-        
-        query = f"UPDATE requisiciones SET {', '.join(set_clauses)}, updated_at = CURRENT_TIMESTAMP WHERE id = %s RETURNING *"
-        cursor.execute(query, values)
-        
-        requisicion_actualizada = cursor.fetchone()
-        
-        if not requisicion_actualizada:
-            raise HTTPException(status_code=404, detail="Requisición no encontrada")
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return requisicion_actualizada
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al actualizar requisición: {str(e)}")
-
-@app.delete("/api/requisiciones/{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_requisicion(id: int):
-    """Eliminar requisición"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM requisiciones WHERE id = %s", (id,))
-        conn.commit()
-        
-        if cursor.rowcount == 0:
-            raise HTTPException(status_code=404, detail="Requisición no encontrada")
-        
-        cursor.close()
-        conn.close()
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al eliminar requisición: {str(e)}")
-
-# ==========================================
-# CRUD: ÓRDENES DE COMPRA
-# ==========================================
-
-@app.get("/api/ordenes-compra", response_model=List[OrdenCompra])
-async def get_ordenes_compra():
-    """Obtener todas las órdenes de compra"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM ordenes_compra ORDER BY created_at DESC")
-        ordenes = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return ordenes
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener órdenes de compra: {str(e)}")
-
-@app.get("/api/ordenes-compra/obra/{obra_code}", response_model=List[OrdenCompra])
-async def get_ordenes_compra_by_obra(obra_code: str):
-    """Obtener órdenes de compra por obra"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM ordenes_compra WHERE obra_code = %s ORDER BY created_at DESC", (obra_code,))
-        ordenes = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return ordenes
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener órdenes de compra: {str(e)}")
-
-@app.get("/api/ordenes-compra/{id}", response_model=OrdenCompra)
-async def get_orden_compra(id: int):
-    """Obtener orden de compra por ID"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM ordenes_compra WHERE id = %s", (id,))
-        orden = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        
-        if not orden:
-            raise HTTPException(status_code=404, detail="Orden de compra no encontrada")
-        
-        return orden
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener orden de compra: {str(e)}")
-
-@app.post("/api/ordenes-compra", response_model=OrdenCompra, status_code=status.HTTP_201_CREATED)
-async def create_orden_compra(orden: OrdenCompraCreate):
-    """Crear nueva orden de compra"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        import json
-        materiales_json = json.dumps([m.dict() for m in orden.materiales])
-        requisiciones_json = json.dumps(orden.requisicionesVinculadas)
-        
-        cursor.execute("""
-            INSERT INTO ordenes_compra (
-                codigo_oc, obra_code, obra_nombre, proveedor, proveedor_id,
-                comprador, comprador_iniciales, fecha, fecha_entrega,
-                materiales, subtotal, iva, total, forma_pago, dias_credito,
-                status, monto_pagado, saldo_pendiente, requisiciones_vinculadas
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING *
-        """, (
-            orden.codigoOC, orden.obraCode, orden.obraNombre, orden.proveedor,
-            orden.proveedorId, orden.comprador, orden.compradorIniciales,
-            orden.fecha, orden.fechaEntrega, materiales_json, orden.subtotal,
-            orden.iva, orden.total, orden.formaPago, orden.diasCredito,
-            orden.status, orden.montoPagado, orden.saldoPendiente, requisiciones_json
-        ))
-        
-        nueva_orden = cursor.fetchone()
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return nueva_orden
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al crear orden de compra: {str(e)}")
-
-@app.put("/api/ordenes-compra/{id}", response_model=OrdenCompra)
-async def update_orden_compra(id: int, updates: dict):
-    """Actualizar orden de compra"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        set_clauses = []
-        values = []
-        
-        for key, value in updates.items():
-            db_key = ''.join(['_'+c.lower() if c.isupper() else c for c in key]).lstrip('_')
-            set_clauses.append(f"{db_key} = %s")
-            values.append(value)
-        
-        values.append(id)
-        
-        query = f"UPDATE ordenes_compra SET {', '.join(set_clauses)}, updated_at = CURRENT_TIMESTAMP WHERE id = %s RETURNING *"
-        cursor.execute(query, values)
-        
-        orden_actualizada = cursor.fetchone()
-        
-        if not orden_actualizada:
-            raise HTTPException(status_code=404, detail="Orden de compra no encontrada")
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return orden_actualizada
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al actualizar orden de compra: {str(e)}")
-
-@app.delete("/api/ordenes-compra/{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_orden_compra(id: int):
-    """Eliminar orden de compra"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM ordenes_compra WHERE id = %s", (id,))
-        conn.commit()
-        
-        if cursor.rowcount == 0:
-            raise HTTPException(status_code=404, detail="Orden de compra no encontrada")
-        
-        cursor.close()
-        conn.close()
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al eliminar orden de compra: {str(e)}")
-
-# ==========================================
-# CRUD: PAGOS
-# ==========================================
-
-@app.get("/api/pagos", response_model=List[Pago])
-async def get_pagos():
-    """Obtener todos los pagos"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM pagos ORDER BY created_at DESC")
-        pagos = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return pagos
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener pagos: {str(e)}")
-
-@app.get("/api/pagos/orden-compra/{orden_compra_id}", response_model=List[Pago])
-async def get_pagos_by_orden_compra(orden_compra_id: int):
-    """Obtener pagos por orden de compra"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM pagos WHERE orden_compra_id = %s ORDER BY created_at DESC", (orden_compra_id,))
-        pagos = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return pagos
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener pagos: {str(e)}")
-
-@app.get("/api/pagos/{id}", response_model=Pago)
-async def get_pago(id: int):
-    """Obtener pago por ID"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM pagos WHERE id = %s", (id,))
-        pago = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        
-        if not pago:
-            raise HTTPException(status_code=404, detail="Pago no encontrado")
-        
-        return pago
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener pago: {str(e)}")
-
-@app.post("/api/pagos", response_model=Pago, status_code=status.HTTP_201_CREATED)
-async def create_pago(pago: PagoCreate):
-    """Crear nuevo pago"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            INSERT INTO pagos (
-                fecha, orden_compra_id, codigo_oc, proveedor, monto,
-                metodo_pago, referencia, banco, cuenta_bancaria, notas
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING *
-        """, (
-            pago.fecha, pago.ordenCompraId, pago.codigoOC, pago.proveedor,
-            pago.monto, pago.metodoPago, pago.referencia, pago.banco,
-            pago.cuentaBancaria, pago.notas
-        ))
-        
-        nuevo_pago = cursor.fetchone()
-        
-        # Actualizar monto pagado y saldo en la OC
-        cursor.execute("""
-            UPDATE ordenes_compra 
-            SET monto_pagado = monto_pagado + %s,
-                saldo_pendiente = total - (monto_pagado + %s),
-                status = CASE 
-                    WHEN (monto_pagado + %s) >= total THEN 'Pagada'
-                    WHEN (monto_pagado + %s) > 0 THEN 'Parcial'
-                    ELSE 'Pendiente'
-                END
-            WHERE id = %s
-        """, (pago.monto, pago.monto, pago.monto, pago.monto, pago.ordenCompraId))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return nuevo_pago
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al crear pago: {str(e)}")
-
-@app.delete("/api/pagos/{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_pago(id: int):
-    """Eliminar pago"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Obtener info del pago antes de eliminarlo
-        cursor.execute("SELECT orden_compra_id, monto FROM pagos WHERE id = %s", (id,))
-        pago = cursor.fetchone()
-        
-        if not pago:
-            raise HTTPException(status_code=404, detail="Pago no encontrado")
-        
-        # Eliminar pago
-        cursor.execute("DELETE FROM pagos WHERE id = %s", (id,))
-        
-        # Actualizar monto pagado de la OC
-        cursor.execute("""
-            UPDATE ordenes_compra 
-            SET monto_pagado = monto_pagado - %s,
-                saldo_pendiente = total - (monto_pagado - %s),
-                status = CASE 
-                    WHEN (monto_pagado - %s) >= total THEN 'Pagada'
-                    WHEN (monto_pagado - %s) > 0 THEN 'Parcial'
-                    ELSE 'Pendiente'
-                END
-            WHERE id = %s
-        """, (pago['monto'], pago['monto'], pago['monto'], pago['monto'], pago['orden_compra_id']))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al eliminar pago: {str(e)}")
-
-# ==========================================
-# CRUD: DESTAJOS
-# ==========================================
-
-@app.get("/api/destajos", response_model=List[CargaSemanal])
-async def get_destajos():
-    """Obtener todos los destajos"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM destajos ORDER BY created_at DESC")
-        destajos = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return destajos
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener destajos: {str(e)}")
-
-@app.get("/api/destajos/obra/{obra_code}", response_model=List[CargaSemanal])
-async def get_destajos_by_obra(obra_code: str):
-    """Obtener destajos por obra"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM destajos WHERE obra_code = %s ORDER BY created_at DESC", (obra_code,))
-        destajos = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return destajos
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener destajos: {str(e)}")
-
-@app.post("/api/destajos", response_model=CargaSemanal, status_code=status.HTTP_201_CREATED)
-async def create_destajo(carga: CargaSemanalCreate):
-    """Crear nuevo destajo"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            INSERT INTO destajos (
-                obra_id, obra_code, semana, destajista, concepto,
-                unidad, cantidad, precio_unitario, total
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING *
-        """, (
-            carga.obraId, carga.obraCode, carga.semana, carga.destajista,
-            carga.concepto, carga.unidad, carga.cantidad, carga.precioUnitario,
-            carga.total
-        ))
-        
-        nuevo_destajo = cursor.fetchone()
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return nuevo_destajo
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al crear destajo: {str(e)}")
-
-@app.delete("/api/destajos/{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_destajo(id: int):
-    """Eliminar destajo"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM destajos WHERE id = %s", (id,))
-        conn.commit()
-        
-        if cursor.rowcount == 0:
-            raise HTTPException(status_code=404, detail="Destajo no encontrado")
-        
-        cursor.close()
-        conn.close()
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al eliminar destajo: {str(e)}")
-
-# ==========================================
-# DASHBOARD / ESTADÍSTICAS
-# ==========================================
-
-@app.get("/api/dashboard/estadisticas")
-async def get_estadisticas_globales():
-    """Obtener estadísticas globales del sistema"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Total obras
-        cursor.execute("SELECT COUNT(*) as total FROM obras")
-        total_obras = cursor.fetchone()['total']
-        
-        # Obras activas
-        cursor.execute("SELECT COUNT(*) as total FROM obras WHERE status = 'Activa'")
-        obras_activas = cursor.fetchone()['total']
-        
-        # Total órdenes
-        cursor.execute("SELECT COUNT(*) as total FROM ordenes_compra")
-        total_ordenes = cursor.fetchone()['total']
-        
-        # Total requisiciones
-        cursor.execute("SELECT COUNT(*) as total FROM requisiciones")
-        total_requisiciones = cursor.fetchone()['total']
-        
-        # Total pagos
-        cursor.execute("SELECT COUNT(*) as total FROM pagos")
-        total_pagos = cursor.fetchone()['total']
-        
-        # Monto total órdenes
-        cursor.execute("SELECT COALESCE(SUM(total), 0) as monto FROM ordenes_compra WHERE status != 'Cancelada'")
-        monto_total_ordenes = float(cursor.fetchone()['monto'])
-        
-        # Monto total pagado
-        cursor.execute("SELECT COALESCE(SUM(monto), 0) as monto FROM pagos")
-        monto_total_pagado = float(cursor.fetchone()['monto'])
-        
-        cursor.close()
-        conn.close()
+@app.get("/api/obras", response_model=PaginatedResponse)
+async def list_obras(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    estado: Optional[str] = None
+):
+    async with db_pool.acquire() as conn:
+        # Contar total
+        count_query = "SELECT COUNT(*) FROM obras"
+        where_clause = ""
+        params = []
+        
+        if estado:
+            where_clause = " WHERE estado = $1"
+            params.append(estado)
+        
+        total = await conn.fetchval(count_query + where_clause, *params)
+        
+        # Obtener datos
+        offset = (page - 1) * page_size
+        query = f"""
+            SELECT * FROM obras
+            {where_clause}
+            ORDER BY created_at DESC
+            LIMIT ${len(params)+1} OFFSET ${len(params)+2}
+        """
+        params.extend([page_size, offset])
+        
+        rows = await conn.fetch(query, *params)
+        data = [dict(row) for row in rows]
         
         return {
-            "totalObras": total_obras,
-            "obrasActivas": obras_activas,
-            "totalOrdenes": total_ordenes,
-            "totalRequisiciones": total_requisiciones,
-            "totalPagos": total_pagos,
-            "montoTotalOrdenes": monto_total_ordenes,
-            "montoTotalPagado": monto_total_pagado,
-            "montoPendientePago": monto_total_ordenes - monto_total_pagado
+            "data": data,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": (total + page_size - 1) // page_size
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener estadísticas: {str(e)}")
 
-# ==========================================
-# RUN SERVER
-# ==========================================
+@app.get("/api/obras/{obra_id}")
+async def get_obra(obra_id: str):
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM obras WHERE id = $1", obra_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="Obra no encontrada")
+        return dict(row)
 
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+@app.post("/api/obras")
+async def create_obra(obra: ObraCreate):
+    async with db_pool.acquire() as conn:
+        query = """
+            INSERT INTO obras (codigo, nombre, numero_contrato, cliente, residente, direccion, 
+                             monto_contratado, fecha_inicio, fecha_fin_programada, plazo_ejecucion, estado)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            RETURNING *
+        """
+        try:
+            row = await conn.fetchrow(
+                query,
+                obra.codigo, obra.nombre, obra.numero_contrato, obra.cliente, obra.residente,
+                obra.direccion, obra.monto_contratado, obra.fecha_inicio, obra.fecha_fin_programada,
+                obra.plazo_ejecucion, obra.estado
+            )
+            return dict(row)
+        except asyncpg.UniqueViolationError:
+            raise HTTPException(status_code=400, detail="Código o número de contrato ya existe")
+
+@app.put("/api/obras/{obra_id}")
+async def update_obra(obra_id: str, obra: Dict[str, Any]):
+    async with db_pool.acquire() as conn:
+        # Verificar que existe
+        exists = await conn.fetchval("SELECT id FROM obras WHERE id = $1", obra_id)
+        if not exists:
+            raise HTTPException(status_code=404, detail="Obra no encontrada")
+        
+        # Construir query dinámicamente
+        fields = []
+        values = []
+        idx = 1
+        for key, value in obra.items():
+            fields.append(f"{key} = ${idx}")
+            values.append(value)
+            idx += 1
+        
+        if not fields:
+            raise HTTPException(status_code=400, detail="No hay campos para actualizar")
+        
+        values.append(obra_id)
+        query = f"UPDATE obras SET {', '.join(fields)} WHERE id = ${idx} RETURNING *"
+        
+        row = await conn.fetchrow(query, *values)
+        return dict(row)
+
+@app.delete("/api/obras/{obra_id}")
+async def delete_obra(obra_id: str):
+    async with db_pool.acquire() as conn:
+        result = await conn.execute("DELETE FROM obras WHERE id = $1", obra_id)
+        if result == "DELETE 0":
+            raise HTTPException(status_code=404, detail="Obra no encontrada")
+        return {"message": "Obra eliminada exitosamente"}
+
+# =====================================================
+# ENDPOINTS: PROVEEDORES
+# =====================================================
+
+@app.get("/api/proveedores", response_model=PaginatedResponse)
+async def list_proveedores(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    activo: Optional[bool] = None
+):
+    async with db_pool.acquire() as conn:
+        where_clause = ""
+        params = []
+        
+        if activo is not None:
+            where_clause = " WHERE activo = $1"
+            params.append(activo)
+        
+        total = await conn.fetchval(f"SELECT COUNT(*) FROM proveedores{where_clause}", *params)
+        
+        offset = (page - 1) * page_size
+        query = f"""
+            SELECT * FROM proveedores
+            {where_clause}
+            ORDER BY razon_social ASC
+            LIMIT ${len(params)+1} OFFSET ${len(params)+2}
+        """
+        params.extend([page_size, offset])
+        
+        rows = await conn.fetch(query, *params)
+        data = [dict(row) for row in rows]
+        
+        return {
+            "data": data,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": (total + page_size - 1) // page_size
+        }
+
+@app.get("/api/proveedores/{proveedor_id}")
+async def get_proveedor(proveedor_id: str):
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM proveedores WHERE id = $1", proveedor_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="Proveedor no encontrado")
+        return dict(row)
+
+@app.post("/api/proveedores")
+async def create_proveedor(proveedor: ProveedorCreate):
+    async with db_pool.acquire() as conn:
+        query = """
+            INSERT INTO proveedores (razon_social, nombre_comercial, rfc, direccion, ciudad, codigo_postal,
+                                   telefono, email, contacto_principal, banco, numero_cuenta, clabe,
+                                   tipo_proveedor, credito_dias, limite_credito, activo)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+            RETURNING *
+        """
+        try:
+            row = await conn.fetchrow(
+                query,
+                proveedor.razon_social, proveedor.nombre_comercial, proveedor.rfc, proveedor.direccion,
+                proveedor.ciudad, proveedor.codigo_postal, proveedor.telefono, proveedor.email,
+                proveedor.contacto_principal, proveedor.banco, proveedor.numero_cuenta, proveedor.clabe,
+                proveedor.tipo_proveedor, proveedor.credito_dias, proveedor.limite_credito, proveedor.activo
+            )
+            return dict(row)
+        except asyncpg.UniqueViolationError:
+            raise HTTPException(status_code=400, detail="RFC ya existe")
+
+# =====================================================
+# ENDPOINTS: REQUISICIONES
+# =====================================================
+
+@app.get("/api/requisiciones", response_model=PaginatedResponse)
+async def list_requisiciones(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    obra_id: Optional[str] = None,
+    estado: Optional[str] = None
+):
+    async with db_pool.acquire() as conn:
+        where_clauses = []
+        params = []
+        idx = 1
+        
+        if obra_id:
+            where_clauses.append(f"obra_id = ${idx}")
+            params.append(obra_id)
+            idx += 1
+        
+        if estado:
+            where_clauses.append(f"estado = ${idx}")
+            params.append(estado)
+            idx += 1
+        
+        where_clause = " WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+        
+        total = await conn.fetchval(f"SELECT COUNT(*) FROM requisiciones{where_clause}", *params)
+        
+        offset = (page - 1) * page_size
+        query = f"""
+            SELECT * FROM requisiciones
+            {where_clause}
+            ORDER BY fecha_solicitud DESC
+            LIMIT ${idx} OFFSET ${idx+1}
+        """
+        params.extend([page_size, offset])
+        
+        rows = await conn.fetch(query, *params)
+        
+        # Cargar items para cada requisición
+        data = []
+        for row in rows:
+            req = dict(row)
+            items_rows = await conn.fetch(
+                "SELECT * FROM requisicion_items WHERE requisicion_id = $1",
+                req['id']
+            )
+            req['items'] = [dict(item) for item in items_rows]
+            data.append(req)
+        
+        return {
+            "data": data,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": (total + page_size - 1) // page_size
+        }
+
+@app.get("/api/requisiciones/{requisicion_id}")
+async def get_requisicion(requisicion_id: str):
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM requisiciones WHERE id = $1", requisicion_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="Requisición no encontrada")
+        
+        req = dict(row)
+        items_rows = await conn.fetch(
+            "SELECT * FROM requisicion_items WHERE requisicion_id = $1",
+            requisicion_id
+        )
+        req['items'] = [dict(item) for item in items_rows]
+        
+        return req
+
+@app.post("/api/requisiciones")
+async def create_requisicion(req: RequisicionCreate):
+    async with db_pool.acquire() as conn:
+        async with conn.transaction():
+            # Generar número
+            numero = await generate_numero_requisicion(conn)
+            
+            # Insertar requisición
+            query = """
+                INSERT INTO requisiciones (numero_requisicion, obra_id, solicitado_por, urgencia, estado)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING *
+            """
+            row = await conn.fetchrow(
+                query,
+                numero, req.obra_id, req.solicitado_por, req.urgencia, 'pendiente'
+            )
+            requisicion = dict(row)
+            
+            # Insertar items
+            items = []
+            for item in req.items:
+                item_row = await conn.fetchrow(
+                    """
+                    INSERT INTO requisicion_items (requisicion_id, cantidad, unidad, descripcion)
+                    VALUES ($1, $2, $3, $4)
+                    RETURNING *
+                    """,
+                    requisicion['id'], item.cantidad, item.unidad, item.descripcion
+                )
+                items.append(dict(item_row))
+            
+            requisicion['items'] = items
+            return requisicion
+
+@app.put("/api/requisiciones/{requisicion_id}/aprobar")
+async def aprobar_requisicion(requisicion_id: str, aprobado_por: str):
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            UPDATE requisiciones 
+            SET estado = 'aprobada', aprobado_por = $1, fecha_aprobacion = NOW()
+            WHERE id = $2
+            RETURNING *
+            """,
+            aprobado_por, requisicion_id
+        )
+        if not row:
+            raise HTTPException(status_code=404, detail="Requisición no encontrada")
+        return dict(row)
+
+# =====================================================
+# ENDPOINTS: ÓRDENES DE COMPRA
+# =====================================================
+
+@app.get("/api/ordenes-compra", response_model=PaginatedResponse)
+async def list_ordenes_compra(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    obra_id: Optional[str] = None,
+    proveedor_id: Optional[str] = None,
+    estado: Optional[str] = None
+):
+    async with db_pool.acquire() as conn:
+        where_clauses = []
+        params = []
+        idx = 1
+        
+        if obra_id:
+            where_clauses.append(f"obra_id = ${idx}")
+            params.append(obra_id)
+            idx += 1
+        
+        if proveedor_id:
+            where_clauses.append(f"proveedor_id = ${idx}")
+            params.append(proveedor_id)
+            idx += 1
+        
+        if estado:
+            where_clauses.append(f"estado = ${idx}")
+            params.append(estado)
+            idx += 1
+        
+        where_clause = " WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+        
+        total = await conn.fetchval(f"SELECT COUNT(*) FROM ordenes_compra{where_clause}", *params)
+        
+        offset = (page - 1) * page_size
+        query = f"""
+            SELECT * FROM ordenes_compra
+            {where_clause}
+            ORDER BY fecha_emision DESC
+            LIMIT ${idx} OFFSET ${idx+1}
+        """
+        params.extend([page_size, offset])
+        
+        rows = await conn.fetch(query, *params)
+        
+        # Cargar items
+        data = []
+        for row in rows:
+            oc = dict(row)
+            items_rows = await conn.fetch(
+                "SELECT * FROM orden_compra_items WHERE orden_compra_id = $1",
+                oc['id']
+            )
+            oc['items'] = [dict(item) for item in items_rows]
+            data.append(oc)
+        
+        return {
+            "data": data,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": (total + page_size - 1) // page_size
+        }
+
+@app.get("/api/ordenes-compra/{orden_id}")
+async def get_orden_compra(orden_id: str):
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM ordenes_compra WHERE id = $1", orden_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="Orden de compra no encontrada")
+        
+        oc = dict(row)
+        items_rows = await conn.fetch(
+            "SELECT * FROM orden_compra_items WHERE orden_compra_id = $1",
+            orden_id
+        )
+        oc['items'] = [dict(item) for item in items_rows]
+        
+        return oc
+
+@app.post("/api/ordenes-compra")
+async def create_orden_compra(oc: OrdenCompraCreate):
+    async with db_pool.acquire() as conn:
+        async with conn.transaction():
+            # Generar número
+            numero = await generate_numero_orden(conn)
+            
+            # Calcular totales
+            subtotal = sum(item.total for item in oc.items)
+            descuento_monto = 0  # TODO: calcular si se agrega descuento
+            iva = subtotal * Decimal("0.16")
+            total = subtotal + iva
+            
+            # Insertar OC
+            query = """
+                INSERT INTO ordenes_compra (
+                    numero_orden, obra_id, proveedor_id, requisicion_id, fecha_entrega,
+                    estado, tipo_entrega, subtotal, descuento, descuento_monto, iva, total,
+                    observaciones, creado_por
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                RETURNING *
+            """
+            row = await conn.fetchrow(
+                query,
+                numero, oc.obra_id, oc.proveedor_id, oc.requisicion_id, oc.fecha_entrega,
+                'emitida', oc.tipo_entrega, subtotal, 0, descuento_monto, iva, total,
+                oc.observaciones, oc.creado_por
+            )
+            orden = dict(row)
+            
+            # Insertar items
+            items = []
+            for item in oc.items:
+                item_row = await conn.fetchrow(
+                    """
+                    INSERT INTO orden_compra_items (
+                        orden_compra_id, cantidad, unidad, descripcion, precio_unitario, total
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                    RETURNING *
+                    """,
+                    orden['id'], item.cantidad, item.unidad, item.descripcion,
+                    item.precio_unitario, item.total
+                )
+                items.append(dict(item_row))
+            
+            orden['items'] = items
+            return orden
+
+# =====================================================
+# ENDPOINTS: PAGOS
+# =====================================================
+
+@app.get("/api/pagos", response_model=PaginatedResponse)
+async def list_pagos(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    obra_id: Optional[str] = None,
+    estado: Optional[str] = None
+):
+    async with db_pool.acquire() as conn:
+        where_clauses = []
+        params = []
+        idx = 1
+        
+        if obra_id:
+            where_clauses.append(f"obra_id = ${idx}")
+            params.append(obra_id)
+            idx += 1
+        
+        if estado:
+            where_clauses.append(f"estado = ${idx}")
+            params.append(estado)
+            idx += 1
+        
+        where_clause = " WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+        
+        total = await conn.fetchval(f"SELECT COUNT(*) FROM pagos{where_clause}", *params)
+        
+        offset = (page - 1) * page_size
+        query = f"""
+            SELECT * FROM pagos
+            {where_clause}
+            ORDER BY fecha_programada DESC
+            LIMIT ${idx} OFFSET ${idx+1}
+        """
+        params.extend([page_size, offset])
+        
+        rows = await conn.fetch(query, *params)
+        data = [dict(row) for row in rows]
+        
+        return {
+            "data": data,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": (total + page_size - 1) // page_size
+        }
+
+@app.post("/api/pagos")
+async def create_pago(pago: PagoCreate):
+    async with db_pool.acquire() as conn:
+        numero = await generate_numero_pago(conn)
+        
+        query = """
+            INSERT INTO pagos (
+                numero_pago, obra_id, proveedor_id, orden_compra_id, monto,
+                metodo_pago, fecha_programada, estado, referencia, observaciones
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING *
+        """
+        row = await conn.fetchrow(
+            query,
+            numero, pago.obra_id, pago.proveedor_id, pago.orden_compra_id, pago.monto,
+            pago.metodo_pago, pago.fecha_programada, 'programado', pago.referencia, pago.observaciones
+        )
+        return dict(row)
+
+@app.put("/api/pagos/{pago_id}/procesar")
+async def procesar_pago(pago_id: str, procesado_por: str):
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            UPDATE pagos 
+            SET estado = 'completado', procesado_por = $1, fecha_procesado = NOW()
+            WHERE id = $2
+            RETURNING *
+            """,
+            procesado_por, pago_id
+        )
+        if not row:
+            raise HTTPException(status_code=404, detail="Pago no encontrado")
+        return dict(row)
+
+# =====================================================
+# FIN DEL BACKEND
+# =====================================================

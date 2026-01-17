@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
 import { Badge } from "./components/ui/badge";
 import { WorkForm, Work } from "./components/WorkForm";
-import DestajosManagement from "./DestajosManagement";
 import {
   Building2,
   TrendingUp,
@@ -21,9 +19,13 @@ import {
   Unlock,
   ChevronDown,
   ChevronUp,
+  FileSpreadsheet,
   Upload,
-  Users,
 } from "lucide-react";
+
+interface GlobalDashboardProps {
+  onSelectProject: (projectId: string) => void;
+}
 
 const ADMIN_PASSWORD = "idpjedi01"; // En producción, esto debería estar en un backend seguro
 
@@ -45,112 +47,9 @@ const initialWorks: Work[] = [
     totalEstimates: 2100000,
     totalExpenses: 525000,
   },
-  {
-    code: "228",
-    name: "CASTELLO F",
-    client: "Grupo Constructor Metropolitano",
-    contractNumber: "CONT-2025-052",
-    contractAmount: 6800000,
-    advancePercentage: 30,
-    retentionPercentage: 5,
-    startDate: "2024-12-01",
-    estimatedEndDate: "2025-08-15",
-    resident: "Arq. Laura Martínez",
-    residentInitials: "LM",
-    status: "Activa",
-    actualBalance: 2040000,
-    totalEstimates: 2720000,
-    totalExpenses: 680000,
-  },
-  {
-    code: "229",
-    name: "CASTELLO G",
-    client: "Gobierno del Estado de México",
-    contractNumber: "CONT-2025-078",
-    contractAmount: 8500000,
-    advancePercentage: 20,
-    retentionPercentage: 10,
-    startDate: "2025-01-05",
-    estimatedEndDate: "2025-10-30",
-    resident: "Ing. Roberto Sánchez",
-    residentInitials: "RS",
-    status: "Activa",
-    actualBalance: 1700000,
-    totalEstimates: 1700000,
-    totalExpenses: 0,
-  },
-  {
-    code: "230",
-    name: "CASTELLO H",
-    client: "Inversiones Urbanas SA de CV",
-    contractNumber: "CONT-2024-089",
-    contractAmount: 4200000,
-    advancePercentage: 30,
-    retentionPercentage: 5,
-    startDate: "2024-09-15",
-    estimatedEndDate: "2025-04-30",
-    resident: "Ing. Patricia Gómez",
-    residentInitials: "PG",
-    status: "Activa",
-    actualBalance: 1260000,
-    totalEstimates: 2520000,
-    totalExpenses: 1260000,
-  },
-  {
-    code: "231",
-    name: "DOZA A",
-    client: "Constructora Doza SA",
-    contractNumber: "CONT-2025-012",
-    contractAmount: 3500000,
-    advancePercentage: 30,
-    retentionPercentage: 5,
-    startDate: "2025-01-15",
-    estimatedEndDate: "2025-07-31",
-    resident: "Ing. Carlos Ramírez",
-    residentInitials: "CR",
-    status: "Activa",
-    actualBalance: 1050000,
-    totalEstimates: 1050000,
-    totalExpenses: 0,
-  },
-  {
-    code: "232",
-    name: "BALVANERA",
-    client: "Desarrollos Balvanera",
-    contractNumber: "CONT-2025-023",
-    contractAmount: 7200000,
-    advancePercentage: 30,
-    retentionPercentage: 5,
-    startDate: "2025-01-20",
-    estimatedEndDate: "2025-09-30",
-    resident: "Arq. Sofia Vargas",
-    residentInitials: "SV",
-    status: "Activa",
-    actualBalance: 2160000,
-    totalEstimates: 2160000,
-    totalExpenses: 0,
-  },
-  {
-    code: "233",
-    name: "DOZA C",
-    client: "Constructora Doza SA",
-    contractNumber: "CONT-2025-034",
-    contractAmount: 4100000,
-    advancePercentage: 30,
-    retentionPercentage: 5,
-    startDate: "2025-02-01",
-    estimatedEndDate: "2025-08-31",
-    resident: "Ing. Fernando López",
-    residentInitials: "FL",
-    status: "Activa",
-    actualBalance: 1230000,
-    totalEstimates: 1230000,
-    totalExpenses: 0,
-  },
 ];
 
-export default function GlobalDashboard() {
-  const navigate = useNavigate();
+export default function GlobalDashboard({ onSelectProject }: GlobalDashboardProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -160,7 +59,6 @@ export default function GlobalDashboard() {
   const [editingWork, setEditingWork] = useState<Work | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [showIndirectCosts, setShowIndirectCosts] = useState(false);
-  const [showDestajosManagement, setShowDestajosManagement] = useState(false);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,6 +106,16 @@ export default function GlobalDashboard() {
   const handleEditWork = (work: Work) => {
     setEditingWork(work);
     setShowWorkForm(true);
+  };
+
+  const handleUploadDestajos = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Aquí se implementará la lógica para leer el archivo Excel
+      console.log("Archivo de destajos cargado:", file.name);
+      alert(`Archivo "${file.name}" cargado. Función de lectura en desarrollo.`);
+      // TODO: Implementar lectura de Excel con librería como xlsx
+    }
   };
 
   const activeWorks = works.filter((w) => w.status === "Activa");
@@ -413,19 +321,33 @@ export default function GlobalDashboard() {
         )}
 
         {/* Action Buttons */}
-        <div className="mb-6 flex justify-between items-center flex-wrap gap-3">
+        <div className="mb-6 flex flex-wrap justify-between items-center gap-3">
           <h2 className="text-xl font-bold">
             {showArchived ? "Obras Archivadas" : "Obras Activas"}
           </h2>
           {!showArchived && (
             <div className="flex gap-2">
-              <Button
-                onClick={() => setShowDestajosManagement(true)}
-                className="gap-2 bg-green-700 hover:bg-green-800"
-              >
-                <Users className="h-4 w-4" />
-                Gestionar Destajos
-              </Button>
+              {/* Upload Excel Destajos */}
+              <label htmlFor="upload-destajos">
+                <input
+                  id="upload-destajos"
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleUploadDestajos}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2 border-green-600 text-green-700 hover:bg-green-50"
+                  onClick={() => document.getElementById('upload-destajos')?.click()}
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Cargar Destajos (Excel)
+                </Button>
+              </label>
+              
+              {/* Nueva Obra Button */}
               <Button
                 onClick={() => setShowWorkForm(true)}
                 className="gap-2 bg-slate-700 hover:bg-slate-800"
@@ -634,7 +556,7 @@ export default function GlobalDashboard() {
                           variant="default"
                           size="sm"
                           className="flex-1"
-                          onClick={() => navigate(`/project/${work.code}`)}
+                          onClick={() => onSelectProject(work.code)}
                         >
                           Abrir Dashboard
                         </Button>
@@ -667,7 +589,7 @@ export default function GlobalDashboard() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/project/${work.code}`)}
+                          onClick={() => onSelectProject(work.code)}
                         >
                           Ver
                         </Button>
@@ -704,13 +626,6 @@ export default function GlobalDashboard() {
           }}
           onSave={handleSaveWork}
           editWork={editingWork}
-        />
-      )}
-
-      {/* Destajos Management Modal */}
-      {showDestajosManagement && (
-        <DestajosManagement
-          onClose={() => setShowDestajosManagement(false)}
         />
       )}
     </div>

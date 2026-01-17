@@ -19,8 +19,8 @@ import PaymentManagement from "./PaymentManagement";
 import ContractTracking from "./ContractTracking";
 import ExpenseDetails from "./ExpenseDetails";
 
-// Logo IDP - SVG desde public
-const logoIdp = "/logo-idp.svg";
+// Logo IDP
+import logoIdp from "figma:asset/f8466b45551caf0d2ba4727b71061c2b0b7fdee1.png";
 
 type Module =
   | "home"
@@ -149,7 +149,7 @@ export default function MainApp() {
           <div className="flex items-center justify-between py-4">
             <div className="flex items-center gap-4">
               <img
-                src={logoIdp}
+                src="/logo-idp-normal.svg"
                 alt="IDP Construcción"
                 className="h-14 w-auto"
               />
@@ -203,7 +203,7 @@ export default function MainApp() {
       {/* Main Content Area */}
       <main className="mx-auto max-w-[1800px] px-4 sm:px-6 lg:px-8 py-6">
         {activeModule === "dashboard" && hasAccess("dashboard") && (
-          <GlobalDashboard />
+          <GlobalDashboard onSelectProject={handleSelectProject} />
         )}
 
         {activeModule === "requisitions" && hasAccess("requisitions") && (
@@ -262,7 +262,7 @@ export default function MainApp() {
         <div className="mx-auto max-w-[1800px] px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src={logoIdp} alt="IDP" className="h-10 w-auto" />
+              <img src="/logo-idp-normal.svg" alt="IDP" className="h-10 w-auto" />
               <div className="text-sm text-slate-300">
                 <p className="font-semibold text-white">
                   IDP Construcción, Consultoría y Diseño

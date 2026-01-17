@@ -1,397 +1,271 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { PurchaseOrder } from "@/app/components/PurchaseOrderForm";
 
-// Función helper para cargar imagen desde URL pública
-const loadImageAsBase64 = (url: string): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    
-    img.onload = () => {
-      try {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          reject(new Error("No se pudo obtener el contexto del canvas"));
-          return;
-        }
-        
-        ctx.drawImage(img, 0, 0);
-        const base64 = canvas.toDataURL("image/png");
-        resolve(base64);
-      } catch (error) {
-        reject(error);
-      }
-    };
-    
-    img.onerror = () => {
-      reject(new Error("Error al cargar la imagen"));
-    };
-    
-    img.src = url;
-  });
-};
+/**
+ * Genera el PDF de una Orden de Compra
+ * Usa jsPDF + jspdf-autotable
+ */
+export async function generatePurchaseOrderPDF(order: {
+  orderNumber: string;
+  createdDate: string;
+  workCode: string;
+  workName: string;
+  client?: string;
+  buyer: string;
+  supplier: string;
+  supplierFullName?: string;
+  deliveryType: string;
+  deliveryDate: string;
+  items: {
+    quantity: number;
+    unit?: string;
+    description: string;
+    unitPrice: number;
+    total: number;
+  }[];
+  subtotal: number;
+  iva: number;
+  total: number;
+  observations?: string;
+}) {
+  const doc = new jsPDF("p", "mm", "a4");
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
 
-export const generatePurchaseOrderPDF = async (order: PurchaseOrder) => {
-  const doc = new jsPDF();
-  
-  // Colores corporativos
-  const navyBlue = [25, 51, 110]; // Azul marino
-  const goldenYellow = [234, 170, 0]; // Amarillo dorado
-  const white = [255, 255, 255];
-  const black = [0, 0, 0];
-  const gray = [80, 80, 80];
-  
-  let yPos = 15;
+  /* =====================================================
+     HEADER (barra azul + logo + datos empresa)
+     ===================================================== */
+  doc.setFillColor(25, 51, 110); // azul marino
+  doc.rect(0, 0, pageWidth, 35, "F");
 
-  // ========================================
-  // HEADER CON LOGO Y TÍTULO
-  // ========================================
-  
-  // Rectángulo azul marino superior (header)
-  doc.setFillColor(navyBlue[0], navyBlue[1], navyBlue[2]);
-  doc.rect(0, 0, 210, 35, "F");
-  
-  // Logo - Cargar imagen real
-  const logoX = 12;
-  const logoY = 5;
-  const logoWidth = 25;
-  const logoHeight = 25;
-  
+  // Logo (usa PNG/SVG en public/)
   try {
-    // Intentar cargar el logo desde la ruta pública
-    // Nota: Usamos el logo alternativo (amarillo) para PDFs de Órdenes de Compra
-    // El logo SVG debe ser convertido a PNG para jsPDF
-    const logoBase64 = await loadImageAsBase64("/logo-idp-alt.svg");
-    doc.addImage(logoBase64, 'PNG', logoX, logoY, logoWidth, logoHeight);
-  } catch (error) {
-    console.error('Error al cargar logo:', error);
-    // Fallback: dibujar placeholder si falla (SVG no es compatible con jsPDF directamente)
-    doc.setFillColor(goldenYellow[0], goldenYellow[1], goldenYellow[2]);
-    doc.rect(logoX, logoY, logoWidth, logoHeight, "F");
-    doc.setDrawColor(navyBlue[0], navyBlue[1], navyBlue[2]);
-    doc.setLineWidth(1.5);
-    doc.rect(logoX, logoY, logoWidth, logoHeight, "S");
-    
-    // Agregar texto "IDP" en el placeholder
-    doc.setTextColor(navyBlue[0], navyBlue[1], navyBlue[2]);
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("IDP", logoX + logoWidth / 2, logoY + logoHeight / 2 + 2, { align: "center" });
+    const logo = await loadImageAsBase64("/logo-idp-alterno.svg");
+    doc.addImage(logo, "PNG", 12, 5, 25, 25);
+  } catch {
+    // si no carga el logo, no rompe el PDF
   }
-  
-  // Información de la empresa (texto blanco)
-  const infoX = 42;
-  doc.setTextColor(white[0], white[1], white[2]);
-  doc.setFontSize(11);
+
+  doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.text("IDP CC SC DE RL DE CV", infoX, 10);
-  
-  doc.setFontSize(8);
+  doc.setFontSize(10);
+  doc.text("IDP CC SC DE RL DE CV", 42, 10);
   doc.setFont("helvetica", "normal");
-  doc.text("RFC: ICC11032ZLN0", infoX, 15);
-  doc.text("AV. PASEO DE LA CONSTITUCIÓN No. 60", infoX, 19);
-  doc.text("Email: COMPRAS@IDPCC.COM.MX", infoX, 23);
-  doc.text("Tel: (722) 123-4567", infoX, 27);
-  
-  // TÍTULO "ORDEN DE COMPRA" - Lado derecho
+  doc.text("RFC: ICC110321LN0", 42, 15);
+  doc.text("AV. PASEO DE LA CONSTITUCIÓN No. 60", 42, 19);
+  doc.text("Email: COMPRAS@IDPCC.COM.MX", 42, 23);
+  doc.text("Tel: (722) 123-4567", 42, 27);
+
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
+  doc.text("ORDEN DE COMPRA", pageWidth - 15, 18, { align: "right" });
+
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(10);
+
+  /* =====================================================
+     DATOS GENERALES (obra / OC)
+     ===================================================== */
+  let y = 42;
+
+  // Izquierda - Obra
   doc.setFont("helvetica", "bold");
-  doc.text("ORDEN DE COMPRA", 195, 18, { align: "right" });
-  
-  // ========================================
-  // INFORMACIÓN PRINCIPAL
-  // ========================================
-  
-  yPos = 42;
-  doc.setTextColor(black[0], black[1], black[2]);
-  
-  // OBRA (columna izquierda)
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.text("Obra:", 15, yPos);
-  
+  doc.text("Obra:", 15, y);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.text(order.workName, 28, yPos);
-  
-  doc.setFontSize(8);
-  doc.text(`Código: ${order.workCode}`, 28, yPos + 4.5);
-  
-  // Cliente
-  doc.setFontSize(7);
-  doc.setTextColor(gray[0], gray[1], gray[2]);
-  const clientLines = doc.splitTextToSize(`Cliente: ${order.client || ""}`, 80);
-  doc.text(clientLines, 28, yPos + 9);
-  
-  doc.setTextColor(black[0], black[1], black[2]);
-  
-  // DATOS DE LA OC (columna derecha) - Formato tabla
-  const rightLabelX = 125;
-  const rightValueX = 155;
-  
-  doc.setFontSize(8);
-  
-  // No. OC
-  doc.setFont("helvetica", "bold");
-  doc.text("No. OC:", rightLabelX, yPos);
-  doc.setFont("helvetica", "normal");
-  doc.text(order.orderNumber, rightValueX, yPos);
-  
-  // Comprador
-  doc.setFont("helvetica", "bold");
-  doc.text("Comprador:", rightLabelX, yPos + 5);
-  doc.setFont("helvetica", "normal");
-  doc.text(order.buyer, rightValueX, yPos + 5);
-  
-  // Fecha
-  doc.setFont("helvetica", "bold");
-  doc.text("Fecha:", rightLabelX, yPos + 10);
-  doc.setFont("helvetica", "normal");
-  doc.text(new Date(order.createdDate).toLocaleDateString("es-MX"), rightValueX, yPos + 10);
-  
-  // No. Obra
-  doc.setFont("helvetica", "bold");
-  doc.text("No. Obra:", rightLabelX, yPos + 15);
-  doc.setFont("helvetica", "normal");
-  doc.text(order.workCode, rightValueX, yPos + 15);
-  
-  yPos += 26;
-  
-  // ========================================
-  // INFORMACIÓN DEL PROVEEDOR
-  // ========================================
-  
-  // Rectángulo del proveedor
-  doc.setDrawColor(black[0], black[1], black[2]);
-  doc.setLineWidth(0.3);
-  doc.rect(15, yPos, 100, 22);
-  
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.text("Proveedor:", 17, yPos + 5);
-  
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  const proveedorLines = doc.splitTextToSize(order.supplierFullName || order.supplier, 95);
-  doc.text(proveedorLines, 17, yPos + 10);
-  
-  // Contacto
-  if (order.supplierContact) {
-    doc.setFontSize(7);
-    doc.setTextColor(gray[0], gray[1], gray[2]);
-    const contactLines = doc.splitTextToSize(`Contacto: ${order.supplierContact}`, 95);
-    doc.text(contactLines, 17, yPos + 16);
-    doc.setTextColor(black[0], black[1], black[2]);
+  doc.text(order.workName, 28, y);
+  doc.text(`Código: ${order.workCode}`, 28, y + 5);
+  if (order.client) {
+    doc.text(
+      doc.splitTextToSize(`Cliente: ${order.client}`, 80),
+      28,
+      y + 10
+    );
   }
-  
-  // Datos adicionales (columna derecha)
-  doc.setFontSize(8);
-  
-  // Cotización
+
+  // Derecha - OC
   doc.setFont("helvetica", "bold");
-  doc.text("Cotización:", rightLabelX, yPos + 5);
+  doc.text("No. OC:", 125, y);
   doc.setFont("helvetica", "normal");
-  doc.text("N/A", rightValueX, yPos + 5);
-  
-  // Tipo
+  doc.text(order.orderNumber, 155, y);
+
   doc.setFont("helvetica", "bold");
-  doc.text("Tipo:", rightLabelX, yPos + 10);
+  doc.text("Comprador:", 125, y + 5);
   doc.setFont("helvetica", "normal");
-  doc.text(order.deliveryType, rightValueX, yPos + 10);
-  
-  // Fecha Entrega
+  doc.text(order.buyer, 155, y + 5);
+
   doc.setFont("helvetica", "bold");
-  doc.text("Fecha Entrega:", rightLabelX, yPos + 15);
+  doc.text("Fecha:", 125, y + 10);
   doc.setFont("helvetica", "normal");
-  doc.text(new Date(order.deliveryDate).toLocaleDateString("es-MX"), rightValueX, yPos + 15);
-  
-  yPos += 27;
-  
-  // ========================================
-  // TABLA DE PRODUCTOS/SERVICIOS
-  // ========================================
-  
+  doc.text(
+    new Date(order.createdDate).toLocaleDateString("es-MX"),
+    155,
+    y + 10
+  );
+
+  y += 20;
+
+  /* =====================================================
+     PROVEEDOR
+     ===================================================== */
+  doc.rect(15, y, 100, 22);
+  doc.setFont("helvetica", "bold");
+  doc.text("Proveedor:", 17, y + 5);
+  doc.setFont("helvetica", "normal");
+  doc.text(
+    doc.splitTextToSize(
+      order.supplierFullName || order.supplier,
+      95
+    ),
+    17,
+    y + 10
+  );
+
+  // Derecha
+  doc.setFont("helvetica", "bold");
+  doc.text("Tipo Entrega:", 125, y + 8);
+  doc.setFont("helvetica", "normal");
+  doc.text(order.deliveryType, 155, y + 8);
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Fecha Entrega:", 125, y + 15);
+  doc.setFont("helvetica", "normal");
+  doc.text(
+    new Date(order.deliveryDate).toLocaleDateString("es-MX"),
+    155,
+    y + 15
+  );
+
+  y += 30;
+
+  /* =====================================================
+     TABLA DE ITEMS
+     ===================================================== */
   const tableData = order.items.map((item) => [
     item.quantity.toString(),
     item.unit || "Pza",
     item.description,
-    `$ ${item.unitPrice.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-    `$ ${item.total.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    `$ ${item.unitPrice.toLocaleString("es-MX", {
+      minimumFractionDigits: 2,
+    })}`,
+    `$ ${item.total.toLocaleString("es-MX", {
+      minimumFractionDigits: 2,
+    })}`,
   ]);
-  
-  // Agregar filas vacías hasta completar 15
-  const minRows = 15;
-  while (tableData.length < minRows) {
+
+  // Rellenar hasta 15 renglones
+  while (tableData.length < 15) {
     tableData.push(["", "", "", "", ""]);
   }
-  
+
   autoTable(doc, {
-    startY: yPos,
+    startY: y,
     head: [["Cantidad", "Unidad", "Descripción", "P.U.", "Importe"]],
     body: tableData,
     theme: "grid",
-    headStyles: {
-      fillColor: white,
-      textColor: black,
-      fontSize: 8,
-      fontStyle: "bold",
-      halign: "center",
-      valign: "middle",
-      lineWidth: 0.3,
-      lineColor: black,
-      cellPadding: 2,
-    },
-    bodyStyles: {
-      fontSize: 8,
-      textColor: black,
-      lineWidth: 0.3,
-      lineColor: black,
-      cellPadding: 2,
-      minCellHeight: 5,
-      valign: "middle",
-    },
+    styles: { fontSize: 9 },
     columnStyles: {
       0: { cellWidth: 20, halign: "center" },
       1: { cellWidth: 20, halign: "center" },
-      2: { cellWidth: 95, halign: "left" },
+      2: { cellWidth: 95 },
       3: { cellWidth: 27, halign: "right" },
       4: { cellWidth: 28, halign: "right" },
     },
     margin: { left: 15, right: 15 },
   });
-  
-  // ========================================
-  // NOTA DE COMPROMISO
-  // ========================================
-  
-  const finalY = (doc as any).lastAutoTable.finalY || yPos + 100;
-  
-  doc.setFontSize(7);
-  doc.setFont("helvetica", "italic");
-  doc.setTextColor(black[0], black[1], black[2]);
-  
-  const commitmentText = '"El proveedor se compromete a cumplir en tiempo, forma y en la ubicación solicitada los productos/servicios descritos en la presente Orden de Compra."';
-  const commitmentLines = doc.splitTextToSize(commitmentText, 120);
-  doc.text(commitmentLines, 15, finalY + 5);
-  
-  // ========================================
-  // TOTALES (lado derecho)
-  // ========================================
-  
-  const totalsLabelX = 148;
-  const totalsValueX = 195;
-  let totalsY = finalY + 3;
-  
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(black[0], black[1], black[2]);
-  
-  // Subtotal
-  doc.text("Subtotal:", totalsLabelX, totalsY);
-  doc.text(`$ ${order.subtotal.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, totalsValueX, totalsY, { align: "right" });
-  
-  totalsY += 5;
-  
-  // Otro (descuento)
-  if (order.discountAmount > 0) {
-    doc.text("Otro:", totalsLabelX, totalsY);
-    doc.text(`$ ${order.discountAmount.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, totalsValueX, totalsY, { align: "right" });
-    totalsY += 5;
-  }
-  
-  // IVA
-  doc.text("IVA:", totalsLabelX, totalsY);
-  doc.text(`$ ${order.iva.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, totalsValueX, totalsY, { align: "right" });
-  
-  totalsY += 6;
-  
-  // Total (en negrita)
-  doc.setFont("helvetica", "bold");
-  doc.text("Total:", totalsLabelX, totalsY);
-  doc.text(`$ ${order.total.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, totalsValueX, totalsY, { align: "right" });
-  
-  // ========================================
-  // FIRMAS
-  // ========================================
-  
-  const firmasY = finalY + 31;
-  
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(black[0], black[1], black[2]);
-  
-  // Espaciado mejorado para las firmas
-  const firma1X = 35;
-  const firma2X = 105;
-  const firma3X = 172;
-  
-  // Elabora
-  doc.text("Elabora", firma1X, firmasY, { align: "center" });
-  doc.setLineWidth(0.3);
-  doc.line(firma1X - 15, firmasY + 2, firma1X + 15, firmasY + 2);
-  doc.setFontSize(7);
-  doc.setFont("helvetica", "bold");
-  doc.text(order.buyer, firma1X, firmasY + 6, { align: "center" });
-  
-  // Autoriza
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  doc.text("Autoriza", firma2X, firmasY, { align: "center" });
-  doc.line(firma2X - 15, firmasY + 2, firma2X + 15, firmasY + 2);
-  doc.setFontSize(7);
-  doc.setFont("helvetica", "bold");
-  doc.text("Giovanni Martínez", firma2X, firmasY + 6, { align: "center" });
-  
-  // Proveedor
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  doc.text("Proveedor", firma3X, firmasY, { align: "center" });
-  doc.line(firma3X - 15, firmasY + 2, firma3X + 15, firmasY + 2);
-  doc.setFontSize(7);
-  doc.setFont("helvetica", "bold");
-  const proveedorNombre = order.supplierFullName || order.supplier;
-  const proveedorCorto = proveedorNombre.length > 30 ? proveedorNombre.substring(0, 28) + "..." : proveedorNombre;
-  doc.text(proveedorCorto, firma3X, firmasY + 6, { align: "center" });
-  
-  // ========================================
-  // COMENTARIOS
-  // ========================================
-  
-  const comentariosY = firmasY + 12;
-  
-  doc.setDrawColor(black[0], black[1], black[2]);
-  doc.setLineWidth(0.3);
-  doc.rect(15, comentariosY, 180, 16);
-  
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(black[0], black[1], black[2]);
-  doc.text("Comentarios:", 17, comentariosY + 4);
-  
-  // Observaciones
-  if (order.observations) {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    const obsLines = doc.splitTextToSize(order.observations, 175);
-    doc.text(obsLines, 17, comentariosY + 8);
-  }
-  
-  // Pie de página
-  const pageHeight = doc.internal.pageSize.height;
-  doc.setFontSize(6);
-  doc.setTextColor(gray[0], gray[1], gray[2]);
+
+  const afterTableY =
+    (doc as any).lastAutoTable.finalY + 8;
+
+  /* =====================================================
+     TOTALES
+     ===================================================== */
+  let totalsY = afterTableY;
+
+  doc.text("Subtotal:", 148, totalsY);
   doc.text(
-    `Documento generado: ${new Date().toLocaleDateString("es-MX")} ${new Date().toLocaleTimeString("es-MX", { hour: '2-digit', minute: '2-digit' })}`,
-    105,
+    `$ ${order.subtotal.toLocaleString("es-MX", {
+      minimumFractionDigits: 2,
+    })}`,
+    pageWidth - 15,
+    totalsY,
+    { align: "right" }
+  );
+
+  doc.text("IVA:", 148, totalsY + 5);
+  doc.text(
+    `$ ${order.iva.toLocaleString("es-MX", {
+      minimumFractionDigits: 2,
+    })}`,
+    pageWidth - 15,
+    totalsY + 5,
+    { align: "right" }
+  );
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Total:", 148, totalsY + 11);
+  doc.text(
+    `$ ${order.total.toLocaleString("es-MX", {
+      minimumFractionDigits: 2,
+    })}`,
+    pageWidth - 15,
+    totalsY + 11,
+    { align: "right" }
+  );
+  doc.setFont("helvetica", "normal");
+
+  /* =====================================================
+     FIRMAS
+     ===================================================== */
+  const firmasY = totalsY + 28;
+
+  doc.text("Elabora", 35, firmasY, { align: "center" });
+  doc.line(20, firmasY + 2, 50, firmasY + 2);
+  doc.text(order.buyer, 35, firmasY + 6, { align: "center" });
+
+  doc.text("Autoriza", 105, firmasY, { align: "center" });
+  doc.line(90, firmasY + 2, 120, firmasY + 2);
+  doc.text("Dirección", 105, firmasY + 6, { align: "center" });
+
+  doc.text("Proveedor", 172, firmasY, { align: "center" });
+  doc.line(157, firmasY + 2, 187, firmasY + 2);
+
+  /* =====================================================
+     COMENTARIOS
+     ===================================================== */
+  const comentariosY = firmasY + 15;
+  doc.rect(15, comentariosY, pageWidth - 30, 16);
+  doc.text("Comentarios:", 17, comentariosY + 4);
+  if (order.observations) {
+    doc.text(
+      doc.splitTextToSize(order.observations, pageWidth - 34),
+      17,
+      comentariosY + 8
+    );
+  }
+
+  /* =====================================================
+     FOOTER
+     ===================================================== */
+  doc.setFontSize(8);
+  doc.text(
+    `Documento generado el ${new Date().toLocaleString("es-MX")}`,
+    pageWidth / 2,
     pageHeight - 5,
     { align: "center" }
   );
 
-  // Descargar el PDF
-  doc.save(`OC-${order.orderNumber}.pdf`);
-};
+  return doc;
+}
+
+/* =====================================================
+   UTILIDAD: cargar imagen como base64
+   ===================================================== */
+async function loadImageAsBase64(src: string): Promise<string> {
+  const res = await fetch(src);
+  const blob = await res.blob();
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.readAsDataURL(blob);
+  });
+}

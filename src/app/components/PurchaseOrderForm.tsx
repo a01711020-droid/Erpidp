@@ -27,7 +27,6 @@ export interface PurchaseOrderItem {
   id: string;
   description: string;
   quantity: number;
-  unit?: string;
   unitPrice: number;
   total: number;
 }
@@ -41,6 +40,12 @@ export interface PurchaseOrder {
   supplier: string;
   supplierFullName: string;
   supplierContact: string;
+  supplierRFC?: string;
+  supplierAddress?: string;
+  supplierPhone?: string;
+  supplierBank?: string;
+  supplierAccount?: string;
+  supplierCLABE?: string;
   buyer: string;
   deliveryDate: string;
   deliveryType: "Entrega" | "Recolección";
@@ -96,6 +101,12 @@ export function PurchaseOrderForm({
   const [supplierInfo, setSupplierInfo] = useState<{
     fullName: string;
     contact: string;
+    rfc?: string;
+    address?: string;
+    phone?: string;
+    bank?: string;
+    account?: string;
+    clabe?: string;
   } | null>(null);
   const [deliveryDate, setDeliveryDate] = useState(
     editOrder?.deliveryDate || ""
@@ -189,6 +200,12 @@ export function PurchaseOrderForm({
       supplier,
       supplierFullName: supplierInfo?.fullName || "",
       supplierContact: supplierInfo?.contact || "",
+      supplierRFC: supplierInfo?.rfc,
+      supplierAddress: supplierInfo?.address,
+      supplierPhone: supplierInfo?.phone,
+      supplierBank: supplierInfo?.bank,
+      supplierAccount: supplierInfo?.account,
+      supplierCLABE: supplierInfo?.clabe,
       buyer,
       deliveryDate,
       deliveryType,
@@ -327,6 +344,42 @@ export function PurchaseOrderForm({
                       <Label>Contacto</Label>
                       <Input value={supplierInfo.contact} disabled className="bg-green-50" />
                     </div>
+                    {supplierInfo.rfc && (
+                      <div className="space-y-2">
+                        <Label>RFC</Label>
+                        <Input value={supplierInfo.rfc} disabled className="bg-green-50" />
+                      </div>
+                    )}
+                    {supplierInfo.address && (
+                      <div className="space-y-2">
+                        <Label>Dirección</Label>
+                        <Input value={supplierInfo.address} disabled className="bg-green-50" />
+                      </div>
+                    )}
+                    {supplierInfo.phone && (
+                      <div className="space-y-2">
+                        <Label>Teléfono</Label>
+                        <Input value={supplierInfo.phone} disabled className="bg-green-50" />
+                      </div>
+                    )}
+                    {supplierInfo.bank && (
+                      <div className="space-y-2">
+                        <Label>Banco</Label>
+                        <Input value={supplierInfo.bank} disabled className="bg-green-50" />
+                      </div>
+                    )}
+                    {supplierInfo.account && (
+                      <div className="space-y-2">
+                        <Label>Cuenta</Label>
+                        <Input value={supplierInfo.account} disabled className="bg-green-50" />
+                      </div>
+                    )}
+                    {supplierInfo.clabe && (
+                      <div className="space-y-2">
+                        <Label>CLABE</Label>
+                        <Input value={supplierInfo.clabe} disabled className="bg-green-50" />
+                      </div>
+                    )}
                   </>
                 )}
               </div>

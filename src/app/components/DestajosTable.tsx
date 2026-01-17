@@ -49,7 +49,7 @@ const mockDataBySemana: Record<string, DestajoItem[]> = {
   ],
 };
 
-export default function DestajosTable() {
+export function DestajosTable() {
   const [selectedWeek, setSelectedWeek] = useState<string>("2024-S01");
 
   const currentData = mockDataBySemana[selectedWeek] || [];

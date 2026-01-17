@@ -351,8 +351,8 @@ export function MaterialRequisitionForm({
             </div>
 
             {/* Work Info */}
-            <div className="space-y-4 p-4 border-2 border-amber-200 rounded-lg">
-              <h3 className="font-semibold text-lg text-amber-900">Información de Obra</h3>
+            <div className="space-y-4 p-4 border-2 border-purple-200 rounded-lg">
+              <h3 className="font-semibold text-lg text-purple-900">Información de Obra</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="workCode">Código de Obra *</Label>
@@ -379,11 +379,11 @@ export function MaterialRequisitionForm({
                   <>
                     <div className="space-y-2">
                       <Label>Nombre de Obra</Label>
-                      <Input value={workInfo.name} disabled className="bg-amber-50" />
+                      <Input value={workInfo.name} disabled className="bg-purple-50" />
                     </div>
                     <div className="space-y-2 md:col-span-2">
                       <Label>Residente de Obra</Label>
-                      <Input value={workInfo.resident} disabled className="bg-amber-50" />
+                      <Input value={workInfo.resident} disabled className="bg-purple-50" />
                     </div>
                   </>
                 )}
@@ -507,7 +507,7 @@ export function MaterialRequisitionForm({
                       key={comment.id}
                       className={`p-3 rounded-lg ${
                         comment.role === "Residente"
-                          ? "bg-amber-50 ml-8"
+                          ? "bg-purple-50 ml-8"
                           : "bg-blue-50 mr-8"
                       }`}
                     >
@@ -551,7 +551,7 @@ export function MaterialRequisitionForm({
           <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={!isValid} className="bg-amber-700 hover:bg-amber-800">
+          <Button onClick={handleSave} disabled={!isValid} className="bg-purple-600 hover:bg-purple-700">
             {editRequisition ? "Guardar Cambios" : "Crear Requisición"}
           </Button>
         </div>

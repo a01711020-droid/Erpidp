@@ -1,5 +1,4 @@
 import { Card } from "./components/ui/card";
-import { useNavigate } from "react-router-dom";
 import {
   ShoppingCart,
   CreditCard,
@@ -9,19 +8,23 @@ import {
   Building2,
   Users,
   TrendingUp,
-  Package,
+  Truck,
 } from "lucide-react";
 
-// Logo IDP - SVG desde public
-const logoIdp = "/logo-idp.svg";
+type Module = "dashboard" | "requisitions" | "purchases" | "payments" | "deliveries";
 
-// Configuración de módulos principales (4 funcionales + 1 futuro)
+interface HomeProps {
+  onSelectModule: (module: Module) => void;
+  userRole: "admin" | "residente" | "compras" | "pagos";
+  userName: string;
+}
+
+// Configuración de módulos
 const modules = [
   {
-    id: "dashboard",
-    path: "/dashboard",
+    id: "dashboard" as Module,
     title: "Dashboard Global",
-    description: "Vista general del sistema empresarial con todas las métricas y estadísticas por obra",
+    description: "Vista general del sistema empresarial con todas las métricas y estadísticas",
     icon: LayoutDashboard,
     color: "from-slate-800 to-slate-900",
     bgGradient: "from-slate-100 to-slate-200",
@@ -30,26 +33,9 @@ const modules = [
     iconColor: "text-slate-800",
     hoverBorder: "hover:border-slate-500",
     allowedRoles: ["admin"],
-    enabled: true,
   },
   {
-    id: "purchases",
-    path: "/compras",
-    title: "Compras",
-    description: "Gestión completa de órdenes de compra, proveedores y generación de PDFs",
-    icon: ShoppingCart,
-    color: "from-blue-700 to-blue-800",
-    bgGradient: "from-blue-50 to-blue-100",
-    borderColor: "border-blue-300",
-    iconBg: "bg-blue-100",
-    iconColor: "text-blue-700",
-    hoverBorder: "hover:border-blue-500",
-    allowedRoles: ["admin", "compras"],
-    enabled: true,
-  },
-  {
-    id: "requisitions",
-    path: "/requisiciones",
+    id: "requisitions" as Module,
     title: "Requisiciones de Material",
     description: "Gestión de solicitudes de material desde obra con sistema de urgencia y aprobaciones",
     icon: ClipboardList,
@@ -60,12 +46,23 @@ const modules = [
     iconColor: "text-amber-700",
     hoverBorder: "hover:border-amber-500",
     allowedRoles: ["admin", "residente", "compras"],
-    enabled: true,
   },
   {
-    id: "payments",
-    path: "/pagos",
-    title: "Pagos",
+    id: "purchases" as Module,
+    title: "Órdenes de Compra",
+    description: "Gestión completa de órdenes de compra, proveedores y generación de PDFs",
+    icon: ShoppingCart,
+    color: "from-blue-700 to-blue-800",
+    bgGradient: "from-blue-50 to-blue-100",
+    borderColor: "border-blue-300",
+    iconBg: "bg-blue-100",
+    iconColor: "text-blue-700",
+    hoverBorder: "hover:border-blue-500",
+    allowedRoles: ["admin", "compras"],
+  },
+  {
+    id: "payments" as Module,
+    title: "Módulo de Pagos",
     description: "Control de pagos a proveedores, vinculación con OCs y pagos parciales",
     icon: CreditCard,
     color: "from-emerald-700 to-emerald-800",
@@ -75,59 +72,43 @@ const modules = [
     iconColor: "text-emerald-700",
     hoverBorder: "hover:border-emerald-500",
     allowedRoles: ["admin", "pagos"],
-    enabled: true,
   },
   {
-    id: "deliveries",
-    path: "#",
-    title: "Entregas",
-    description: "Módulo de seguimiento de entregas - Próximamente disponible",
-    icon: Package,
-    color: "from-purple-700 to-purple-800",
-    bgGradient: "from-purple-50 to-purple-100",
-    borderColor: "border-purple-300",
-    iconBg: "bg-purple-100",
-    iconColor: "text-purple-700",
-    hoverBorder: "hover:border-purple-400",
-    allowedRoles: ["admin", "compras"],
-    enabled: false, // Módulo futuro
+    id: "deliveries" as Module,
+    title: "Módulo de Entregas",
+    description: "Próximamente - Control de entregas y recepción de materiales en obra",
+    icon: Truck,
+    color: "from-orange-700 to-orange-800",
+    bgGradient: "from-orange-50 to-orange-100",
+    borderColor: "border-orange-300",
+    iconBg: "bg-orange-100",
+    iconColor: "text-orange-700",
+    hoverBorder: "hover:border-orange-500",
+    allowedRoles: ["admin"],
+    comingSoon: true,
   },
 ];
 
-// Por ahora simulamos un usuario admin para mostrar todos los módulos
-const currentUser = {
-  role: "admin" as const,
-  name: "Sistema de Gestión",
-};
-
-export default function Home() {
-  const navigate = useNavigate();
-
+export default function Home({ onSelectModule, userRole, userName }: HomeProps) {
   const hasAccess = (allowedRoles: string[]) => {
-    return allowedRoles.includes(currentUser.role);
+    return allowedRoles.includes(userRole);
   };
 
   const accessibleModules = modules.filter((module) =>
     hasAccess(module.allowedRoles)
   );
 
-  const handleModuleClick = (module: typeof modules[0]) => {
-    if (!module.enabled) {
-      alert("Este módulo estará disponible próximamente");
-      return;
-    }
-    navigate(module.path);
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50">
+    <div className="min-h-screen" style={{
+      background: 'linear-gradient(to bottom right, #ebe8e3 0%, #f5f3f0 50%, #ebe8e3 100%)'
+    }}>
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 border-b-4 border-slate-600 shadow-2xl">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center">
             <div className="flex justify-center mb-6">
               <img
-                src={logoIdp}
+                src="/logo-idp-normal.svg"
                 alt="IDP Construcción"
                 className="h-24 w-auto"
               />
@@ -141,15 +122,15 @@ export default function Home() {
             <div className="inline-flex items-center gap-2 bg-slate-700/50 px-4 py-2 rounded-full mt-4">
               <Users className="h-5 w-5 text-slate-300" />
               <span className="text-slate-200">
-                Bienvenido, <span className="font-semibold text-white">{currentUser.name}</span>
+                Bienvenido, <span className="font-semibold text-white">{userName}</span>
               </span>
               <span className="text-slate-400">•</span>
               <span className="text-slate-300 capitalize">
-                {currentUser.role === "admin"
+                {userRole === "admin"
                   ? "Administrador"
-                  : currentUser.role === "residente"
+                  : userRole === "residente"
                   ? "Residente de Obra"
-                  : currentUser.role === "compras"
+                  : userRole === "compras"
                   ? "Departamento de Compras"
                   : "Departamento de Pagos"}
               </span>
@@ -169,26 +150,42 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          {accessibleModules.map((module) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+          {accessibleModules.map((module, index) => {
             const Icon = module.icon;
+            const isComingSoon = module.comingSoon;
+            const isLastOdd = accessibleModules.length === 5 && index === 4;
+            
             return (
               <Card
                 key={module.id}
-                className={`relative overflow-hidden border-2 ${module.borderColor} ${module.hoverBorder} transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] cursor-pointer group ${
-                  !module.enabled ? "opacity-60" : ""
+                className={`relative overflow-hidden border-2 ${module.borderColor} ${
+                  isComingSoon ? "opacity-75" : module.hoverBorder
+                } transition-all duration-300 ${
+                  isComingSoon ? "" : "hover:shadow-2xl hover:scale-[1.02] cursor-pointer"
+                } group ${
+                  isLastOdd ? "md:col-span-2 md:max-w-md md:mx-auto" : ""
                 }`}
-                onClick={() => handleModuleClick(module)}
+                onClick={() => !isComingSoon && onSelectModule(module.id)}
               >
                 <div className={`absolute inset-0 bg-gradient-to-br ${module.bgGradient} opacity-50`}></div>
                 <div className="relative p-8">
                   <div className="flex items-start justify-between mb-4">
-                    <div className={`p-4 ${module.iconBg} rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                    <div className={`p-4 ${module.iconBg} rounded-xl shadow-lg ${
+                      isComingSoon ? "" : "group-hover:scale-110"
+                    } transition-transform duration-300`}>
                       <Icon className={`h-10 w-10 ${module.iconColor}`} />
                     </div>
-                    <div className="bg-white rounded-full p-2 shadow-md group-hover:translate-x-1 transition-transform duration-300">
-                      <ArrowRight className={`h-6 w-6 ${module.iconColor}`} />
-                    </div>
+                    {!isComingSoon && (
+                      <div className="bg-white rounded-full p-2 shadow-md group-hover:translate-x-1 transition-transform duration-300">
+                        <ArrowRight className={`h-6 w-6 ${module.iconColor}`} />
+                      </div>
+                    )}
+                    {isComingSoon && (
+                      <div className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                        PRÓXIMAMENTE
+                      </div>
+                    )}
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900 mb-3">
                     {module.title}
@@ -196,13 +193,6 @@ export default function Home() {
                   <p className="text-gray-600 leading-relaxed">
                     {module.description}
                   </p>
-                  {!module.enabled && (
-                    <div className="mt-3">
-                      <span className="inline-block bg-purple-100 text-purple-800 text-xs font-semibold px-3 py-1 rounded-full">
-                        Próximamente
-                      </span>
-                    </div>
-                  )}
                 </div>
               </Card>
             );
@@ -227,57 +217,6 @@ export default function Home() {
             </div>
           </Card>
         )}
-
-        {/* Statistics Footer */}
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          <Card className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-blue-700 font-semibold mb-1">
-                  Módulos Activos
-                </p>
-                <p className="text-3xl font-bold text-blue-900">
-                  {accessibleModules.filter(m => m.enabled).length}
-                </p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-blue-600" />
-            </div>
-          </Card>
-
-          <Card className="p-6 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-purple-700 font-semibold mb-1">
-                  Tu Acceso
-                </p>
-                <p className="text-xl font-bold text-purple-900 capitalize">
-                  {currentUser.role === "admin"
-                    ? "Completo"
-                    : currentUser.role === "residente"
-                    ? "Requisiciones"
-                    : currentUser.role === "compras"
-                    ? "Compras"
-                    : "Pagos"}
-                </p>
-              </div>
-              <Users className="h-8 w-8 text-purple-600" />
-            </div>
-          </Card>
-
-          <Card className="p-6 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-green-700 font-semibold mb-1">
-                  Estado del Sistema
-                </p>
-                <p className="text-xl font-bold text-green-900">
-                  Operativo
-                </p>
-              </div>
-              <div className="h-4 w-4 bg-green-500 rounded-full animate-pulse shadow-lg"></div>
-            </div>
-          </Card>
-        </div>
       </div>
 
       {/* Footer */}
@@ -285,7 +224,7 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src={logoIdp} alt="IDP" className="h-12 w-auto" />
+              <img src="/logo-idp-normal.svg" alt="IDP" className="h-12 w-auto" />
               <div className="text-sm text-slate-300">
                 <p className="font-semibold text-white">
                   IDP Construcción, Consultoría y Diseño

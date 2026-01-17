@@ -386,7 +386,7 @@ export default function MaterialRequisitions() {
 
               <Button
                 type="submit"
-                className="w-full bg-amber-700 hover:bg-amber-800 py-6 text-base"
+                className="w-full bg-amber-600 hover:bg-amber-700 py-6 text-base"
               >
                 <Unlock className="h-5 w-5 mr-2" />
                 Acceder
@@ -416,7 +416,7 @@ export default function MaterialRequisitions() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pb-20">
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
         {/* Header - Mobile Optimized */}
-        <div className="bg-gradient-to-r from-amber-800 to-orange-800 rounded-xl p-6 text-white shadow-lg">
+        <div className="bg-gradient-to-r from-amber-700 to-amber-800 rounded-xl p-6 text-white shadow-lg">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white/20 rounded-lg">
@@ -455,7 +455,7 @@ export default function MaterialRequisitions() {
         {/* New Requisition Button - Floating Style */}
         <Button
           onClick={() => setShowForm(true)}
-          className="w-full bg-gradient-to-r from-amber-700 to-orange-700 hover:from-amber-800 hover:to-orange-800 py-6 text-lg shadow-lg"
+          className="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 py-6 text-lg shadow-lg"
           size="lg"
         >
           <Plus className="h-6 w-6 mr-2" />
@@ -480,7 +480,7 @@ export default function MaterialRequisitions() {
                 </p>
                 <Button
                   onClick={() => setShowForm(true)}
-                  className="bg-amber-700 hover:bg-amber-800"
+                  className="bg-amber-600 hover:bg-amber-700"
                   size="lg"
                 >
                   <Plus className="h-5 w-5 mr-2" />
@@ -492,7 +492,7 @@ export default function MaterialRequisitions() {
             myRequisitions.map((req) => (
               <Card
                 key={req.id}
-                className="hover:shadow-lg transition-shadow border-l-4 border-l-amber-600"
+                className="hover:shadow-lg transition-shadow border-l-4 border-l-amber-500"
               >
                 <CardContent className="p-5 space-y-4">
                   {/* Header */}
@@ -536,7 +536,7 @@ export default function MaterialRequisitions() {
                     </h4>
                     <div className="space-y-1">
                       {req.items.slice(0, 2).map((item) => (
-                        <div key={item.id} className="text-sm text-[rgb(0,0,0)]">
+                        <div key={item.id} className="text-sm text-amber-800">
                           • {item.description} - {item.quantity} {item.unit}
                         </div>
                       ))}
@@ -564,7 +564,7 @@ export default function MaterialRequisitions() {
                             key={comment.id}
                             className={`p-3 rounded-lg text-sm ${
                               comment.role === "Residente"
-                                ? "bg-amber-50 border-l-4 border-l-amber-600"
+                                ? "bg-amber-50 border-l-4 border-l-amber-500"
                                 : "bg-blue-50 border-l-4 border-l-blue-500"
                             }`}
                           >
@@ -603,7 +603,7 @@ export default function MaterialRequisitions() {
                         onClick={() => handleAddComment(req.id)}
                         disabled={!newComment.trim()}
                         size="icon"
-                        className="shrink-0 bg-amber-700 hover:bg-amber-800"
+                        className="shrink-0 bg-amber-600 hover:bg-amber-700"
                       >
                         <Send className="h-4 w-4" />
                       </Button>

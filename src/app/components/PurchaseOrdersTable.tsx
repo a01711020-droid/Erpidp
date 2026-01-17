@@ -118,7 +118,7 @@ const mockData: Record<string, PurchaseOrderGroup[]> = {
   ],
 };
 
-export default function PurchaseOrdersTable() {
+export function PurchaseOrdersTable() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("2024-01");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 

@@ -1141,10 +1141,11 @@ export default function PurchaseOrderManagement() {
             </div>
             <div className="p-6 border-t bg-gray-50">
               <Button
+                variant="default"
                 size="lg"
                 className="w-full bg-blue-600 hover:bg-blue-700"
-                onClick={async () => {
-                  await generatePurchaseOrderPDF(pdfOrder);
+                onClick={() => {
+                  generatePurchaseOrderPDF(pdfOrder);
                   setPdfOrder(null);
                 }}
               >
