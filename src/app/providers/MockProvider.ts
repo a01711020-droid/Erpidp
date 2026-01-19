@@ -1,676 +1,321 @@
 /**
- * MOCK PROVIDER
- * Implementación del DataProvider usando datos en memoria
- * Simula operaciones asíncronas y persistencia temporal
+ * MOCK PROVIDER - Datos de prueba en memoria
+ * 
+ * REGLAS:
+ * - Usa el modelo unificado (codigo, nombre, estado)
+ * - Solo para desarrollo/testing
+ * - Sin persistencia
+ * - Activar solo con VITE_DATA_MODE=mock
  */
 
-import type { IDataProvider } from "./DataProvider.interface";
+import type { IDataProvider } from './DataProvider.interface';
 import type {
   Obra,
+  ObraCreate,
+  ObraUpdate,
   Proveedor,
+  ProveedorCreate,
+  ProveedorUpdate,
   Requisicion,
-  RequisicionItem,
+  RequisicionCreate,
+  RequisicionUpdate,
   OrdenCompra,
-  OrdenCompraItem,
+  OrdenCompraCreate,
+  OrdenCompraUpdate,
   Pago,
-  Destajo,
-  Usuario,
+  PagoCreate,
+  PagoUpdate,
   PaginatedResponse,
   ListParams,
-  ObraFinancialSummary,
-  ExpenseByCategory,
-  WeeklyExpense,
-} from "@/app/types/entities";
+} from '../types/entities';
+import { v4 as uuidv4 } from 'uuid';
 
-import { MOCK_DATA } from "./mockData";
+/**
+ * Datos mock en memoria
+ */
+const mockObras: Obra[] = [];
+const mockProveedores: Proveedor[] = [];
+const mockRequisiciones: Requisicion[] = [];
+const mockOrdenesCompra: OrdenCompra[] = [];
+const mockPagos: Pago[] = [];
 
-// ============================================================================
-// UTILIDADES
-// ============================================================================
-
-const delay = (ms: number = 300) => new Promise((resolve) => setTimeout(resolve, ms));
-
-function generateUUID(): string {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
-function paginate<T>(data: T[], params?: ListParams): PaginatedResponse<T> {
-  const page = params?.page ?? 1;
-  const pageSize = params?.pageSize ?? 10;
-  const start = (page - 1) * pageSize;
-  const end = start + pageSize;
-
-  let filteredData = [...data];
-
-  // Aplicar filtros si existen
-  if (params?.filters) {
-    filteredData = filteredData.filter((item: any) => {
-      for (const [key, value] of Object.entries(params.filters!)) {
-        if (value && item[key] !== value) {
-          return false;
-        }
-      }
-      return true;
-    });
-  }
-
-  // Aplicar ordenamiento
-  if (params?.sortBy) {
-    filteredData.sort((a: any, b: any) => {
-      const aVal = a[params.sortBy!];
-      const bVal = b[params.sortBy!];
-      const order = params.sortOrder === "desc" ? -1 : 1;
-
-      if (typeof aVal === "string") {
-        return aVal.localeCompare(bVal) * order;
-      }
-      return (aVal - bVal) * order;
-    });
-  }
-
+/**
+ * Helper para paginar resultados
+ */
+function paginate<T>(
+  data: T[],
+  params?: ListParams
+): PaginatedResponse<T> {
+  const page = params?.page || 1;
+  const pageSize = params?.pageSize || 10;
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  
+  const paginatedData = data.slice(startIndex, endIndex);
+  const total = data.length;
+  const totalPages = Math.ceil(total / pageSize);
+  
   return {
-    data: filteredData.slice(start, end),
-    total: filteredData.length,
+    data: paginatedData,
+    total,
     page,
     pageSize,
-    totalPages: Math.ceil(filteredData.length / pageSize),
+    totalPages,
   };
 }
 
-// ============================================================================
-// STORAGE EN MEMORIA (simula persistencia durante la sesión)
-// ============================================================================
-
-class InMemoryStorage {
-  private data = {
-    obras: [...MOCK_DATA.obras],
-    proveedores: [...MOCK_DATA.proveedores],
-    requisiciones: MOCK_DATA.requisiciones.map((r) => ({ ...r, items: [...r.items] })),
-    requisicionItems: [...MOCK_DATA.requisicionItems],
-    ordenesCompra: MOCK_DATA.ordenesCompra.map((oc) => ({ ...oc, items: [...oc.items] })),
-    ordenCompraItems: [...MOCK_DATA.ordenCompraItems],
-    pagos: [...MOCK_DATA.pagos],
-    destajos: [...MOCK_DATA.destajos],
-    usuarios: [...MOCK_DATA.usuarios],
-  };
-
-  get<K extends keyof typeof this.data>(key: K) {
-    return this.data[key];
+/**
+ * Helper para buscar por ID
+ */
+function findById<T extends { id: string }>(
+  data: T[],
+  id: string,
+  entity: string
+): T {
+  const item = data.find(item => item.id === id);
+  if (!item) {
+    throw new Error(`${entity} con ID ${id} no encontrado`);
   }
-
-  set<K extends keyof typeof this.data>(key: K, value: typeof this.data[K]) {
-    this.data[key] = value;
-  }
+  return item;
 }
 
-const storage = new InMemoryStorage();
-
-// ============================================================================
-// MOCK PROVIDER IMPLEMENTATION
-// ============================================================================
-
+/**
+ * Implementación del MockProvider
+ */
 export class MockProvider implements IDataProvider {
-  // ========== OBRAS ==========
-  obras = {
-    list: async (params?: ListParams): Promise<PaginatedResponse<Obra>> => {
-      await delay();
-      return paginate(storage.get("obras"), params);
-    },
+  // ===== OBRAS =====
+  async listObras(params?: ListParams): Promise<PaginatedResponse<Obra>> {
+    return paginate(mockObras, params);
+  }
 
-    getById: async (id: string): Promise<Obra> => {
-      await delay();
-      const obra = storage.get("obras").find((o) => o.id === id);
-      if (!obra) throw new Error(`Obra con ID ${id} no encontrada`);
-      return obra;
-    },
+  async getObra(id: string): Promise<Obra> {
+    return findById(mockObras, id, 'Obra');
+  }
 
-    create: async (data: Omit<Obra, "id" | "createdAt" | "updatedAt">): Promise<Obra> => {
-      await delay();
-      const now = new Date().toISOString();
-      const newObra: Obra = {
-        ...data,
-        id: generateUUID(),
-        createdAt: now,
-        updatedAt: now,
-      };
-      storage.set("obras", [...storage.get("obras"), newObra]);
-      return newObra;
-    },
+  async createObra(data: ObraCreate): Promise<Obra> {
+    const newObra: Obra = {
+      id: uuidv4(),
+      ...data,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    mockObras.push(newObra);
+    return newObra;
+  }
 
-    update: async (id: string, data: Partial<Obra>): Promise<Obra> => {
-      await delay();
-      const obras = storage.get("obras");
-      const index = obras.findIndex((o) => o.id === id);
-      if (index === -1) throw new Error(`Obra con ID ${id} no encontrada`);
+  async updateObra(id: string, data: ObraUpdate): Promise<Obra> {
+    const index = mockObras.findIndex(o => o.id === id);
+    if (index === -1) throw new Error(`Obra con ID ${id} no encontrada`);
+    
+    mockObras[index] = {
+      ...mockObras[index],
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+    return mockObras[index];
+  }
 
-      const updatedObra = {
-        ...obras[index],
-        ...data,
-        updatedAt: new Date().toISOString(),
-      };
-      obras[index] = updatedObra;
-      storage.set("obras", obras);
-      return updatedObra;
-    },
+  async deleteObra(id: string): Promise<void> {
+    const index = mockObras.findIndex(o => o.id === id);
+    if (index === -1) throw new Error(`Obra con ID ${id} no encontrada`);
+    mockObras.splice(index, 1);
+  }
 
-    delete: async (id: string): Promise<void> => {
-      await delay();
-      const obras = storage.get("obras").filter((o) => o.id !== id);
-      storage.set("obras", obras);
-    },
+  // ===== PROVEEDORES =====
+  async listProveedores(params?: ListParams): Promise<PaginatedResponse<Proveedor>> {
+    return paginate(mockProveedores, params);
+  }
 
-    getFinancialSummary: async (id: string): Promise<ObraFinancialSummary> => {
-      await delay();
-      const obra = await this.obras.getById(id);
-      const pagos = storage.get("pagos").filter((p) => p.obraId === id && p.status === "Completado");
-      const pagosPendientes = storage.get("pagos").filter((p) => p.obraId === id && p.status === "Programado");
+  async getProveedor(id: string): Promise<Proveedor> {
+    return findById(mockProveedores, id, 'Proveedor');
+  }
 
-      const totalPaid = pagos.reduce((sum, p) => sum + p.amount, 0);
-      const pendingPayments = pagosPendientes.reduce((sum, p) => sum + p.amount, 0);
-      const advanceAmount = obra.contractAmount * (obra.advancePercentage / 100);
-      const retentionAmount = obra.totalEstimates * (obra.retentionPercentage / 100);
+  async createProveedor(data: ProveedorCreate): Promise<Proveedor> {
+    const newProveedor: Proveedor = {
+      id: uuidv4(),
+      nombreComercial: null,
+      direccion: null,
+      ciudad: null,
+      codigoPostal: null,
+      telefono: null,
+      email: null,
+      contactoPrincipal: null,
+      banco: null,
+      numeroCuenta: null,
+      clabe: null,
+      tipoProveedor: null,
+      creditoDias: 0,
+      limiteCredito: 0,
+      activo: true,
+      ...data,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    mockProveedores.push(newProveedor);
+    return newProveedor;
+  }
 
-      return {
-        obraId: id,
-        contractAmount: obra.contractAmount,
-        totalEstimates: obra.totalEstimates,
-        totalExpenses: obra.totalExpenses,
-        actualBalance: obra.actualBalance,
-        pendingPayments,
-        totalPaid,
-        advanceAmount,
-        retentionAmount,
-      };
-    },
+  async updateProveedor(id: string, data: ProveedorUpdate): Promise<Proveedor> {
+    const index = mockProveedores.findIndex(p => p.id === id);
+    if (index === -1) throw new Error(`Proveedor con ID ${id} no encontrado`);
+    
+    mockProveedores[index] = {
+      ...mockProveedores[index],
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+    return mockProveedores[index];
+  }
 
-    getExpensesByCategory: async (id: string): Promise<ExpenseByCategory[]> => {
-      await delay();
-      // Categorías simuladas basadas en órdenes de compra
-      const ordenesCompra = storage.get("ordenesCompra").filter((oc) => oc.obraId === id);
-      const categories: Record<string, number> = {};
+  async deleteProveedor(id: string): Promise<void> {
+    const index = mockProveedores.findIndex(p => p.id === id);
+    if (index === -1) throw new Error(`Proveedor con ID ${id} no encontrado`);
+    mockProveedores.splice(index, 1);
+  }
 
-      ordenesCompra.forEach((oc) => {
-        oc.items.forEach((item) => {
-          // Categorizar por tipo de material
-          let category = "Otros";
-          if (item.description.toLowerCase().includes("cemento") || item.description.toLowerCase().includes("concreto")) {
-            category = "Concreto y Cemento";
-          } else if (item.description.toLowerCase().includes("varilla") || item.description.toLowerCase().includes("acero")) {
-            category = "Acero";
-          } else if (item.description.toLowerCase().includes("arena") || item.description.toLowerCase().includes("grava")) {
-            category = "Agregados";
-          } else if (item.description.toLowerCase().includes("cable") || item.description.toLowerCase().includes("eléctric")) {
-            category = "Instalaciones Eléctricas";
-          } else if (item.description.toLowerCase().includes("madera") || item.description.toLowerCase().includes("triplay")) {
-            category = "Carpintería";
-          }
+  // ===== REQUISICIONES =====
+  async listRequisiciones(params?: ListParams): Promise<PaginatedResponse<Requisicion>> {
+    return paginate(mockRequisiciones, params);
+  }
 
-          categories[category] = (categories[category] || 0) + item.subtotal;
-        });
-      });
+  async getRequisicion(id: string): Promise<Requisicion> {
+    return findById(mockRequisiciones, id, 'Requisicion');
+  }
 
-      const total = Object.values(categories).reduce((sum, amount) => sum + amount, 0);
-
-      return Object.entries(categories).map(([category, amount]) => ({
-        category,
-        amount,
-        percentage: total > 0 ? (amount / total) * 100 : 0,
-      }));
-    },
-
-    getWeeklyExpenses: async (id: string): Promise<WeeklyExpense[]> => {
-      await delay();
-      const ordenesCompra = storage.get("ordenesCompra").filter((oc) => oc.obraId === id);
-
-      // Agrupar por semana
-      const weeklyData: Record<string, { amount: number; date: string }> = {};
-
-      ordenesCompra.forEach((oc) => {
-        const date = new Date(oc.issueDate);
-        const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay()); // Inicio de semana (domingo)
-        const weekKey = weekStart.toISOString().split("T")[0];
-        const weekLabel = `Semana ${weekStart.toLocaleDateString("es-MX", { day: "2-digit", month: "short" })}`;
-
-        if (!weeklyData[weekKey]) {
-          weeklyData[weekKey] = { amount: 0, date: weekKey };
-        }
-        weeklyData[weekKey].amount += oc.total;
-      });
-
-      return Object.entries(weeklyData)
-        .map(([_, data]) => ({
-          week: new Date(data.date).toLocaleDateString("es-MX", { day: "2-digit", month: "short" }),
-          amount: data.amount,
-          date: data.date,
-        }))
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    },
-  };
-
-  // ========== PROVEEDORES ==========
-  proveedores = {
-    list: async (params?: ListParams): Promise<PaginatedResponse<Proveedor>> => {
-      await delay();
-      return paginate(storage.get("proveedores"), params);
-    },
-
-    getById: async (id: string): Promise<Proveedor> => {
-      await delay();
-      const proveedor = storage.get("proveedores").find((p) => p.id === id);
-      if (!proveedor) throw new Error(`Proveedor con ID ${id} no encontrado`);
-      return proveedor;
-    },
-
-    create: async (data: Omit<Proveedor, "id" | "createdAt" | "updatedAt">): Promise<Proveedor> => {
-      await delay();
-      const now = new Date().toISOString();
-      const newProveedor: Proveedor = {
-        ...data,
-        id: generateUUID(),
-        createdAt: now,
-        updatedAt: now,
-      };
-      storage.set("proveedores", [...storage.get("proveedores"), newProveedor]);
-      return newProveedor;
-    },
-
-    update: async (id: string, data: Partial<Proveedor>): Promise<Proveedor> => {
-      await delay();
-      const proveedores = storage.get("proveedores");
-      const index = proveedores.findIndex((p) => p.id === id);
-      if (index === -1) throw new Error(`Proveedor con ID ${id} no encontrado`);
-
-      const updated = {
-        ...proveedores[index],
-        ...data,
-        updatedAt: new Date().toISOString(),
-      };
-      proveedores[index] = updated;
-      storage.set("proveedores", proveedores);
-      return updated;
-    },
-
-    delete: async (id: string): Promise<void> => {
-      await delay();
-      const proveedores = storage.get("proveedores").filter((p) => p.id !== id);
-      storage.set("proveedores", proveedores);
-    },
-  };
-
-  // ========== REQUISICIONES ==========
-  requisiciones = {
-    list: async (params?: ListParams): Promise<PaginatedResponse<Requisicion>> => {
-      await delay();
-      return paginate(storage.get("requisiciones"), params);
-    },
-
-    getById: async (id: string): Promise<Requisicion> => {
-      await delay();
-      const req = storage.get("requisiciones").find((r) => r.id === id);
-      if (!req) throw new Error(`Requisición con ID ${id} no encontrada`);
-      return req;
-    },
-
-    create: async (data: Omit<Requisicion, "id" | "createdAt" | "updatedAt">): Promise<Requisicion> => {
-      await delay();
-      const now = new Date().toISOString();
-      const newReq: Requisicion = {
-        ...data,
-        id: generateUUID(),
-        createdAt: now,
-        updatedAt: now,
-      };
-      storage.set("requisiciones", [...storage.get("requisiciones"), newReq]);
-      return newReq;
-    },
-
-    update: async (id: string, data: Partial<Requisicion>): Promise<Requisicion> => {
-      await delay();
-      const requisiciones = storage.get("requisiciones");
-      const index = requisiciones.findIndex((r) => r.id === id);
-      if (index === -1) throw new Error(`Requisición con ID ${id} no encontrada`);
-
-      const updated = {
-        ...requisiciones[index],
-        ...data,
-        updatedAt: new Date().toISOString(),
-      };
-      requisiciones[index] = updated;
-      storage.set("requisiciones", requisiciones);
-      return updated;
-    },
-
-    delete: async (id: string): Promise<void> => {
-      await delay();
-      const requisiciones = storage.get("requisiciones").filter((r) => r.id !== id);
-      storage.set("requisiciones", requisiciones);
-    },
-
-    approve: async (id: string, approvedBy: string): Promise<Requisicion> => {
-      return this.requisiciones.update(id, {
-        status: "Aprobada",
-        approvedBy,
-        approvedAt: new Date().toISOString(),
-      });
-    },
-
-    reject: async (id: string, rejectionReason: string): Promise<Requisicion> => {
-      return this.requisiciones.update(id, {
-        status: "Rechazada",
-        rejectionReason,
-      });
-    },
-
-    addItem: async (requisicionId: string, item: Omit<RequisicionItem, "id" | "requisicionId" | "createdAt">): Promise<RequisicionItem> => {
-      await delay();
-      const req = await this.requisiciones.getById(requisicionId);
-      const newItem: RequisicionItem = {
+  async createRequisicion(data: RequisicionCreate): Promise<Requisicion> {
+    const newRequisicion: Requisicion = {
+      id: uuidv4(),
+      ...data,
+      fechaSolicitud: new Date().toISOString(),
+      items: data.items.map(item => ({
         ...item,
-        id: generateUUID(),
-        requisicionId,
+        id: uuidv4(),
+        requisicionId: '', // Se actualizará después
         createdAt: new Date().toISOString(),
-      };
-      req.items.push(newItem);
-      await this.requisiciones.update(requisicionId, { items: req.items });
-      return newItem;
-    },
+      })),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    // Actualizar requisicionId en los items
+    newRequisicion.items.forEach(item => {
+      item.requisicionId = newRequisicion.id;
+    });
+    
+    mockRequisiciones.push(newRequisicion);
+    return newRequisicion;
+  }
 
-    updateItem: async (itemId: string, data: Partial<RequisicionItem>): Promise<RequisicionItem> => {
-      await delay();
-      const requisiciones = storage.get("requisiciones");
-      for (const req of requisiciones) {
-        const itemIndex = req.items.findIndex((i) => i.id === itemId);
-        if (itemIndex !== -1) {
-          req.items[itemIndex] = { ...req.items[itemIndex], ...data };
-          await this.requisiciones.update(req.id, { items: req.items });
-          return req.items[itemIndex];
-        }
-      }
-      throw new Error(`Item con ID ${itemId} no encontrado`);
-    },
+  async updateRequisicion(id: string, data: RequisicionUpdate): Promise<Requisicion> {
+    const index = mockRequisiciones.findIndex(r => r.id === id);
+    if (index === -1) throw new Error(`Requisicion con ID ${id} no encontrada`);
+    
+    mockRequisiciones[index] = {
+      ...mockRequisiciones[index],
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+    return mockRequisiciones[index];
+  }
 
-    deleteItem: async (itemId: string): Promise<void> => {
-      await delay();
-      const requisiciones = storage.get("requisiciones");
-      for (const req of requisiciones) {
-        const itemIndex = req.items.findIndex((i) => i.id === itemId);
-        if (itemIndex !== -1) {
-          req.items.splice(itemIndex, 1);
-          await this.requisiciones.update(req.id, { items: req.items });
-          return;
-        }
-      }
-      throw new Error(`Item con ID ${itemId} no encontrado`);
-    },
-  };
+  async deleteRequisicion(id: string): Promise<void> {
+    const index = mockRequisiciones.findIndex(r => r.id === id);
+    if (index === -1) throw new Error(`Requisicion con ID ${id} no encontrada`);
+    mockRequisiciones.splice(index, 1);
+  }
 
-  // ========== ÓRDENES DE COMPRA ==========
-  ordenesCompra = {
-    list: async (params?: ListParams): Promise<PaginatedResponse<OrdenCompra>> => {
-      await delay();
-      return paginate(storage.get("ordenesCompra"), params);
-    },
+  // ===== ÓRDENES DE COMPRA =====
+  async listOrdenesCompra(params?: ListParams): Promise<PaginatedResponse<OrdenCompra>> {
+    return paginate(mockOrdenesCompra, params);
+  }
 
-    getById: async (id: string): Promise<OrdenCompra> => {
-      await delay();
-      const oc = storage.get("ordenesCompra").find((o) => o.id === id);
-      if (!oc) throw new Error(`Orden de compra con ID ${id} no encontrada`);
-      return oc;
-    },
+  async getOrdenCompra(id: string): Promise<OrdenCompra> {
+    return findById(mockOrdenesCompra, id, 'OrdenCompra');
+  }
 
-    create: async (data: Omit<OrdenCompra, "id" | "createdAt" | "updatedAt">): Promise<OrdenCompra> => {
-      await delay();
-      const now = new Date().toISOString();
-      const newOC: OrdenCompra = {
-        ...data,
-        id: generateUUID(),
-        createdAt: now,
-        updatedAt: now,
-      };
-      storage.set("ordenesCompra", [...storage.get("ordenesCompra"), newOC]);
-      return newOC;
-    },
-
-    update: async (id: string, data: Partial<OrdenCompra>): Promise<OrdenCompra> => {
-      await delay();
-      const ordenesCompra = storage.get("ordenesCompra");
-      const index = ordenesCompra.findIndex((o) => o.id === id);
-      if (index === -1) throw new Error(`Orden de compra con ID ${id} no encontrada`);
-
-      const updated = {
-        ...ordenesCompra[index],
-        ...data,
-        updatedAt: new Date().toISOString(),
-      };
-      ordenesCompra[index] = updated;
-      storage.set("ordenesCompra", ordenesCompra);
-      return updated;
-    },
-
-    delete: async (id: string): Promise<void> => {
-      await delay();
-      const ordenesCompra = storage.get("ordenesCompra").filter((o) => o.id !== id);
-      storage.set("ordenesCompra", ordenesCompra);
-    },
-
-    addItem: async (ordenCompraId: string, item: Omit<OrdenCompraItem, "id" | "ordenCompraId" | "createdAt">): Promise<OrdenCompraItem> => {
-      await delay();
-      const oc = await this.ordenesCompra.getById(ordenCompraId);
-      const newItem: OrdenCompraItem = {
+  async createOrdenCompra(data: OrdenCompraCreate): Promise<OrdenCompra> {
+    const newOrdenCompra: OrdenCompra = {
+      id: uuidv4(),
+      ...data,
+      fechaEmision: new Date().toISOString(),
+      items: data.items.map(item => ({
         ...item,
-        id: generateUUID(),
-        ordenCompraId,
+        id: uuidv4(),
+        ordenCompraId: '', // Se actualizará después
         createdAt: new Date().toISOString(),
-      };
-      oc.items.push(newItem);
-      await this.ordenesCompra.update(ordenCompraId, { items: oc.items });
-      return newItem;
-    },
+      })),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    // Actualizar ordenCompraId en los items
+    newOrdenCompra.items.forEach(item => {
+      item.ordenCompraId = newOrdenCompra.id;
+    });
+    
+    mockOrdenesCompra.push(newOrdenCompra);
+    return newOrdenCompra;
+  }
 
-    updateItem: async (itemId: string, data: Partial<OrdenCompraItem>): Promise<OrdenCompraItem> => {
-      await delay();
-      const ordenesCompra = storage.get("ordenesCompra");
-      for (const oc of ordenesCompra) {
-        const itemIndex = oc.items.findIndex((i) => i.id === itemId);
-        if (itemIndex !== -1) {
-          oc.items[itemIndex] = { ...oc.items[itemIndex], ...data };
-          await this.ordenesCompra.update(oc.id, { items: oc.items });
-          return oc.items[itemIndex];
-        }
-      }
-      throw new Error(`Item con ID ${itemId} no encontrado`);
-    },
+  async updateOrdenCompra(id: string, data: OrdenCompraUpdate): Promise<OrdenCompra> {
+    const index = mockOrdenesCompra.findIndex(o => o.id === id);
+    if (index === -1) throw new Error(`OrdenCompra con ID ${id} no encontrada`);
+    
+    mockOrdenesCompra[index] = {
+      ...mockOrdenesCompra[index],
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+    return mockOrdenesCompra[index];
+  }
 
-    deleteItem: async (itemId: string): Promise<void> => {
-      await delay();
-      const ordenesCompra = storage.get("ordenesCompra");
-      for (const oc of ordenesCompra) {
-        const itemIndex = oc.items.findIndex((i) => i.id === itemId);
-        if (itemIndex !== -1) {
-          oc.items.splice(itemIndex, 1);
-          await this.ordenesCompra.update(oc.id, { items: oc.items });
-          return;
-        }
-      }
-      throw new Error(`Item con ID ${itemId} no encontrado`);
-    },
-  };
+  async deleteOrdenCompra(id: string): Promise<void> {
+    const index = mockOrdenesCompra.findIndex(o => o.id === id);
+    if (index === -1) throw new Error(`OrdenCompra con ID ${id} no encontrada`);
+    mockOrdenesCompra.splice(index, 1);
+  }
 
-  // ========== PAGOS ==========
-  pagos = {
-    list: async (params?: ListParams): Promise<PaginatedResponse<Pago>> => {
-      await delay();
-      return paginate(storage.get("pagos"), params);
-    },
+  // ===== PAGOS =====
+  async listPagos(params?: ListParams): Promise<PaginatedResponse<Pago>> {
+    return paginate(mockPagos, params);
+  }
 
-    getById: async (id: string): Promise<Pago> => {
-      await delay();
-      const pago = storage.get("pagos").find((p) => p.id === id);
-      if (!pago) throw new Error(`Pago con ID ${id} no encontrado`);
-      return pago;
-    },
+  async getPago(id: string): Promise<Pago> {
+    return findById(mockPagos, id, 'Pago');
+  }
 
-    create: async (data: Omit<Pago, "id" | "createdAt" | "updatedAt">): Promise<Pago> => {
-      await delay();
-      const now = new Date().toISOString();
-      const newPago: Pago = {
-        ...data,
-        id: generateUUID(),
-        createdAt: now,
-        updatedAt: now,
-      };
-      storage.set("pagos", [...storage.get("pagos"), newPago]);
-      return newPago;
-    },
+  async createPago(data: PagoCreate): Promise<Pago> {
+    const newPago: Pago = {
+      id: uuidv4(),
+      ...data,
+      fechaProcesado: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    mockPagos.push(newPago);
+    return newPago;
+  }
 
-    update: async (id: string, data: Partial<Pago>): Promise<Pago> => {
-      await delay();
-      const pagos = storage.get("pagos");
-      const index = pagos.findIndex((p) => p.id === id);
-      if (index === -1) throw new Error(`Pago con ID ${id} no encontrado`);
+  async updatePago(id: string, data: PagoUpdate): Promise<Pago> {
+    const index = mockPagos.findIndex(p => p.id === id);
+    if (index === -1) throw new Error(`Pago con ID ${id} no encontrado`);
+    
+    mockPagos[index] = {
+      ...mockPagos[index],
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+    return mockPagos[index];
+  }
 
-      const updated = {
-        ...pagos[index],
-        ...data,
-        updatedAt: new Date().toISOString(),
-      };
-      pagos[index] = updated;
-      storage.set("pagos", pagos);
-      return updated;
-    },
-
-    delete: async (id: string): Promise<void> => {
-      await delay();
-      const pagos = storage.get("pagos").filter((p) => p.id !== id);
-      storage.set("pagos", pagos);
-    },
-
-    process: async (id: string, processedBy: string): Promise<Pago> => {
-      return this.pagos.update(id, {
-        status: "Procesado",
-        processedBy,
-      });
-    },
-
-    complete: async (id: string): Promise<Pago> => {
-      return this.pagos.update(id, {
-        status: "Completado",
-      });
-    },
-
-    cancel: async (id: string): Promise<Pago> => {
-      return this.pagos.update(id, {
-        status: "Cancelado",
-      });
-    },
-  };
-
-  // ========== DESTAJOS ==========
-  destajos = {
-    list: async (params?: ListParams): Promise<PaginatedResponse<Destajo>> => {
-      await delay();
-      return paginate(storage.get("destajos"), params);
-    },
-
-    getById: async (id: string): Promise<Destajo> => {
-      await delay();
-      const destajo = storage.get("destajos").find((d) => d.id === id);
-      if (!destajo) throw new Error(`Destajo con ID ${id} no encontrado`);
-      return destajo;
-    },
-
-    create: async (data: Omit<Destajo, "id" | "createdAt" | "updatedAt">): Promise<Destajo> => {
-      await delay();
-      const now = new Date().toISOString();
-      const newDestajo: Destajo = {
-        ...data,
-        id: generateUUID(),
-        createdAt: now,
-        updatedAt: now,
-      };
-      storage.set("destajos", [...storage.get("destajos"), newDestajo]);
-      return newDestajo;
-    },
-
-    update: async (id: string, data: Partial<Destajo>): Promise<Destajo> => {
-      await delay();
-      const destajos = storage.get("destajos");
-      const index = destajos.findIndex((d) => d.id === id);
-      if (index === -1) throw new Error(`Destajo con ID ${id} no encontrado`);
-
-      const updated = {
-        ...destajos[index],
-        ...data,
-        updatedAt: new Date().toISOString(),
-      };
-      destajos[index] = updated;
-      storage.set("destajos", destajos);
-      return updated;
-    },
-
-    delete: async (id: string): Promise<void> => {
-      await delay();
-      const destajos = storage.get("destajos").filter((d) => d.id !== id);
-      storage.set("destajos", destajos);
-    },
-
-    updateProgress: async (id: string, advancePercentage: number): Promise<Destajo> => {
-      return this.destajos.update(id, { advancePercentage });
-    },
-  };
-
-  // ========== USUARIOS ==========
-  usuarios = {
-    list: async (params?: ListParams): Promise<PaginatedResponse<Usuario>> => {
-      await delay();
-      return paginate(storage.get("usuarios"), params);
-    },
-
-    getById: async (id: string): Promise<Usuario> => {
-      await delay();
-      const usuario = storage.get("usuarios").find((u) => u.id === id);
-      if (!usuario) throw new Error(`Usuario con ID ${id} no encontrado`);
-      return usuario;
-    },
-
-    create: async (data: Omit<Usuario, "id" | "createdAt" | "updatedAt">): Promise<Usuario> => {
-      await delay();
-      const now = new Date().toISOString();
-      const newUsuario: Usuario = {
-        ...data,
-        id: generateUUID(),
-        createdAt: now,
-        updatedAt: now,
-      };
-      storage.set("usuarios", [...storage.get("usuarios"), newUsuario]);
-      return newUsuario;
-    },
-
-    update: async (id: string, data: Partial<Usuario>): Promise<Usuario> => {
-      await delay();
-      const usuarios = storage.get("usuarios");
-      const index = usuarios.findIndex((u) => u.id === id);
-      if (index === -1) throw new Error(`Usuario con ID ${id} no encontrado`);
-
-      const updated = {
-        ...usuarios[index],
-        ...data,
-        updatedAt: new Date().toISOString(),
-      };
-      usuarios[index] = updated;
-      storage.set("usuarios", usuarios);
-      return updated;
-    },
-
-    delete: async (id: string): Promise<void> => {
-      await delay();
-      const usuarios = storage.get("usuarios").filter((u) => u.id !== id);
-      storage.set("usuarios", usuarios);
-    },
-  };
+  async deletePago(id: string): Promise<void> {
+    const index = mockPagos.findIndex(p => p.id === id);
+    if (index === -1) throw new Error(`Pago con ID ${id} no encontrado`);
+    mockPagos.splice(index, 1);
+  }
 }
+
+/**
+ * Instancia singleton del MockProvider
+ */
+export const mockProvider = new MockProvider();
