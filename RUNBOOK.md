@@ -1,47 +1,35 @@
-# RUNBOOK - Sistema ERP IDP
-
-Guía operativa para ejecutar el sistema en local y producción.
+# RUNBOOK - ERP IDP
 
 ---
 
-## ⚠️ IMPORTANTE: Archivo _redirects para Render
+## ⚠️ PASO 0: Corregir _redirects
 
-**El sistema Figma Make tiene una limitación**: No puede crear archivos que empiezan con `_`.
-
-**Actualmente existe**: `/public/_redirects/main.tsx` (carpeta con archivo)  
-**Render necesita**: `/public/_redirects` (archivo simple, sin extensión)
-
-**SOLUCIÓN MANUAL OBLIGATORIA**:
+**OBLIGATORIO antes de desplegar en Render:**
 
 ```bash
-# Después de descargar el proyecto:
 cd public
 cat _redirects/main.tsx > _redirects_temp
 rm -rf _redirects
 mv _redirects_temp _redirects
-
-# Verificar:
-cat _redirects
-# Debe mostrar: /*    /index.html   200
 ```
 
-**Sin este paso, React Router NO funcionará en Render al refrescar rutas.**
+Verificar: `cat _redirects` debe mostrar `/*    /index.html   200`
+
+**Por qué**: Figma Make crea carpeta en vez de archivo. Render necesita archivo simple para que React Router funcione al refrescar rutas.
 
 ---
 
-## 🚀 EJECUCIÓN LOCAL
+## 🚀 Ejecución Local
 
 ### 1. Base de Datos
-
-Crear schema en PostgreSQL o Supabase:
 
 ```bash
 # PostgreSQL local
 psql -U postgres -d tu_db -f database/schema_final.sql
 
-# O usar Supabase
+# O usar Supabase:
 # 1. Crear proyecto en https://supabase.com
-# 2. Copiar DATABASE_URL (Settings → Database → Connection String)
+# 2. Copiar DATABASE_URL (Settings → Database)
 # 3. Ejecutar schema_final.sql en SQL Editor
 ```
 
@@ -49,154 +37,104 @@ psql -U postgres -d tu_db -f database/schema_final.sql
 
 ```bash
 cd backend
-
-# Crear entorno virtual
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Instalar dependencias
 pip install -r requirements.txt
 
-# Variables de entorno
 export DATABASE_URL="postgresql://user:pass@localhost:5432/idp_db"
 export FRONTEND_URL="http://localhost:5173"
 
-# Ejecutar
 uvicorn main:app --reload --port 8000
 ```
 
-**Verificar**: http://localhost:8000/health → `{"status": "healthy"}`
+Verificar: http://localhost:8000/health → `{"status": "healthy"}`
 
 ### 3. Frontend
 
 ```bash
-# Instalar dependencias
 pnpm install
 
-# Variables de entorno
 cat > .env << EOF
 VITE_API_URL=http://localhost:8000
 VITE_DATA_MODE=api
 EOF
 
-# Ejecutar
 pnpm run dev
 ```
 
-**Verificar**: http://localhost:5173 → Dashboard debe cargar
+Verificar: http://localhost:5173
 
-### 4. Checklist Local
+### 4. Test
 
-- [ ] Backend: http://localhost:8000/health responde
-- [ ] Frontend: http://localhost:5173 carga
-- [ ] Sin errores de CORS en consola
+- [ ] Backend health responde
+- [ ] Frontend carga
+- [ ] Sin errores CORS
 - [ ] Crear obra → refrescar (F5) → obra persiste
 
 ---
 
-## 🌐 DESPLIEGUE EN RENDER
+## 🌐 Render
 
-### 1. Backend (Web Service)
+### Backend (Web Service)
 
-**Build Command**: `pip install -r requirements.txt`  
-**Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`  
-**Root Directory**: `backend`
+```
+Build: pip install -r requirements.txt
+Start: uvicorn main:app --host 0.0.0.0 --port $PORT
+Root: backend
+```
 
-**Variables de Entorno**:
+**Env vars**:
 ```bash
-DATABASE_URL=postgresql://user:pass@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require
+DATABASE_URL=postgresql://...supabase.com:6543/postgres?sslmode=require
 FRONTEND_URL=https://tu-frontend.onrender.com
 ```
 
-**Health Check**: `/health`
+Health Check: `/health`
 
-### 2. Frontend (Static Site)
+### Frontend (Static Site)
 
-**Build Command**: `pnpm install && pnpm run build`  
-**Publish Directory**: `dist`
+```
+Build: pnpm install && pnpm run build
+Publish: dist
+```
 
-**Variables de Entorno**:
+**Env vars**:
 ```bash
 VITE_API_URL=https://tu-backend.onrender.com
 VITE_DATA_MODE=api
 ```
 
-**Nota**: El archivo `/public/_redirects` está configurado para SPA.
+### Orden
 
-### 3. Orden de Despliegue
+1. Backend → copiar URL
+2. Frontend → usar URL backend en `VITE_API_URL`
+3. Actualizar `FRONTEND_URL` en backend con URL frontend
+4. Re-desplegar backend
 
-1. **Backend primero** → obtener URL
-2. **Frontend segundo** → configurar `VITE_API_URL` con URL del backend
-3. **Actualizar** `FRONTEND_URL` en backend con URL del frontend
-4. **Re-desplegar** backend
+### Verificar
 
-### 4. Checklist Render
-
-- [ ] Backend health: `https://tu-backend.onrender.com/health`
-- [ ] Frontend carga: `https://tu-frontend.onrender.com`
+- [ ] Backend: `https://tu-backend.onrender.com/health`
+- [ ] Frontend carga
 - [ ] Sin errores CORS
-- [ ] Crear obra → refrescar → obra persiste
-- [ ] Rutas funcionan al refrescar (ej: `/ordenes-compra`)
+- [ ] Crear obra → refrescar → persiste
+- [ ] Refrescar `/ordenes-compra` → NO da 404
 
 ---
 
-## 🐛 Troubleshooting
+## 🐛 Problemas Comunes
 
-### Error de CORS
+**CORS error**
+→ Verificar `FRONTEND_URL` en backend coincide con URL real
+→ Re-desplegar backend
 
-**Síntoma**: `Access to fetch blocked by CORS policy`
+**Datos no persisten**
+→ Verificar `VITE_DATA_MODE=api` (no `mock`)
+→ Verificar `DATABASE_URL` correcto
 
-**Solución**:
-1. Verificar que `FRONTEND_URL` en backend coincida con URL real del frontend
-2. Re-desplegar backend
+**404 al refrescar**
+→ Verificar `/public/_redirects` es archivo (no carpeta)
+→ Re-desplegar frontend
 
-### Datos no persisten
-
-**Síntoma**: Al refrescar, datos desaparecen
-
-**Solución**:
-1. Verificar `VITE_DATA_MODE=api` (no `mock`)
-2. Verificar `DATABASE_URL` correcto
-3. Verificar conexión: `curl https://tu-backend.onrender.com/health`
-
-### Error 404 al refrescar en Render
-
-**Síntoma**: Refrescar ruta diferente a `/` da 404
-
-**Solución**:
-- Verificar que existe `/public/_redirects` con: `/*    /index.html   200`
-- Re-desplegar frontend
-
-### Error conexión Supabase
-
-**Síntoma**: `SSL connection has been closed unexpectedly`
-
-**Solución**:
-- Verificar `DATABASE_URL` incluye `?sslmode=require`
-- El sistema lo agrega automáticamente si detecta "supabase" en URL
-
----
-
-## 📊 Verificación
-
-### Flujo Completo
-
-1. Usuario crea obra en frontend
-2. Frontend → POST `/api/obras`
-3. Backend → guarda en PostgreSQL
-4. Backend → devuelve obra creada
-5. Frontend → actualiza lista
-6. **Usuario refresca (F5)**
-7. Frontend → GET `/api/obras`
-8. Backend → consulta PostgreSQL
-9. Frontend → muestra obras (incluyendo la nueva)
-
-**Persistencia confirmada** ✓
-
----
-
-## 📞 Soporte
-
-- **API Docs Local**: http://localhost:8000/docs
-- **API Docs Producción**: https://tu-backend.onrender.com/docs
-- **Código**: Ver `/backend/main.py` y `/src/app/providers/ApiProvider.ts`
+**Error SSL Supabase**
+→ Agregar `?sslmode=require` al `DATABASE_URL`
+→ (El backend lo hace automáticamente)
