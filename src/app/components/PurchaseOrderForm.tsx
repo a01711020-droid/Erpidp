@@ -108,9 +108,18 @@ export function PurchaseOrderForm({
     account?: string;
     clabe?: string;
   } | null>(null);
-  const [deliveryDate, setDeliveryDate] = useState(
-    editOrder?.deliveryDate || ""
-  );
+  
+  // Calcular fecha de entrega por defecto: 2 días después de hoy
+  const getDefaultDeliveryDate = () => {
+    if (editOrder?.deliveryDate) {
+      return editOrder.deliveryDate;
+    }
+    const today = new Date();
+    today.setDate(today.getDate() + 2); // +2 días
+    return today.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+  };
+  
+  const [deliveryDate, setDeliveryDate] = useState(getDefaultDeliveryDate());
   const [deliveryType, setDeliveryType] = useState<"Entrega" | "Recolección">(
     editOrder?.deliveryType || "Entrega"
   );

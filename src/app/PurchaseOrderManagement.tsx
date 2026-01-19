@@ -423,6 +423,51 @@ export default function PurchaseOrderManagement() {
     }
   };
 
+  const handleDownloadPDF = async (order: PurchaseOrder) => {
+    try {
+      // Importar toast
+      const { toast } = await import("sonner");
+      
+      // Transformar datos al formato esperado con nuevos campos
+      const pdfData = {
+        orderNumber: order.orderNumber,
+        createdDate: order.createdDate,
+        workCode: order.workCode,
+        workName: order.workName,
+        client: order.client,
+        buyer: order.buyer,
+        supplier: order.supplier,
+        supplierFullName: order.supplierFullName || order.supplier,
+        supplierContact: order.supplierContact || "N/A",
+        supplierAddress: "", // Agregar si está disponible en el futuro
+        workResident: "Por asignar", // Agregar si está disponible en el futuro
+        workPhone: "N/A", // Agregar si está disponible en el futuro
+        workAddress: order.client || "Dirección no especificada",
+        deliveryType: order.deliveryType === "Entrega" ? "En Obra" : "Recoger",
+        deliveryDate: order.deliveryDate,
+        items: order.items.map(item => ({
+          quantity: item.quantity,
+          unit: "Cub", // Unidad por defecto
+          description: item.description,
+          unitPrice: item.unitPrice,
+          total: item.total
+        })),
+        subtotal: order.subtotal,
+        iva: order.iva,
+        total: order.total,
+        observations: order.observations
+      };
+
+      const doc = await generatePurchaseOrderPDF(pdfData);
+      doc.save(`OC-${order.orderNumber}.pdf`);
+      toast.success("PDF descargado exitosamente");
+    } catch (error) {
+      console.error("Error al generar PDF:", error);
+      const { toast } = await import("sonner");
+      toast.error("Error al generar el PDF");
+    }
+  };
+
   const handleCloseForm = () => {
     setShowForm(false);
     setEditingOrder(null);
@@ -795,7 +840,7 @@ export default function PurchaseOrderManagement() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => setPdfOrder(order)}
+                                onClick={() => handleDownloadPDF(order)}
                                 title="Descargar PDF"
                               >
                                 <Download className="h-4 w-4" />
@@ -984,174 +1029,6 @@ export default function PurchaseOrderManagement() {
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* PDF Download Modal */}
-      {pdfOrder && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700">
-              <div>
-                <h2 className="text-2xl font-bold text-white">Generar PDF de Orden de Compra</h2>
-                <p className="text-blue-100 text-sm">{pdfOrder.orderNumber}</p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setPdfOrder(null)}
-                className="text-white hover:bg-blue-800"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="space-y-6">
-                {/* Work and Supplier Info */}
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-3 p-4 bg-blue-50 rounded-lg">
-                    <h3 className="font-semibold text-blue-900">Información de Obra</h3>
-                    <div className="space-y-2 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Código:</span>
-                        <p className="font-medium">{pdfOrder.workCode}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Obra:</span>
-                        <p className="font-medium">{pdfOrder.workName}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Cliente:</span>
-                        <p className="font-medium">{pdfOrder.client}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 p-4 bg-green-50 rounded-lg">
-                    <h3 className="font-semibold text-green-900">Información de Proveedor</h3>
-                    <div className="space-y-2 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Código:</span>
-                        <p className="font-medium">{pdfOrder.supplier}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Nombre:</span>
-                        <p className="font-medium">{pdfOrder.supplierFullName}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Contacto:</span>
-                        <p className="font-medium">{pdfOrder.supplierContact}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Purchase Details */}
-                <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Comprador</p>
-                    <p className="font-medium">{pdfOrder.buyer}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Fecha de Entrega</p>
-                    <p className="font-medium">
-                      {new Date(pdfOrder.deliveryDate).toLocaleDateString("es-MX")}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Tipo de Entrega</p>
-                    <Badge variant="outline">{pdfOrder.deliveryType}</Badge>
-                  </div>
-                </div>
-
-                {/* Items */}
-                <div>
-                  <h3 className="font-semibold mb-3">Conceptos</h3>
-                  <table className="w-full border rounded-lg">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-sm">Descripción</th>
-                        <th className="px-4 py-2 text-left text-sm">Cantidad</th>
-                        <th className="px-4 py-2 text-left text-sm">P. Unitario</th>
-                        <th className="px-4 py-2 text-left text-sm">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {pdfOrder.items.map((item) => (
-                        <tr key={item.id}>
-                          <td className="px-4 py-2 text-sm">{item.description}</td>
-                          <td className="px-4 py-2 text-sm">{item.quantity}</td>
-                          <td className="px-4 py-2 text-sm">
-                            ${item.unitPrice.toLocaleString("es-MX")}
-                          </td>
-                          <td className="px-4 py-2 text-sm font-medium">
-                            ${item.total.toLocaleString("es-MX")}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Totals */}
-                <div className="border-t pt-4">
-                  <div className="space-y-2 max-w-sm ml-auto">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Subtotal:</span>
-                      <span className="font-medium">
-                        ${pdfOrder.subtotal.toLocaleString("es-MX")}
-                      </span>
-                    </div>
-                    {pdfOrder.discount > 0 && (
-                      <div className="flex justify-between text-orange-600">
-                        <span className="text-sm">Descuento ({pdfOrder.discount}%):</span>
-                        <span className="font-medium">
-                          -${pdfOrder.discountAmount.toLocaleString("es-MX")}
-                        </span>
-                      </div>
-                    )}
-                    {pdfOrder.hasIVA && (
-                      <div className="flex justify-between">
-                        <span className="text-sm">IVA (16%):</span>
-                        <span className="font-medium">
-                          ${pdfOrder.iva.toLocaleString("es-MX")}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-lg font-bold border-t pt-2">
-                      <span>Total:</span>
-                      <span className="text-green-600">
-                        ${pdfOrder.total.toLocaleString("es-MX")}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {pdfOrder.observations && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Observaciones</p>
-                    <p className="text-sm bg-gray-50 p-3 rounded">
-                      {pdfOrder.observations}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="p-6 border-t bg-gray-50">
-              <Button
-                variant="default"
-                size="lg"
-                className="w-full bg-blue-600 hover:bg-blue-700"
-                onClick={() => {
-                  generatePurchaseOrderPDF(pdfOrder);
-                  setPdfOrder(null);
-                }}
-              >
-                <Download className="h-5 w-5 mr-2" />
-                Descargar PDF
-              </Button>
             </div>
           </div>
         </div>

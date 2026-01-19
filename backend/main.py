@@ -1,12 +1,12 @@
 """
 FastAPI Backend - Sistema de Gestión Empresarial IDP
-Main application con CRUD completo
+Main application con CRUD completo alineado al modelo único de dominio
 """
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Any
 from datetime import datetime, date
 from decimal import Decimal
 import os
@@ -30,9 +30,11 @@ async def lifespan(app: FastAPI):
     # Startup
     global db_pool
     db_pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=10)
+    print("✅ Database pool created")
     yield
     # Shutdown
     await db_pool.close()
+    print("👋 Database pool closed")
 
 # =====================================================
 # APLICACIÓN FASTAPI
@@ -44,19 +46,26 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS
+# CORS - Permitir localhost y producción
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En producción, especificar dominios
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://localhost:4173",
+        "https://*.onrender.com",
+        "*"  # En producción, especificar dominios exactos
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # =====================================================
-# MODELOS PYDANTIC
+# MODELOS PYDANTIC (100% alineados al SQL)
 # =====================================================
 
+# ===== OBRA =====
 class ObraBase(BaseModel):
     codigo: str
     nombre: str
@@ -68,7 +77,7 @@ class ObraBase(BaseModel):
     fecha_inicio: date
     fecha_fin_programada: date
     plazo_ejecucion: int
-    estado: str
+    estado: str  # 'activa', 'suspendida', 'terminada', 'cancelada'
 
 class ObraCreate(ObraBase):
     pass
@@ -81,6 +90,7 @@ class Obra(ObraBase):
     class Config:
         from_attributes = True
 
+# ===== PROVEEDOR =====
 class ProveedorBase(BaseModel):
     razon_social: str
     nombre_comercial: Optional[str] = None
@@ -94,7 +104,7 @@ class ProveedorBase(BaseModel):
     banco: Optional[str] = None
     numero_cuenta: Optional[str] = None
     clabe: Optional[str] = None
-    tipo_proveedor: str
+    tipo_proveedor: str  # 'material', 'servicio', 'renta', 'mixto'
     credito_dias: int = 0
     limite_credito: Decimal = 0
     activo: bool = True
@@ -110,6 +120,7 @@ class Proveedor(ProveedorBase):
     class Config:
         from_attributes = True
 
+# ===== REQUISICIÓN ITEM =====
 class RequisicionItemBase(BaseModel):
     cantidad: Decimal
     unidad: str
@@ -123,12 +134,13 @@ class RequisicionItem(RequisicionItemBase):
     requisicion_id: str
     created_at: datetime
 
+# ===== REQUISICIÓN =====
 class RequisicionBase(BaseModel):
     numero_requisicion: str
     obra_id: str
     solicitado_por: str
-    urgencia: str
-    estado: str
+    urgencia: str  # 'normal', 'urgente', 'muy_urgente'
+    estado: str  # 'pendiente', 'aprobada', 'rechazada', 'en_proceso', 'completada'
     observaciones: Optional[str] = None
     aprobado_por: Optional[str] = None
     fecha_aprobacion: Optional[datetime] = None
@@ -151,6 +163,7 @@ class Requisicion(RequisicionBase):
     class Config:
         from_attributes = True
 
+# ===== ORDEN DE COMPRA ITEM =====
 class OrdenCompraItemBase(BaseModel):
     cantidad: Decimal
     unidad: str
@@ -166,14 +179,15 @@ class OrdenCompraItem(OrdenCompraItemBase):
     orden_compra_id: str
     created_at: datetime
 
+# ===== ORDEN DE COMPRA =====
 class OrdenCompraBase(BaseModel):
     numero_orden: str
     obra_id: str
     proveedor_id: str
     requisicion_id: Optional[str] = None
     fecha_entrega: date
-    estado: str
-    tipo_entrega: str
+    estado: str  # 'borrador', 'emitida', 'recibida', 'facturada', 'pagada', 'cancelada'
+    tipo_entrega: str  # 'en_obra', 'bodega', 'recoger'
     subtotal: Decimal
     descuento: Decimal = 0
     descuento_monto: Decimal = 0
@@ -202,15 +216,16 @@ class OrdenCompra(OrdenCompraBase):
     class Config:
         from_attributes = True
 
+# ===== PAGO =====
 class PagoBase(BaseModel):
     numero_pago: str
     obra_id: str
     proveedor_id: str
     orden_compra_id: str
     monto: Decimal
-    metodo_pago: str
+    metodo_pago: str  # 'transferencia', 'cheque', 'efectivo'
     fecha_programada: date
-    estado: str
+    estado: str  # 'programado', 'procesando', 'completado', 'cancelado'
     referencia: Optional[str] = None
     comprobante: Optional[str] = None
     observaciones: Optional[str] = None
@@ -235,6 +250,7 @@ class Pago(PagoBase):
     class Config:
         from_attributes = True
 
+# ===== PAGINACIÓN =====
 class PaginatedResponse(BaseModel):
     data: List[Any]
     total: int
@@ -300,7 +316,11 @@ async def generate_numero_pago(conn) -> str:
 
 @app.get("/")
 async def root():
-    return {"status": "ok", "message": "IDP Gestión Empresarial API"}
+    return {
+        "status": "ok",
+        "message": "IDP Gestión Empresarial API v1.0.0",
+        "docs": "/docs"
+    }
 
 @app.get("/health")
 async def health_check():
@@ -309,13 +329,13 @@ async def health_check():
             await conn.fetchval("SELECT 1")
         return {"status": "healthy", "database": "connected"}
     except Exception as e:
-        return {"status": "unhealthy", "error": str(e)}
+        return {"status": "unhealthy", "database": "disconnected", "error": str(e)}
 
 # =====================================================
 # ENDPOINTS: OBRAS
 # =====================================================
 
-@app.get("/api/obras", response_model=PaginatedResponse)
+@app.get("/api/obras")
 async def list_obras(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
@@ -383,7 +403,7 @@ async def create_obra(obra: ObraCreate):
             raise HTTPException(status_code=400, detail="Código o número de contrato ya existe")
 
 @app.put("/api/obras/{obra_id}")
-async def update_obra(obra_id: str, obra: Dict[str, Any]):
+async def update_obra(obra_id: str, updates: dict):
     async with db_pool.acquire() as conn:
         # Verificar que existe
         exists = await conn.fetchval("SELECT id FROM obras WHERE id = $1", obra_id)
@@ -394,10 +414,11 @@ async def update_obra(obra_id: str, obra: Dict[str, Any]):
         fields = []
         values = []
         idx = 1
-        for key, value in obra.items():
-            fields.append(f"{key} = ${idx}")
-            values.append(value)
-            idx += 1
+        for key, value in updates.items():
+            if key not in ['id', 'created_at', 'updated_at']:
+                fields.append(f"{key} = ${idx}")
+                values.append(value)
+                idx += 1
         
         if not fields:
             raise HTTPException(status_code=400, detail="No hay campos para actualizar")
@@ -420,7 +441,7 @@ async def delete_obra(obra_id: str):
 # ENDPOINTS: PROVEEDORES
 # =====================================================
 
-@app.get("/api/proveedores", response_model=PaginatedResponse)
+@app.get("/api/proveedores")
 async def list_proveedores(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
@@ -486,11 +507,44 @@ async def create_proveedor(proveedor: ProveedorCreate):
         except asyncpg.UniqueViolationError:
             raise HTTPException(status_code=400, detail="RFC ya existe")
 
+@app.put("/api/proveedores/{proveedor_id}")
+async def update_proveedor(proveedor_id: str, updates: dict):
+    async with db_pool.acquire() as conn:
+        exists = await conn.fetchval("SELECT id FROM proveedores WHERE id = $1", proveedor_id)
+        if not exists:
+            raise HTTPException(status_code=404, detail="Proveedor no encontrado")
+        
+        fields = []
+        values = []
+        idx = 1
+        for key, value in updates.items():
+            if key not in ['id', 'created_at', 'updated_at']:
+                fields.append(f"{key} = ${idx}")
+                values.append(value)
+                idx += 1
+        
+        if not fields:
+            raise HTTPException(status_code=400, detail="No hay campos para actualizar")
+        
+        values.append(proveedor_id)
+        query = f"UPDATE proveedores SET {', '.join(fields)} WHERE id = ${idx} RETURNING *"
+        
+        row = await conn.fetchrow(query, *values)
+        return dict(row)
+
+@app.delete("/api/proveedores/{proveedor_id}")
+async def delete_proveedor(proveedor_id: str):
+    async with db_pool.acquire() as conn:
+        result = await conn.execute("DELETE FROM proveedores WHERE id = $1", proveedor_id)
+        if result == "DELETE 0":
+            raise HTTPException(status_code=404, detail="Proveedor no encontrado")
+        return {"message": "Proveedor eliminado exitosamente"}
+
 # =====================================================
 # ENDPOINTS: REQUISICIONES
 # =====================================================
 
-@app.get("/api/requisiciones", response_model=PaginatedResponse)
+@app.get("/api/requisiciones")
 async def list_requisiciones(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
@@ -571,13 +625,13 @@ async def create_requisicion(req: RequisicionCreate):
             
             # Insertar requisición
             query = """
-                INSERT INTO requisiciones (numero_requisicion, obra_id, solicitado_por, urgencia, estado)
-                VALUES ($1, $2, $3, $4, $5)
+                INSERT INTO requisiciones (numero_requisicion, obra_id, solicitado_por, urgencia, estado, observaciones)
+                VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING *
             """
             row = await conn.fetchrow(
                 query,
-                numero, req.obra_id, req.solicitado_por, req.urgencia, 'pendiente'
+                numero, req.obra_id, req.solicitado_por, req.urgencia, 'pendiente', req.observaciones
             )
             requisicion = dict(row)
             
@@ -598,8 +652,9 @@ async def create_requisicion(req: RequisicionCreate):
             return requisicion
 
 @app.put("/api/requisiciones/{requisicion_id}/aprobar")
-async def aprobar_requisicion(requisicion_id: str, aprobado_por: str):
+async def aprobar_requisicion(requisicion_id: str, data: dict):
     async with db_pool.acquire() as conn:
+        aprobado_por = data.get("aprobado_por", "Sistema")
         row = await conn.fetchrow(
             """
             UPDATE requisiciones 
@@ -617,7 +672,7 @@ async def aprobar_requisicion(requisicion_id: str, aprobado_por: str):
 # ENDPOINTS: ÓRDENES DE COMPRA
 # =====================================================
 
-@app.get("/api/ordenes-compra", response_model=PaginatedResponse)
+@app.get("/api/ordenes-compra")
 async def list_ordenes_compra(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
@@ -704,7 +759,7 @@ async def create_orden_compra(oc: OrdenCompraCreate):
             
             # Calcular totales
             subtotal = sum(item.total for item in oc.items)
-            descuento_monto = 0  # TODO: calcular si se agrega descuento
+            descuento_monto = Decimal("0")
             iva = subtotal * Decimal("0.16")
             total = subtotal + iva
             
@@ -745,11 +800,44 @@ async def create_orden_compra(oc: OrdenCompraCreate):
             orden['items'] = items
             return orden
 
+@app.put("/api/ordenes-compra/{orden_id}")
+async def update_orden_compra(orden_id: str, updates: dict):
+    async with db_pool.acquire() as conn:
+        exists = await conn.fetchval("SELECT id FROM ordenes_compra WHERE id = $1", orden_id)
+        if not exists:
+            raise HTTPException(status_code=404, detail="Orden de compra no encontrada")
+        
+        fields = []
+        values = []
+        idx = 1
+        for key, value in updates.items():
+            if key not in ['id', 'created_at', 'updated_at', 'fecha_emision', 'numero_orden']:
+                fields.append(f"{key} = ${idx}")
+                values.append(value)
+                idx += 1
+        
+        if not fields:
+            raise HTTPException(status_code=400, detail="No hay campos para actualizar")
+        
+        values.append(orden_id)
+        query = f"UPDATE ordenes_compra SET {', '.join(fields)} WHERE id = ${idx} RETURNING *"
+        
+        row = await conn.fetchrow(query, *values)
+        return dict(row)
+
+@app.delete("/api/ordenes-compra/{orden_id}")
+async def delete_orden_compra(orden_id: str):
+    async with db_pool.acquire() as conn:
+        result = await conn.execute("DELETE FROM ordenes_compra WHERE id = $1", orden_id)
+        if result == "DELETE 0":
+            raise HTTPException(status_code=404, detail="Orden de compra no encontrada")
+        return {"message": "Orden de compra eliminada exitosamente"}
+
 # =====================================================
 # ENDPOINTS: PAGOS
 # =====================================================
 
-@app.get("/api/pagos", response_model=PaginatedResponse)
+@app.get("/api/pagos")
 async def list_pagos(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
@@ -795,6 +883,14 @@ async def list_pagos(
             "total_pages": (total + page_size - 1) // page_size
         }
 
+@app.get("/api/pagos/{pago_id}")
+async def get_pago(pago_id: str):
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM pagos WHERE id = $1", pago_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="Pago no encontrado")
+        return dict(row)
+
 @app.post("/api/pagos")
 async def create_pago(pago: PagoCreate):
     async with db_pool.acquire() as conn:
@@ -816,8 +912,9 @@ async def create_pago(pago: PagoCreate):
         return dict(row)
 
 @app.put("/api/pagos/{pago_id}/procesar")
-async def procesar_pago(pago_id: str, procesado_por: str):
+async def procesar_pago(pago_id: str, data: dict):
     async with db_pool.acquire() as conn:
+        procesado_por = data.get("procesado_por", "Sistema")
         row = await conn.fetchrow(
             """
             UPDATE pagos 
@@ -830,6 +927,39 @@ async def procesar_pago(pago_id: str, procesado_por: str):
         if not row:
             raise HTTPException(status_code=404, detail="Pago no encontrado")
         return dict(row)
+
+@app.put("/api/pagos/{pago_id}")
+async def update_pago(pago_id: str, updates: dict):
+    async with db_pool.acquire() as conn:
+        exists = await conn.fetchval("SELECT id FROM pagos WHERE id = $1", pago_id)
+        if not exists:
+            raise HTTPException(status_code=404, detail="Pago no encontrado")
+        
+        fields = []
+        values = []
+        idx = 1
+        for key, value in updates.items():
+            if key not in ['id', 'created_at', 'updated_at', 'numero_pago']:
+                fields.append(f"{key} = ${idx}")
+                values.append(value)
+                idx += 1
+        
+        if not fields:
+            raise HTTPException(status_code=400, detail="No hay campos para actualizar")
+        
+        values.append(pago_id)
+        query = f"UPDATE pagos SET {', '.join(fields)} WHERE id = ${idx} RETURNING *"
+        
+        row = await conn.fetchrow(query, *values)
+        return dict(row)
+
+@app.delete("/api/pagos/{pago_id}")
+async def delete_pago(pago_id: str):
+    async with db_pool.acquire() as conn:
+        result = await conn.execute("DELETE FROM pagos WHERE id = $1", pago_id)
+        if result == "DELETE 0":
+            raise HTTPException(status_code=404, detail="Pago no encontrado")
+        return {"message": "Pago eliminado exitosamente"}
 
 # =====================================================
 # FIN DEL BACKEND
