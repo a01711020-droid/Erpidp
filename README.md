@@ -1,49 +1,37 @@
-# Sistema ERP IDP - Gestión Empresarial
+# Sistema ERP IDP
 
 Sistema de gestión empresarial para administración de obras, proveedores, requisiciones, órdenes de compra y pagos.
 
----
-
-## ⚠️ IMPORTANTE: Configuración Requerida
-
-Antes de desplegar, **debes crear manualmente** el archivo `/public/_redirects`.  
-Ver **[INSTRUCCIONES_REDIRECTS.md](./INSTRUCCIONES_REDIRECTS.md)** para detalles.
+**Estado**: 🟢 PRODUCCIÓN | **Versión**: 1.0.0 | [Ver cierre del proyecto →](./SISTEMA_CERRADO.md)
 
 ---
 
-## 📚 Documentación
+## ⚠️ ACCIÓN REQUERIDA ANTES DE DESPLEGAR
 
-- **[STATUS_FINAL.md](./STATUS_FINAL.md)** - ⭐ Estado actual y checklist de despliegue
-- **[RUNBOOK.md](./RUNBOOK.md)** - Guía de ejecución local y despliegue en Render
-- **[INSTRUCCIONES_REDIRECTS.md](./INSTRUCCIONES_REDIRECTS.md)** - ⚠️ Configuración manual requerida
-- **[CHANGELOG.md](./CHANGELOG.md)** - Historial de cambios
-- **[RESUMEN_FINAL.md](./RESUMEN_FINAL.md)** - Resumen completo del proyecto
+El archivo `/public/_redirects` debe convertirse de carpeta a archivo simple.  
+Ver instrucciones en **[RUNBOOK.md](./RUNBOOK.md)** (sección superior).
 
 ---
 
 ## Stack Tecnológico
 
-**Frontend**: React 18 + TypeScript + Vite + Tailwind CSS  
-**Backend**: FastAPI + Python 3.11  
-**Base de Datos**: PostgreSQL (Supabase)  
-**Despliegue**: Render
+- **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS
+- **Backend**: FastAPI + Python 3.11
+- **Base de Datos**: PostgreSQL (Supabase)
 
 ## Arquitectura
 
 ```
-Frontend (React/Vite)
+Frontend (React + Vite)
     ↓ HTTP/REST
 Backend (FastAPI)
     ↓ asyncpg
 PostgreSQL (Supabase)
 ```
 
-**Modelo de Datos Unificado**:
-- UUID como identificadores
-- Campos en español: `codigo`, `nombre`, `estado`
-- camelCase en TypeScript, snake_case en SQL
+**Modelo Unificado**: UUID, campos en español (`codigo`, `nombre`, `estado`)
 
-## Módulos Principales
+## Módulos Incluidos
 
 1. **Obras** - Gestión de proyectos y contratos
 2. **Proveedores** - Catálogo de proveedores
@@ -51,9 +39,9 @@ PostgreSQL (Supabase)
 4. **Órdenes de Compra** - Gestión de compras
 5. **Pagos** - Control de pagos a proveedores
 
-## Fuera de Alcance
+## NO Incluido
 
-- Generación de PDFs de órdenes de compra
+- Generación de PDFs
 - Módulo de entregas
 - Autenticación/autorización
 
@@ -61,54 +49,42 @@ PostgreSQL (Supabase)
 
 **Frontend** (`.env`):
 ```bash
-VITE_API_URL=http://localhost:8000  # URL del backend
-VITE_DATA_MODE=api                  # "api" o "mock"
+VITE_API_URL=http://localhost:8000
+VITE_DATA_MODE=api
 ```
 
-**Backend** (`.env` o variables de entorno):
+**Backend** (`.env`):
 ```bash
 DATABASE_URL=postgresql://user:password@host:5432/dbname
-FRONTEND_URL=http://localhost:5173  # Para CORS
+FRONTEND_URL=http://localhost:5173
 ```
 
 ## Cómo Ejecutar
 
-Ver **[RUNBOOK.md](./RUNBOOK.md)** para instrucciones completas de ejecución local y despliegue en Render.
+Ver **[RUNBOOK.md](./RUNBOOK.md)** para instrucciones completas.
 
-## Estructura del Proyecto
+## API Endpoints
+
+Base: `http://localhost:8000`
+
+- `GET/POST/PUT/DELETE /api/obras`
+- `GET/POST/PUT/DELETE /api/proveedores`
+- `GET/POST /api/requisiciones`
+- `GET/POST/PUT/DELETE /api/ordenes-compra`
+- `GET/POST/PUT/DELETE /api/pagos`
+
+**Docs interactivos**: http://localhost:8000/docs
+
+## Estructura
 
 ```
 /
-├── backend/               # API FastAPI
-│   ├── main.py           # Aplicación principal
-│   └── requirements.txt  # Dependencias Python
-├── database/
-│   └── schema_final.sql  # Esquema PostgreSQL
-├── src/
-│   ├── app/
-│   │   ├── providers/    # ApiProvider, MockProvider
-│   │   ├── types/        # TypeScript types
-│   │   └── components/   # Componentes React
-│   └── styles/           # Estilos Tailwind
-├── public/
-│   └── _redirects        # Config para SPA en Render
-└── package.json          # Dependencias Node
+├── backend/           # API FastAPI
+├── database/          # Schema SQL
+├── src/app/           # Frontend React
+│   ├── providers/     # ApiProvider
+│   ├── types/         # TypeScript types
+│   └── components/    # UI
+└── public/
+    └── _redirects     # Config Render (SPA)
 ```
-
-## Endpoints API
-
-Base URL: `http://localhost:8000`
-
-| Entidad | GET (list) | GET (one) | POST | PUT | DELETE |
-|---------|------------|-----------|------|-----|--------|
-| Obras | `/api/obras` | `/api/obras/{id}` | ✓ | ✓ | ✓ |
-| Proveedores | `/api/proveedores` | `/api/proveedores/{id}` | ✓ | ✓ | ✓ |
-| Requisiciones | `/api/requisiciones` | `/api/requisiciones/{id}` | ✓ | - | - |
-| Órdenes Compra | `/api/ordenes-compra` | `/api/ordenes-compra/{id}` | ✓ | ✓ | ✓ |
-| Pagos | `/api/pagos` | `/api/pagos/{id}` | ✓ | ✓ | ✓ |
-
-**Documentación interactiva**: http://localhost:8000/docs
-
-## Licencia
-
-MIT
