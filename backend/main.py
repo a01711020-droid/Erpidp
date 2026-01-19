@@ -22,6 +22,10 @@ DATABASE_URL = os.getenv(
     "postgresql://user:password@localhost:5432/idp_db"
 )
 
+# Agregar sslmode=require para Supabase en producción
+if "supabase" in DATABASE_URL.lower() and "sslmode" not in DATABASE_URL:
+    DATABASE_URL += "?sslmode=require"
+
 # Pool de conexiones global
 db_pool = None
 
@@ -46,16 +50,22 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS - Permitir localhost y producción
+# CORS - Configuración correcta para producción
+# No usar "*" cuando allow_credentials=True
+allowed_origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:4173",
+]
+
+# Agregar origen de producción desde variable de entorno
+frontend_url = os.getenv("FRONTEND_URL")
+if frontend_url:
+    allowed_origins.append(frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://localhost:4173",
-        "https://*.onrender.com",
-        "*"  # En producción, especificar dominios exactos
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

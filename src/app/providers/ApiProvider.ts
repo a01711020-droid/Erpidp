@@ -7,6 +7,7 @@
  * - Conexión directa al backend FastAPI
  * - Manejo de errores apropiado
  * - Sin fallback a mock/localStorage
+ * - Convierte respuestas paginadas de snake_case a camelCase
  */
 
 import type { IDataProvider } from './DataProvider.interface';
@@ -46,6 +47,7 @@ function buildQueryParams(params?: ListParams): string {
   const searchParams = new URLSearchParams();
   
   if (params.page !== undefined) searchParams.append('page', params.page.toString());
+  // Convertir pageSize a page_size para el backend
   if (params.pageSize !== undefined) searchParams.append('page_size', params.pageSize.toString());
   if (params.sortBy) searchParams.append('sort_by', params.sortBy);
   if (params.sortOrder) searchParams.append('sort_order', params.sortOrder);
@@ -61,6 +63,19 @@ function buildQueryParams(params?: ListParams): string {
   
   const query = searchParams.toString();
   return query ? `?${query}` : '';
+}
+
+/**
+ * Helper para convertir respuesta paginada de snake_case a camelCase
+ */
+function convertPaginatedResponse<T>(response: any): PaginatedResponse<T> {
+  return {
+    data: response.data,
+    total: response.total,
+    page: response.page,
+    pageSize: response.page_size,
+    totalPages: response.total_pages,
+  };
 }
 
 /**
@@ -99,7 +114,8 @@ async function fetchApi<T>(
 export class ApiProvider implements IDataProvider {
   // ===== OBRAS =====
   async listObras(params?: ListParams): Promise<PaginatedResponse<Obra>> {
-    return fetchApi<PaginatedResponse<Obra>>(`/api/obras${buildQueryParams(params)}`);
+    const response = await fetchApi<any>(`/api/obras${buildQueryParams(params)}`);
+    return convertPaginatedResponse<Obra>(response);
   }
 
   async getObra(id: string): Promise<Obra> {
@@ -128,7 +144,8 @@ export class ApiProvider implements IDataProvider {
 
   // ===== PROVEEDORES =====
   async listProveedores(params?: ListParams): Promise<PaginatedResponse<Proveedor>> {
-    return fetchApi<PaginatedResponse<Proveedor>>(`/api/proveedores${buildQueryParams(params)}`);
+    const response = await fetchApi<any>(`/api/proveedores${buildQueryParams(params)}`);
+    return convertPaginatedResponse<Proveedor>(response);
   }
 
   async getProveedor(id: string): Promise<Proveedor> {
@@ -157,7 +174,8 @@ export class ApiProvider implements IDataProvider {
 
   // ===== REQUISICIONES =====
   async listRequisiciones(params?: ListParams): Promise<PaginatedResponse<Requisicion>> {
-    return fetchApi<PaginatedResponse<Requisicion>>(`/api/requisiciones${buildQueryParams(params)}`);
+    const response = await fetchApi<any>(`/api/requisiciones${buildQueryParams(params)}`);
+    return convertPaginatedResponse<Requisicion>(response);
   }
 
   async getRequisicion(id: string): Promise<Requisicion> {
@@ -186,7 +204,8 @@ export class ApiProvider implements IDataProvider {
 
   // ===== ÓRDENES DE COMPRA =====
   async listOrdenesCompra(params?: ListParams): Promise<PaginatedResponse<OrdenCompra>> {
-    return fetchApi<PaginatedResponse<OrdenCompra>>(`/api/ordenes-compra${buildQueryParams(params)}`);
+    const response = await fetchApi<any>(`/api/ordenes-compra${buildQueryParams(params)}`);
+    return convertPaginatedResponse<OrdenCompra>(response);
   }
 
   async getOrdenCompra(id: string): Promise<OrdenCompra> {
@@ -215,7 +234,8 @@ export class ApiProvider implements IDataProvider {
 
   // ===== PAGOS =====
   async listPagos(params?: ListParams): Promise<PaginatedResponse<Pago>> {
-    return fetchApi<PaginatedResponse<Pago>>(`/api/pagos${buildQueryParams(params)}`);
+    const response = await fetchApi<any>(`/api/pagos${buildQueryParams(params)}`);
+    return convertPaginatedResponse<Pago>(response);
   }
 
   async getPago(id: string): Promise<Pago> {
