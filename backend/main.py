@@ -12,28 +12,68 @@ from decimal import Decimal
 import os
 import asyncpg
 from contextlib import asynccontextmanager
+from pathlib import Path
+from dotenv import load_dotenv
 
 # =====================================================
 # CONFIGURACIÓN DE BASE DE DATOS
 # =====================================================
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://user:password@localhost:5432/idp_db"
-)
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
-# Agregar sslmode=require para Supabase en producción
-if "supabase" in DATABASE_URL.lower() and "sslmode" not in DATABASE_URL:
-    DATABASE_URL += "?sslmode=require"
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL no está configurado. Crea backend/.env con DATABASE_URL="
+        "postgresql://USER:PASSWORD@HOST:PORT/DB?sslmode=require"
+    )
+
+print("✅ DATABASE_URL cargado desde variables de entorno (.env u OS).")
+
+def ensure_sslmode(url: str) -> str:
+    if "sslmode=" in url:
+        return url
+    if "supabase" in url.lower() or os.getenv("DB_SSLMODE", "").lower() == "require":
+        separator = "&" if "?" in url else "?"
+        return f"{url}{separator}sslmode=require"
+    return url
+
+DATABASE_URL = ensure_sslmode(DATABASE_URL)
 
 # Pool de conexiones global
 db_pool = None
+
+async def ensure_bank_transactions_table(conn):
+    await conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS bank_transactions (
+            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            fecha DATE NOT NULL,
+            descripcion_banco TEXT NOT NULL,
+            descripcion_banco_normalizada TEXT,
+            monto DECIMAL(15, 2) NOT NULL,
+            referencia_bancaria VARCHAR(100),
+            orden_compra_id UUID REFERENCES ordenes_compra(id) ON DELETE SET NULL,
+            matched BOOLEAN DEFAULT FALSE,
+            origen VARCHAR(50) NOT NULL DEFAULT 'csv',
+            match_confidence INTEGER DEFAULT 0,
+            match_manual BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        )
+        """
+    )
+    await conn.execute("CREATE INDEX IF NOT EXISTS idx_bank_transactions_fecha ON bank_transactions(fecha)")
+    await conn.execute("CREATE INDEX IF NOT EXISTS idx_bank_transactions_matched ON bank_transactions(matched)")
+    await conn.execute("CREATE INDEX IF NOT EXISTS idx_bank_transactions_oc ON bank_transactions(orden_compra_id)")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     global db_pool
     db_pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=10)
+    async with db_pool.acquire() as conn:
+        await ensure_bank_transactions_table(conn)
     print("✅ Database pool created")
     yield
     # Shutdown
@@ -254,6 +294,35 @@ class PagoCreate(BaseModel):
 class Pago(PagoBase):
     id: str
     fecha_procesado: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# ===== BANK TRANSACTIONS (CONCILIACIÓN) =====
+class BankTransactionBase(BaseModel):
+    fecha: date
+    descripcion_banco: str
+    monto: Decimal
+    referencia_bancaria: Optional[str] = None
+    origen: str = "csv"  # 'csv' | 'manual'
+    match_confidence: int = 0
+    match_manual: bool = False
+    orden_compra_id: Optional[str] = None
+    matched: bool = False
+
+class BankTransactionCreate(BankTransactionBase):
+    pass
+
+class BankTransactionMatch(BaseModel):
+    orden_compra_id: str
+    match_confidence: int = 0
+    match_manual: bool = True
+
+class BankTransaction(BankTransactionBase):
+    id: str
+    descripcion_banco_normalizada: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -852,6 +921,8 @@ async def list_pagos(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     obra_id: Optional[str] = None,
+    proveedor_id: Optional[str] = None,
+    orden_compra_id: Optional[str] = None,
     estado: Optional[str] = None
 ):
     async with db_pool.acquire() as conn:
@@ -862,6 +933,16 @@ async def list_pagos(
         if obra_id:
             where_clauses.append(f"obra_id = ${idx}")
             params.append(obra_id)
+            idx += 1
+
+        if proveedor_id:
+            where_clauses.append(f"proveedor_id = ${idx}")
+            params.append(proveedor_id)
+            idx += 1
+
+        if orden_compra_id:
+            where_clauses.append(f"orden_compra_id = ${idx}")
+            params.append(orden_compra_id)
             idx += 1
         
         if estado:
@@ -970,6 +1051,77 @@ async def delete_pago(pago_id: str):
         if result == "DELETE 0":
             raise HTTPException(status_code=404, detail="Pago no encontrado")
         return {"message": "Pago eliminado exitosamente"}
+
+# =====================================================
+# ENDPOINTS: BANK TRANSACTIONS (CONCILIACIÓN)
+# =====================================================
+
+@app.get("/api/bank-transactions")
+async def list_bank_transactions(matched: Optional[bool] = None):
+    async with db_pool.acquire() as conn:
+        where_clause = ""
+        params = []
+        if matched is not None:
+            where_clause = " WHERE matched = $1"
+            params.append(matched)
+        rows = await conn.fetch(
+            f"SELECT * FROM bank_transactions{where_clause} ORDER BY fecha DESC, created_at DESC",
+            *params
+        )
+        return [dict(row) for row in rows]
+
+@app.post("/api/bank-transactions/import")
+async def import_bank_transactions(items: List[BankTransactionCreate]):
+    async with db_pool.acquire() as conn:
+        async with conn.transaction():
+            inserted = []
+            for item in items:
+                normalized = " ".join(item.descripcion_banco.lower().split())
+                row = await conn.fetchrow(
+                    """
+                    INSERT INTO bank_transactions (
+                        fecha, descripcion_banco, descripcion_banco_normalizada, monto,
+                        referencia_bancaria, origen, match_confidence, match_manual, orden_compra_id, matched
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                    RETURNING *
+                    """,
+                    item.fecha,
+                    item.descripcion_banco,
+                    normalized,
+                    item.monto,
+                    item.referencia_bancaria,
+                    item.origen,
+                    item.match_confidence,
+                    item.match_manual,
+                    item.orden_compra_id,
+                    item.matched,
+                )
+                inserted.append(dict(row))
+            return inserted
+
+@app.put("/api/bank-transactions/{transaction_id}/match")
+async def match_bank_transaction(transaction_id: str, data: BankTransactionMatch):
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            UPDATE bank_transactions
+            SET orden_compra_id = $1,
+                matched = TRUE,
+                match_confidence = $2,
+                match_manual = $3,
+                updated_at = NOW()
+            WHERE id = $4
+            RETURNING *
+            """,
+            data.orden_compra_id,
+            data.match_confidence,
+            data.match_manual,
+            transaction_id,
+        )
+        if not row:
+            raise HTTPException(status_code=404, detail="Transacción no encontrada")
+        return dict(row)
 
 # =====================================================
 # FIN DEL BACKEND

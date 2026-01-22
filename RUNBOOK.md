@@ -1,140 +1,57 @@
 # RUNBOOK - ERP IDP
 
----
+## Ejecución local (Windows Git Bash)
 
-## ⚠️ PASO 0: Corregir _redirects
+### Base de datos (Supabase o local)
+- Ejecuta `database/schema_final.sql` en tu instancia de PostgreSQL.
+- En Supabase, usa el SQL Editor.
 
-**OBLIGATORIO antes de desplegar en Render:**
-
+### Backend
 ```bash
-cd public
-cat _redirects/main.tsx > _redirects_temp
-rm -rf _redirects
-mv _redirects_temp _redirects
-```
-
-Verificar: `cat _redirects` debe mostrar `/*    /index.html   200`
-
-**Por qué**: Figma Make crea carpeta en vez de archivo. Render necesita archivo simple para que React Router funcione al refrescar rutas.
-
----
-
-## 🚀 Ejecución Local
-
-### 1. Base de Datos
-
-```bash
-# PostgreSQL local
-psql -U postgres -d tu_db -f database/schema_final.sql
-
-# O usar Supabase:
-# 1. Crear proyecto en https://supabase.com
-# 2. Copiar DATABASE_URL (Settings → Database)
-# 3. Ejecutar schema_final.sql en SQL Editor
-```
-
-### 2. Backend
-
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+cd /workspace/Erpidp/backend
+python -m venv .venv
+source .venv/Scripts/activate
 pip install -r requirements.txt
-
-export DATABASE_URL="postgresql://user:pass@localhost:5432/idp_db"
-export FRONTEND_URL="http://localhost:5173"
-
-uvicorn main:app --reload --port 8000
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Verificar: http://localhost:8000/health → `{"status": "healthy"}`
-
-### 3. Frontend
-
+Variables requeridas (`backend/.env`):
 ```bash
-pnpm install
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DBNAME?sslmode=require
+FRONTEND_URL=http://localhost:5173
+```
 
-cat > .env << EOF
+### Frontend
+```bash
+cd /workspace/Erpidp
+npm install
+npm run dev -- --host 0.0.0.0 --port 5173
+```
+
+Variables requeridas (`.env` en la raíz):
+```bash
 VITE_API_URL=http://localhost:8000
-VITE_DATA_MODE=api
-EOF
-
-pnpm run dev
 ```
 
-Verificar: http://localhost:5173
+## Rutas principales
+- `/dashboard`
+- `/compras`
+- `/pagos`
 
-### 4. Test
-
-- [ ] Backend health responde
-- [ ] Frontend carga
-- [ ] Sin errores CORS
-- [ ] Crear obra → refrescar (F5) → obra persiste
-
----
-
-## 🌐 Render
-
-### Backend (Web Service)
-
+## Render (SPA routing)
+El archivo `public/_redirects` ya existe como archivo y contiene:
 ```
-Build: pip install -r requirements.txt
-Start: uvicorn main:app --host 0.0.0.0 --port $PORT
-Root: backend
+/* /index.html 200
 ```
 
-**Env vars**:
-```bash
-DATABASE_URL=postgresql://...supabase.com:6543/postgres?sslmode=require
-FRONTEND_URL=https://tu-frontend.onrender.com
-```
+## Validaciones rápidas
+- `/health` responde `{"status":"healthy","database":"connected"}`.
+- Crear obra → refrescar → persiste.
+- Crear OC → refrescar → persiste.
+- Registrar pago → saldo disminuye.
 
-Health Check: `/health`
-
-### Frontend (Static Site)
-
-```
-Build: pnpm install && pnpm run build
-Publish: dist
-```
-
-**Env vars**:
-```bash
-VITE_API_URL=https://tu-backend.onrender.com
-VITE_DATA_MODE=api
-```
-
-### Orden
-
-1. Backend → copiar URL
-2. Frontend → usar URL backend en `VITE_API_URL`
-3. Actualizar `FRONTEND_URL` en backend con URL frontend
-4. Re-desplegar backend
-
-### Verificar
-
-- [ ] Backend: `https://tu-backend.onrender.com/health`
-- [ ] Frontend carga
-- [ ] Sin errores CORS
-- [ ] Crear obra → refrescar → persiste
-- [ ] Refrescar `/ordenes-compra` → NO da 404
-
----
-
-## 🐛 Problemas Comunes
-
-**CORS error**
-→ Verificar `FRONTEND_URL` en backend coincide con URL real
-→ Re-desplegar backend
-
-**Datos no persisten**
-→ Verificar `VITE_DATA_MODE=api` (no `mock`)
-→ Verificar `DATABASE_URL` correcto
-
-**404 al refrescar**
-→ Verificar `/public/_redirects` es archivo (no carpeta)
-→ Re-desplegar frontend
-
-**Error SSL Supabase**
-→ Agregar `?sslmode=require` al `DATABASE_URL`
-→ (El backend lo hace automáticamente)
+## Troubleshooting
+- **ERR_CONNECTION_REFUSED**: backend caído o `VITE_API_URL` incorrecto.
+- **422**: revisar payload (camelCase ↔ snake_case) y detalle de error.
+- **Refresh en Render vuelve al home**: falta `public/_redirects`.
+- **Imágenes no cargan**: verificar rutas absolutas desde `/public`.

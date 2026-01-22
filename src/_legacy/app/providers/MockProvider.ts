@@ -25,6 +25,9 @@ import type {
   Pago,
   PagoCreate,
   PagoUpdate,
+  BankTransaction,
+  BankTransactionCreate,
+  BankTransactionMatch,
   PaginatedResponse,
   ListParams,
 } from '../types/entities';
@@ -38,6 +41,7 @@ const mockProveedores: Proveedor[] = [];
 const mockRequisiciones: Requisicion[] = [];
 const mockOrdenesCompra: OrdenCompra[] = [];
 const mockPagos: Pago[] = [];
+const mockBankTransactions: BankTransaction[] = [];
 
 /**
  * Helper para paginar resultados
@@ -185,7 +189,15 @@ export class MockProvider implements IDataProvider {
   async createRequisicion(data: RequisicionCreate): Promise<Requisicion> {
     const newRequisicion: Requisicion = {
       id: uuidv4(),
-      ...data,
+      numeroRequisicion: `REQ-${new Date().getFullYear()}-LOCAL`,
+      obraId: data.obraId,
+      solicitadoPor: data.solicitadoPor,
+      urgencia: data.urgencia,
+      estado: 'pendiente',
+      observaciones: data.observaciones ?? null,
+      aprobadoPor: null,
+      fechaAprobacion: null,
+      motivoRechazo: null,
       fechaSolicitud: new Date().toISOString(),
       items: data.items.map(item => ({
         ...item,
@@ -234,10 +246,29 @@ export class MockProvider implements IDataProvider {
   }
 
   async createOrdenCompra(data: OrdenCompraCreate): Promise<OrdenCompra> {
+    const subtotal = data.items.reduce(
+      (acc, item) => acc + Number(item.total || 0),
+      0
+    );
+    const iva = subtotal * 0.16;
+    const total = subtotal + iva;
     const newOrdenCompra: OrdenCompra = {
       id: uuidv4(),
-      ...data,
+      numeroOrden: `OC-${new Date().getFullYear()}-LOCAL`,
+      obraId: data.obraId,
+      proveedorId: data.proveedorId,
+      requisicionId: data.requisicionId ?? null,
       fechaEmision: new Date().toISOString(),
+      fechaEntrega: data.fechaEntrega,
+      estado: 'emitida',
+      tipoEntrega: data.tipoEntrega ?? 'en_obra',
+      subtotal,
+      descuento: 0,
+      descuentoMonto: 0,
+      iva,
+      total,
+      observaciones: data.observaciones ?? null,
+      creadoPor: data.creadoPor ?? null,
       items: data.items.map(item => ({
         ...item,
         id: uuidv4(),
@@ -287,7 +318,18 @@ export class MockProvider implements IDataProvider {
   async createPago(data: PagoCreate): Promise<Pago> {
     const newPago: Pago = {
       id: uuidv4(),
-      ...data,
+      numeroPago: `PAG-${new Date().getFullYear()}-LOCAL`,
+      obraId: data.obraId,
+      proveedorId: data.proveedorId,
+      ordenCompraId: data.ordenCompraId,
+      monto: data.monto,
+      metodoPago: data.metodoPago ?? 'transferencia',
+      fechaProgramada: data.fechaProgramada,
+      estado: 'programado',
+      referencia: data.referencia ?? null,
+      comprobante: null,
+      observaciones: data.observaciones ?? null,
+      procesadoPor: null,
       fechaProcesado: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -312,6 +354,46 @@ export class MockProvider implements IDataProvider {
     const index = mockPagos.findIndex(p => p.id === id);
     if (index === -1) throw new Error(`Pago con ID ${id} no encontrado`);
     mockPagos.splice(index, 1);
+  }
+
+  // ===== CONCILIACIÓN BANCARIA =====
+  async listBankTransactions(matched?: boolean): Promise<BankTransaction[]> {
+    if (matched === undefined) return mockBankTransactions;
+    return mockBankTransactions.filter((item) => item.matched === matched);
+  }
+
+  async importBankTransactions(data: BankTransactionCreate[]): Promise<BankTransaction[]> {
+    const inserted = data.map((item) => ({
+      id: uuidv4(),
+      fecha: item.fecha,
+      descripcionBanco: item.descripcionBanco,
+      descripcionBancoNormalizada: item.descripcionBanco.toLowerCase(),
+      monto: item.monto,
+      referenciaBancaria: item.referenciaBancaria ?? null,
+      ordenCompraId: null,
+      matched: false,
+      origen: item.origen ?? "csv",
+      matchConfidence: 0,
+      matchManual: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }));
+    mockBankTransactions.push(...inserted);
+    return inserted;
+  }
+
+  async matchBankTransaction(id: string, data: BankTransactionMatch): Promise<BankTransaction> {
+    const index = mockBankTransactions.findIndex((item) => item.id === id);
+    if (index === -1) throw new Error(`Transacción con ID ${id} no encontrada`);
+    mockBankTransactions[index] = {
+      ...mockBankTransactions[index],
+      ordenCompraId: data.ordenCompraId,
+      matched: true,
+      matchConfidence: data.matchConfidence ?? 0,
+      matchManual: data.matchManual ?? true,
+      updatedAt: new Date().toISOString(),
+    };
+    return mockBankTransactions[index];
   }
 }
 
