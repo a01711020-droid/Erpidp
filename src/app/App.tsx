@@ -1,52 +1,39 @@
-import { useState } from "react";
-import MainApp from "./MainApp";
-import DataProviderTest from "./DataProviderTest";
-import { Button } from "./components/ui/button";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import AppLayout from "./pages/AppLayout";
+import HomePage from "./pages/HomePage";
+import DashboardPage from "./pages/DashboardPage";
+import DashboardObraPage from "./pages/DashboardObraPage";
+import DashboardObraDesglosePage from "./pages/DashboardObraDesglosePage";
+import ComprasListPage from "./pages/ComprasListPage";
+import ComprasNuevaPage from "./pages/ComprasNuevaPage";
+import ComprasDetallePage from "./pages/ComprasDetallePage";
+import ComprasObraPage from "./pages/ComprasObraPage";
+import PagosListPage from "./pages/PagosListPage";
+import PagosConciliacionPage from "./pages/PagosConciliacionPage";
+import PagosObraPage from "./pages/PagosObraPage";
 
 export default function App() {
-  const [showTest, setShowTest] = useState(false);
-
-  // Si quieres ver el panel de pruebas del DataProvider, cambia showTest a true
-  // o agrega un botón para alternar
-  if (showTest) {
-    return (
-      <div>
-        <div className="fixed top-4 right-4 z-50">
-          <Button onClick={() => setShowTest(false)}>
-            Volver a la App
-          </Button>
-        </div>
-        <DataProviderTest />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen" style={{
-      backgroundImage: `
-        linear-gradient(to bottom, #f5f3f0 0%, #f8f6f3 100%),
-        repeating-linear-gradient(
-          45deg,
-          transparent,
-          transparent 2px,
-          rgba(0, 0, 0, 0.008) 2px,
-          rgba(0, 0, 0, 0.008) 4px
-        )
-      `,
-      backgroundBlendMode: 'overlay'
-    }}>
-      {/* Botón flotante para acceder al panel de pruebas (temporal) */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <Button 
-          onClick={() => setShowTest(true)}
-          variant="outline"
-          size="sm"
-          className="shadow-lg"
-        >
-          🧪 Probar DataProvider
-        </Button>
-      </div>
-      <MainApp />
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<AppLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="dashboard/obras/:obraId" element={<DashboardObraPage />} />
+          <Route
+            path="dashboard/obras/:obraId/desglose"
+            element={<DashboardObraDesglosePage />}
+          />
+          <Route path="compras" element={<ComprasListPage />} />
+          <Route path="compras/nueva" element={<ComprasNuevaPage />} />
+          <Route path="compras/:ocId" element={<ComprasDetallePage />} />
+          <Route path="compras/obra/:obraId" element={<ComprasObraPage />} />
+          <Route path="pagos" element={<PagosListPage />} />
+          <Route path="pagos/conciliacion" element={<PagosConciliacionPage />} />
+          <Route path="pagos/obra/:obraId" element={<PagosObraPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }

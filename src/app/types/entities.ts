@@ -154,15 +154,10 @@ export interface RequisicionItem {
 }
 
 export interface RequisicionCreate {
-  numeroRequisicion: string;
   obraId: string;
   solicitadoPor: string;
   urgencia: 'normal' | 'urgente' | 'muy_urgente';
-  estado: 'pendiente' | 'aprobada' | 'rechazada' | 'en_proceso' | 'completada';
   observaciones?: string | null;
-  aprobadoPor?: string | null;
-  fechaAprobacion?: string | null;
-  motivoRechazo?: string | null;
   items: Omit<RequisicionItem, 'id' | 'requisicionId' | 'createdAt'>[];
 }
 
@@ -213,18 +208,11 @@ export interface OrdenCompraItem {
 }
 
 export interface OrdenCompraCreate {
-  numeroOrden: string;
   obraId: string;
   proveedorId: string;
   requisicionId?: string | null;
   fechaEntrega: string;
-  estado: 'borrador' | 'emitida' | 'recibida' | 'facturada' | 'pagada' | 'cancelada';
   tipoEntrega?: 'en_obra' | 'bodega' | 'recoger' | null;
-  subtotal: number;
-  descuento?: number;
-  descuentoMonto?: number;
-  iva?: number;
-  total: number;
   observaciones?: string | null;
   creadoPor?: string | null;
   items: Omit<OrdenCompraItem, 'id' | 'ordenCompraId' | 'createdAt'>[];
@@ -266,30 +254,57 @@ export interface Pago {
 }
 
 export interface PagoCreate {
-  numeroPago: string;
   obraId: string;
   proveedorId: string;
   ordenCompraId: string;
   monto: number;
   metodoPago?: 'transferencia' | 'cheque' | 'efectivo' | null;
   fechaProgramada: string;
-  estado: 'programado' | 'procesando' | 'completado' | 'cancelado';
   referencia?: string | null;
-  comprobante?: string | null;
   observaciones?: string | null;
-  procesadoPor?: string | null;
 }
 
 export interface PagoUpdate {
   monto?: number;
   metodoPago?: 'transferencia' | 'cheque' | 'efectivo' | null;
   fechaProgramada?: string;
-  fechaProcesado?: string | null;
   estado?: 'programado' | 'procesando' | 'completado' | 'cancelado';
   referencia?: string | null;
   comprobante?: string | null;
   observaciones?: string | null;
-  procesadoPor?: string | null;
+}
+
+// ============================================================================
+// BANK TRANSACTIONS (CONCILIACIÓN)
+// ============================================================================
+export interface BankTransaction {
+  id: string;
+  fecha: string;
+  descripcionBanco: string;
+  descripcionBancoNormalizada: string | null;
+  monto: number;
+  referenciaBancaria: string | null;
+  ordenCompraId: string | null;
+  matched: boolean;
+  origen: 'csv' | 'manual';
+  matchConfidence: number;
+  matchManual: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BankTransactionCreate {
+  fecha: string;
+  descripcionBanco: string;
+  monto: number;
+  referenciaBancaria?: string | null;
+  origen?: 'csv' | 'manual';
+}
+
+export interface BankTransactionMatch {
+  ordenCompraId: string;
+  matchConfidence?: number;
+  matchManual?: boolean;
 }
 
 // ============================================================================
