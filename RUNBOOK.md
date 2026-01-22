@@ -1,140 +1,25 @@
 # RUNBOOK - ERP IDP
 
----
+## Ejecución local (Windows Git Bash)
 
-## ⚠️ PASO 0: Corregir _redirects
+La **fuente de verdad** para instalación y variables es `README.md`. Sigue ese documento para
+configurar base de datos, backend y frontend.
 
-**OBLIGATORIO antes de desplegar en Render:**
-
-```bash
-cd public
-cat _redirects/main.tsx > _redirects_temp
-rm -rf _redirects
-mv _redirects_temp _redirects
+## Render (SPA routing)
+El archivo `public/_redirects` ya existe como archivo y contiene:
+```
+/* /index.html 200
 ```
 
-Verificar: `cat _redirects` debe mostrar `/*    /index.html   200`
+## Validaciones rápidas
+- `/health` responde `{"status":"healthy","database":"connected"}` (503 si la BD no está disponible).
+- Crear obra → refrescar → persiste.
+- Crear OC → refrescar → persiste.
+- Registrar pago → saldo disminuye.
 
-**Por qué**: Figma Make crea carpeta en vez de archivo. Render necesita archivo simple para que React Router funcione al refrescar rutas.
-
----
-
-## 🚀 Ejecución Local
-
-### 1. Base de Datos
-
-```bash
-# PostgreSQL local
-psql -U postgres -d tu_db -f database/schema_final.sql
-
-# O usar Supabase:
-# 1. Crear proyecto en https://supabase.com
-# 2. Copiar DATABASE_URL (Settings → Database)
-# 3. Ejecutar schema_final.sql en SQL Editor
-```
-
-### 2. Backend
-
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-
-export DATABASE_URL="postgresql://user:pass@localhost:5432/idp_db"
-export FRONTEND_URL="http://localhost:5173"
-
-uvicorn main:app --reload --port 8000
-```
-
-Verificar: http://localhost:8000/health → `{"status": "healthy"}`
-
-### 3. Frontend
-
-```bash
-pnpm install
-
-cat > .env << EOF
-VITE_API_URL=http://localhost:8000
-VITE_DATA_MODE=api
-EOF
-
-pnpm run dev
-```
-
-Verificar: http://localhost:5173
-
-### 4. Test
-
-- [ ] Backend health responde
-- [ ] Frontend carga
-- [ ] Sin errores CORS
-- [ ] Crear obra → refrescar (F5) → obra persiste
-
----
-
-## 🌐 Render
-
-### Backend (Web Service)
-
-```
-Build: pip install -r requirements.txt
-Start: uvicorn main:app --host 0.0.0.0 --port $PORT
-Root: backend
-```
-
-**Env vars**:
-```bash
-DATABASE_URL=postgresql://...supabase.com:6543/postgres?sslmode=require
-FRONTEND_URL=https://tu-frontend.onrender.com
-```
-
-Health Check: `/health`
-
-### Frontend (Static Site)
-
-```
-Build: pnpm install && pnpm run build
-Publish: dist
-```
-
-**Env vars**:
-```bash
-VITE_API_URL=https://tu-backend.onrender.com
-VITE_DATA_MODE=api
-```
-
-### Orden
-
-1. Backend → copiar URL
-2. Frontend → usar URL backend en `VITE_API_URL`
-3. Actualizar `FRONTEND_URL` en backend con URL frontend
-4. Re-desplegar backend
-
-### Verificar
-
-- [ ] Backend: `https://tu-backend.onrender.com/health`
-- [ ] Frontend carga
-- [ ] Sin errores CORS
-- [ ] Crear obra → refrescar → persiste
-- [ ] Refrescar `/ordenes-compra` → NO da 404
-
----
-
-## 🐛 Problemas Comunes
-
-**CORS error**
-→ Verificar `FRONTEND_URL` en backend coincide con URL real
-→ Re-desplegar backend
-
-**Datos no persisten**
-→ Verificar `VITE_DATA_MODE=api` (no `mock`)
-→ Verificar `DATABASE_URL` correcto
-
-**404 al refrescar**
-→ Verificar `/public/_redirects` es archivo (no carpeta)
-→ Re-desplegar frontend
-
-**Error SSL Supabase**
-→ Agregar `?sslmode=require` al `DATABASE_URL`
-→ (El backend lo hace automáticamente)
+## Troubleshooting
+- **ERR_CONNECTION_REFUSED**: backend caído o `VITE_API_URL` incorrecto.
+- **DATABASE_URL inválida**: backend no arranca; corrige `backend/.env`.
+- **422**: revisar payload (camelCase ↔ snake_case) y detalle de error.
+- **Refresh en Render vuelve al home**: falta `public/_redirects`.
+- **Imágenes no cargan**: verificar rutas absolutas desde `/public`.

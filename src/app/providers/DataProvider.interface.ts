@@ -25,13 +25,16 @@ import type {
   Pago,
   PagoCreate,
   PagoUpdate,
+  BankTransaction,
+  BankTransactionCreate,
+  BankTransactionMatch,
   PaginatedResponse,
   ListParams,
 } from '../types/entities';
 
 /**
  * Interfaz principal del Data Provider
- * Implementada por ApiProvider y MockProvider
+ * Implementada por ApiProvider
  */
 export interface IDataProvider {
   // ===== OBRAS =====
@@ -68,4 +71,9 @@ export interface IDataProvider {
   createPago(data: PagoCreate): Promise<Pago>;
   updatePago(id: string, data: PagoUpdate): Promise<Pago>;
   deletePago(id: string): Promise<void>;
+
+  // ===== CONCILIACIÓN BANCARIA =====
+  listBankTransactions(matched?: boolean): Promise<BankTransaction[]>;
+  importBankTransactions(data: BankTransactionCreate[]): Promise<BankTransaction[]>;
+  matchBankTransaction(id: string, data: BankTransactionMatch): Promise<BankTransaction>;
 }

@@ -174,6 +174,29 @@ CREATE INDEX idx_pagos_orden_compra ON pagos(orden_compra_id);
 CREATE INDEX idx_pagos_estado ON pagos(estado);
 
 -- =====================================================
+-- TABLA: bank_transactions (conciliación bancaria)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS bank_transactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  fecha DATE NOT NULL,
+  descripcion_banco TEXT NOT NULL,
+  descripcion_banco_normalizada TEXT,
+  monto DECIMAL(15, 2) NOT NULL,
+  referencia_bancaria VARCHAR(100),
+  orden_compra_id UUID REFERENCES ordenes_compra(id) ON DELETE SET NULL,
+  matched BOOLEAN DEFAULT FALSE,
+  origen VARCHAR(50) NOT NULL DEFAULT 'csv',
+  match_confidence INTEGER DEFAULT 0,
+  match_manual BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_bank_transactions_fecha ON bank_transactions(fecha);
+CREATE INDEX idx_bank_transactions_matched ON bank_transactions(matched);
+CREATE INDEX idx_bank_transactions_oc ON bank_transactions(orden_compra_id);
+
+-- =====================================================
 -- TABLA: destajos
 -- =====================================================
 CREATE TABLE IF NOT EXISTS destajos (
