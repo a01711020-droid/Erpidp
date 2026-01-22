@@ -27,6 +27,9 @@ import type {
   Pago,
   PagoCreate,
   PagoUpdate,
+  BankTransaction,
+  BankTransactionCreate,
+  BankTransactionMatch,
   PaginatedResponse,
   ListParams,
 } from '../types/entities';
@@ -39,6 +42,30 @@ import type {
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 /**
+ * Helper para convertir camelCase <-> snake_case
+ */
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  Object.prototype.toString.call(value) === '[object Object]';
+
+const toSnakeKey = (key: string): string =>
+  key.replace(/([A-Z])/g, '_$1').toLowerCase();
+
+const toCamelKey = (key: string): string =>
+  key.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase());
+
+const transformKeys = (value: unknown, transformer: (key: string) => string): unknown => {
+  if (Array.isArray(value)) {
+    return value.map((item) => transformKeys(item, transformer));
+  }
+  if (isPlainObject(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, val]) => [transformer(key), transformKeys(val, transformer)])
+    );
+  }
+  return value;
+};
+
+/**
  * Helper para construir query params
  */
 function buildQueryParams(params?: ListParams): string {
@@ -49,14 +76,14 @@ function buildQueryParams(params?: ListParams): string {
   if (params.page !== undefined) searchParams.append('page', params.page.toString());
   // Convertir pageSize a page_size para el backend
   if (params.pageSize !== undefined) searchParams.append('page_size', params.pageSize.toString());
-  if (params.sortBy) searchParams.append('sort_by', params.sortBy);
+  if (params.sortBy) searchParams.append('sort_by', toSnakeKey(params.sortBy));
   if (params.sortOrder) searchParams.append('sort_order', params.sortOrder);
   
   // Agregar filtros adicionales
   if (params.filters) {
     Object.entries(params.filters).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        searchParams.append(key, String(value));
+        searchParams.append(toSnakeKey(key), String(value));
       }
     });
   }
@@ -73,23 +100,49 @@ function convertPaginatedResponse<T>(response: any): PaginatedResponse<T> {
     data: response.data,
     total: response.total,
     page: response.page,
-    pageSize: response.page_size,
-    totalPages: response.total_pages,
+    pageSize: response.pageSize,
+    totalPages: response.totalPages,
   };
+}
+
+function formatValidationErrors(detail: any): string {
+  if (!detail) return 'Validation error';
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        const loc = Array.isArray(item.loc) ? item.loc.filter((entry: any) => entry !== 'body') : [];
+        const field = loc.join('.');
+        return field ? `${field}: ${item.msg}` : item.msg;
+      })
+      .join('; ');
+  }
+  if (typeof detail === 'string') return detail;
+  return JSON.stringify(detail);
 }
 
 /**
  * Helper para hacer requests HTTP
  */
+interface FetchOptions extends RequestInit {
+  body?: any;
+}
+
 async function fetchApi<T>(
   endpoint: string,
-  options?: RequestInit
+  options?: FetchOptions
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+  const body =
+    options?.body && typeof options.body === 'string'
+      ? options.body
+      : options?.body
+      ? JSON.stringify(transformKeys(options.body, toSnakeKey))
+      : undefined;
+
   try {
     const response = await fetch(url, {
       ...options,
+      body,
       headers: {
         'Content-Type': 'application/json',
         ...options?.headers,
@@ -98,10 +151,14 @@ async function fetchApi<T>(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+      if (response.status === 422) {
+        throw new Error(formatValidationErrors(errorData.detail));
+      }
       throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    return transformKeys(data, toCamelKey) as T;
   } catch (error) {
     console.error(`API Error [${endpoint}]:`, error);
     throw error;
@@ -125,14 +182,14 @@ export class ApiProvider implements IDataProvider {
   async createObra(data: ObraCreate): Promise<Obra> {
     return fetchApi<Obra>('/api/obras', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
     });
   }
 
   async updateObra(id: string, data: ObraUpdate): Promise<Obra> {
     return fetchApi<Obra>(`/api/obras/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: data,
     });
   }
 
@@ -155,14 +212,14 @@ export class ApiProvider implements IDataProvider {
   async createProveedor(data: ProveedorCreate): Promise<Proveedor> {
     return fetchApi<Proveedor>('/api/proveedores', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
     });
   }
 
   async updateProveedor(id: string, data: ProveedorUpdate): Promise<Proveedor> {
     return fetchApi<Proveedor>(`/api/proveedores/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: data,
     });
   }
 
@@ -185,14 +242,14 @@ export class ApiProvider implements IDataProvider {
   async createRequisicion(data: RequisicionCreate): Promise<Requisicion> {
     return fetchApi<Requisicion>('/api/requisiciones', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
     });
   }
 
   async updateRequisicion(id: string, data: RequisicionUpdate): Promise<Requisicion> {
     return fetchApi<Requisicion>(`/api/requisiciones/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: data,
     });
   }
 
@@ -215,14 +272,14 @@ export class ApiProvider implements IDataProvider {
   async createOrdenCompra(data: OrdenCompraCreate): Promise<OrdenCompra> {
     return fetchApi<OrdenCompra>('/api/ordenes-compra', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
     });
   }
 
   async updateOrdenCompra(id: string, data: OrdenCompraUpdate): Promise<OrdenCompra> {
     return fetchApi<OrdenCompra>(`/api/ordenes-compra/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: data,
     });
   }
 
@@ -245,20 +302,40 @@ export class ApiProvider implements IDataProvider {
   async createPago(data: PagoCreate): Promise<Pago> {
     return fetchApi<Pago>('/api/pagos', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
     });
   }
 
   async updatePago(id: string, data: PagoUpdate): Promise<Pago> {
     return fetchApi<Pago>(`/api/pagos/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: data,
     });
   }
 
   async deletePago(id: string): Promise<void> {
     await fetchApi<void>(`/api/pagos/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  // ===== CONCILIACIÓN BANCARIA =====
+  async listBankTransactions(matched?: boolean): Promise<BankTransaction[]> {
+    const query = matched === undefined ? '' : `?matched=${matched}`;
+    return fetchApi<BankTransaction[]>(`/api/bank-transactions${query}`);
+  }
+
+  async importBankTransactions(data: BankTransactionCreate[]): Promise<BankTransaction[]> {
+    return fetchApi<BankTransaction[]>('/api/bank-transactions/import', {
+      method: 'POST',
+      body: data,
+    });
+  }
+
+  async matchBankTransaction(id: string, data: BankTransactionMatch): Promise<BankTransaction> {
+    return fetchApi<BankTransaction>(`/api/bank-transactions/${id}/match`, {
+      method: 'PUT',
+      body: data,
     });
   }
 }
