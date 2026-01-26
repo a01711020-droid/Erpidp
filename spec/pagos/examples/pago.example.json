@@ -1,0 +1,16 @@
+{
+  "orden_compra_id": "00000000-0000-0000-0000-000000000100",
+  "obra_id": "00000000-0000-0000-0000-000000000001",
+  "proveedor_id": "00000000-0000-0000-0000-000000000010",
+  "monto": 20000,
+  "metodo_pago": "transferencia",
+  "fecha_programada": "2025-12-28",
+  "estado": "programado",
+  "referencia": "TRF-2025-0123",
+  "folio_factura": "FACT-2025-875",
+  "monto_factura": 40602,
+  "fecha_factura": "2025-12-16",
+  "dias_credito": 15,
+  "fecha_vencimiento": "2025-12-31",
+  "observaciones": "Pago parcial de OC."
+}

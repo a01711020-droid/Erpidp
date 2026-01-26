@@ -12,19 +12,50 @@ from decimal import Decimal
 import os
 import asyncpg
 from contextlib import asynccontextmanager
+from pathlib import Path
+from urllib.parse import urlparse
+from dotenv import load_dotenv
+
+from db.schema import ensure_schema
 
 # =====================================================
 # CONFIGURACIÓN DE BASE DE DATOS
 # =====================================================
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://user:password@localhost:5432/idp_db"
-)
+ENV_PATH = Path(__file__).resolve().parent / ".env"
+load_dotenv(ENV_PATH)
 
-# Agregar sslmode=require para Supabase en producción
-if "supabase" in DATABASE_URL.lower() and "sslmode" not in DATABASE_URL:
-    DATABASE_URL += "?sslmode=require"
+DATABASE_URL = os.getenv("DATABASE_URL")
+def format_database_error(message: str) -> str:
+    return (
+        f"{message}\n"
+        f"Revisa tu archivo {ENV_PATH} y agrega:\n"
+        "DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB?sslmode=require"
+    )
+
+def validate_database_url(url: str) -> None:
+    parsed = urlparse(url)
+    if parsed.scheme not in {"postgresql", "postgres"}:
+        raise RuntimeError(format_database_error("DATABASE_URL inválida: esquema no soportado."))
+    if not parsed.hostname or not parsed.path or parsed.path == "/":
+        raise RuntimeError(format_database_error("DATABASE_URL inválida: falta host o base de datos."))
+
+if not DATABASE_URL:
+    raise RuntimeError(format_database_error("DATABASE_URL no está configurado."))
+
+validate_database_url(DATABASE_URL)
+
+print("✅ DATABASE_URL cargado desde variables de entorno (.env u OS).")
+
+def ensure_sslmode(url: str) -> str:
+    if "sslmode=" in url:
+        return url
+    if "supabase" in url.lower() or os.getenv("DB_SSLMODE", "").lower() == "require":
+        separator = "&" if "?" in url else "?"
+        return f"{url}{separator}sslmode=require"
+    return url
+
+DATABASE_URL = ensure_sslmode(DATABASE_URL)
 
 # Pool de conexiones global
 db_pool = None
@@ -33,7 +64,15 @@ db_pool = None
 async def lifespan(app: FastAPI):
     # Startup
     global db_pool
-    db_pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=10)
+    try:
+        db_pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=10)
+    except Exception as exc:
+        raise RuntimeError(format_database_error(f"Error conectando a la base de datos: {exc}")) from exc
+    async with db_pool.acquire() as conn:
+        try:
+            await ensure_schema(conn)
+        except Exception as exc:
+            raise RuntimeError(format_database_error(f"Error asegurando esquema: {exc}")) from exc
     print("✅ Database pool created")
     yield
     # Shutdown
@@ -82,8 +121,15 @@ class ObraBase(BaseModel):
     numero_contrato: str
     cliente: str
     residente: str
+    residente_iniciales: Optional[str] = None
     direccion: Optional[str] = None
     monto_contratado: Decimal
+    anticipo_porcentaje: Decimal = 0
+    retencion_porcentaje: Decimal = 0
+    saldo_actual: Decimal = 0
+    total_estimaciones: Decimal = 0
+    total_gastos: Decimal = 0
+    avance_fisico_porcentaje: Decimal = 0
     fecha_inicio: date
     fecha_fin_programada: date
     plazo_ejecucion: int
@@ -103,6 +149,7 @@ class Obra(ObraBase):
 # ===== PROVEEDOR =====
 class ProveedorBase(BaseModel):
     razon_social: str
+    alias_proveedor: Optional[str] = None
     nombre_comercial: Optional[str] = None
     rfc: str
     direccion: Optional[str] = None
@@ -114,7 +161,7 @@ class ProveedorBase(BaseModel):
     banco: Optional[str] = None
     numero_cuenta: Optional[str] = None
     clabe: Optional[str] = None
-    tipo_proveedor: str  # 'material', 'servicio', 'renta', 'mixto'
+    tipo_proveedor: Optional[str] = None  # 'material', 'servicio', 'renta', 'mixto'
     credito_dias: int = 0
     limite_credito: Decimal = 0
     activo: bool = True
@@ -195,9 +242,11 @@ class OrdenCompraBase(BaseModel):
     obra_id: str
     proveedor_id: str
     requisicion_id: Optional[str] = None
+    comprador_nombre: Optional[str] = None
     fecha_entrega: date
     estado: str  # 'borrador', 'emitida', 'recibida', 'facturada', 'pagada', 'cancelada'
-    tipo_entrega: str  # 'en_obra', 'bodega', 'recoger'
+    tipo_entrega: Optional[str] = None  # 'en_obra', 'bodega', 'recoger'
+    has_iva: bool = True
     subtotal: Decimal
     descuento: Decimal = 0
     descuento_monto: Decimal = 0
@@ -210,8 +259,11 @@ class OrdenCompraCreate(BaseModel):
     obra_id: str
     proveedor_id: str
     requisicion_id: Optional[str] = None
+    comprador_nombre: Optional[str] = None
     fecha_entrega: date
-    tipo_entrega: str
+    tipo_entrega: Optional[str] = None
+    has_iva: bool = True
+    descuento: Decimal = 0
     observaciones: Optional[str] = None
     creado_por: Optional[str] = None
     items: List[OrdenCompraItemCreate]
@@ -237,6 +289,11 @@ class PagoBase(BaseModel):
     fecha_programada: date
     estado: str  # 'programado', 'procesando', 'completado', 'cancelado'
     referencia: Optional[str] = None
+    folio_factura: Optional[str] = None
+    monto_factura: Optional[Decimal] = None
+    fecha_factura: Optional[date] = None
+    dias_credito: Optional[int] = None
+    fecha_vencimiento: Optional[date] = None
     comprobante: Optional[str] = None
     observaciones: Optional[str] = None
     procesado_por: Optional[str] = None
@@ -249,11 +306,45 @@ class PagoCreate(BaseModel):
     metodo_pago: str
     fecha_programada: date
     referencia: Optional[str] = None
+    folio_factura: Optional[str] = None
+    monto_factura: Optional[Decimal] = None
+    fecha_factura: Optional[date] = None
+    dias_credito: Optional[int] = None
+    fecha_vencimiento: Optional[date] = None
     observaciones: Optional[str] = None
 
 class Pago(PagoBase):
     id: str
     fecha_procesado: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# ===== BANK TRANSACTIONS (CONCILIACIÓN) =====
+class BankTransactionBase(BaseModel):
+    fecha: date
+    descripcion_banco: str
+    monto: Decimal
+    referencia_bancaria: Optional[str] = None
+    origen: str = "csv"  # 'csv' | 'manual'
+    match_confidence: int = 0
+    match_manual: bool = False
+    orden_compra_id: Optional[str] = None
+    matched: bool = False
+
+class BankTransactionCreate(BankTransactionBase):
+    pass
+
+class BankTransactionMatch(BaseModel):
+    orden_compra_id: str
+    match_confidence: int = 0
+    match_manual: bool = True
+
+class BankTransaction(BankTransactionBase):
+    id: str
+    descripcion_banco_normalizada: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -334,12 +425,14 @@ async def root():
 
 @app.get("/health")
 async def health_check():
+    if db_pool is None:
+        raise HTTPException(status_code=503, detail="Database pool no inicializado.")
     try:
         async with db_pool.acquire() as conn:
             await conn.fetchval("SELECT 1")
         return {"status": "healthy", "database": "connected"}
     except Exception as e:
-        return {"status": "unhealthy", "database": "disconnected", "error": str(e)}
+        raise HTTPException(status_code=503, detail=f"Database disconnected: {e}")
 
 # =====================================================
 # ENDPOINTS: OBRAS
@@ -396,17 +489,39 @@ async def get_obra(obra_id: str):
 async def create_obra(obra: ObraCreate):
     async with db_pool.acquire() as conn:
         query = """
-            INSERT INTO obras (codigo, nombre, numero_contrato, cliente, residente, direccion, 
-                             monto_contratado, fecha_inicio, fecha_fin_programada, plazo_ejecucion, estado)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            INSERT INTO obras (
+                codigo, nombre, numero_contrato, cliente, residente, residente_iniciales, direccion,
+                monto_contratado, anticipo_porcentaje, retencion_porcentaje, saldo_actual, total_estimaciones,
+                total_gastos, avance_fisico_porcentaje, fecha_inicio, fecha_fin_programada, plazo_ejecucion, estado
+            )
+            VALUES (
+                $1, $2, $3, $4, $5, $6, $7,
+                $8, $9, $10, $11, $12,
+                $13, $14, $15, $16, $17, $18
+            )
             RETURNING *
         """
         try:
             row = await conn.fetchrow(
                 query,
-                obra.codigo, obra.nombre, obra.numero_contrato, obra.cliente, obra.residente,
-                obra.direccion, obra.monto_contratado, obra.fecha_inicio, obra.fecha_fin_programada,
-                obra.plazo_ejecucion, obra.estado
+                obra.codigo,
+                obra.nombre,
+                obra.numero_contrato,
+                obra.cliente,
+                obra.residente,
+                obra.residente_iniciales,
+                obra.direccion,
+                obra.monto_contratado,
+                obra.anticipo_porcentaje,
+                obra.retencion_porcentaje,
+                obra.saldo_actual,
+                obra.total_estimaciones,
+                obra.total_gastos,
+                obra.avance_fisico_porcentaje,
+                obra.fecha_inicio,
+                obra.fecha_fin_programada,
+                obra.plazo_ejecucion,
+                obra.estado,
             )
             return dict(row)
         except asyncpg.UniqueViolationError:
@@ -446,6 +561,46 @@ async def delete_obra(obra_id: str):
         if result == "DELETE 0":
             raise HTTPException(status_code=404, detail="Obra no encontrada")
         return {"message": "Obra eliminada exitosamente"}
+
+# =====================================================
+# ENDPOINTS: DASHBOARD MÉTRICAS
+# =====================================================
+
+@app.get("/api/dashboard/obras/{obra_id}/metricas")
+async def get_metricas_obra(obra_id: str):
+    async with db_pool.acquire() as conn:
+        obra_row = await conn.fetchrow("SELECT * FROM obras WHERE id = $1", obra_id)
+        if not obra_row:
+            raise HTTPException(status_code=404, detail="Obra no encontrada")
+        obra = dict(obra_row)
+
+        comprometido = await conn.fetchval(
+            "SELECT COALESCE(SUM(total), 0) FROM ordenes_compra WHERE obra_id = $1",
+            obra_id,
+        )
+        pagado = await conn.fetchval(
+            "SELECT COALESCE(SUM(monto), 0) FROM pagos WHERE obra_id = $1",
+            obra_id,
+        )
+        saldo = Decimal(comprometido) - Decimal(pagado)
+        monto_contratado = obra["monto_contratado"] or 0
+        porcentaje_ejecutado = (
+            (Decimal(pagado) / Decimal(monto_contratado)) * Decimal("100")
+            if monto_contratado
+            else Decimal("0")
+        )
+
+        return {
+            "obra_id": obra_id,
+            "comprometido": comprometido,
+            "pagado": pagado,
+            "saldo": saldo,
+            "porcentaje_ejecutado": porcentaje_ejecutado,
+            "total_estimaciones": obra.get("total_estimaciones", 0),
+            "total_gastos": obra.get("total_gastos", 0),
+            "saldo_actual": obra.get("saldo_actual", 0),
+            "avance_fisico_porcentaje": obra.get("avance_fisico_porcentaje", 0),
+        }
 
 # =====================================================
 # ENDPOINTS: PROVEEDORES
@@ -499,19 +654,34 @@ async def get_proveedor(proveedor_id: str):
 async def create_proveedor(proveedor: ProveedorCreate):
     async with db_pool.acquire() as conn:
         query = """
-            INSERT INTO proveedores (razon_social, nombre_comercial, rfc, direccion, ciudad, codigo_postal,
-                                   telefono, email, contacto_principal, banco, numero_cuenta, clabe,
-                                   tipo_proveedor, credito_dias, limite_credito, activo)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+            INSERT INTO proveedores (
+                razon_social, alias_proveedor, nombre_comercial, rfc, direccion, ciudad, codigo_postal,
+                telefono, email, contacto_principal, banco, numero_cuenta, clabe,
+                tipo_proveedor, credito_dias, limite_credito, activo
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             RETURNING *
         """
         try:
             row = await conn.fetchrow(
                 query,
-                proveedor.razon_social, proveedor.nombre_comercial, proveedor.rfc, proveedor.direccion,
-                proveedor.ciudad, proveedor.codigo_postal, proveedor.telefono, proveedor.email,
-                proveedor.contacto_principal, proveedor.banco, proveedor.numero_cuenta, proveedor.clabe,
-                proveedor.tipo_proveedor, proveedor.credito_dias, proveedor.limite_credito, proveedor.activo
+                proveedor.razon_social,
+                proveedor.alias_proveedor,
+                proveedor.nombre_comercial,
+                proveedor.rfc,
+                proveedor.direccion,
+                proveedor.ciudad,
+                proveedor.codigo_postal,
+                proveedor.telefono,
+                proveedor.email,
+                proveedor.contacto_principal,
+                proveedor.banco,
+                proveedor.numero_cuenta,
+                proveedor.clabe,
+                proveedor.tipo_proveedor,
+                proveedor.credito_dias,
+                proveedor.limite_credito,
+                proveedor.activo,
             )
             return dict(row)
         except asyncpg.UniqueViolationError:
@@ -769,25 +939,40 @@ async def create_orden_compra(oc: OrdenCompraCreate):
             
             # Calcular totales
             subtotal = sum(item.total for item in oc.items)
-            descuento_monto = Decimal("0")
-            iva = subtotal * Decimal("0.16")
-            total = subtotal + iva
+            descuento = oc.descuento or Decimal("0")
+            descuento_monto = (subtotal * descuento) / Decimal("100")
+            subtotal_con_descuento = subtotal - descuento_monto
+            iva = subtotal_con_descuento * Decimal("0.16") if oc.has_iva else Decimal("0")
+            total = subtotal_con_descuento + iva
             
             # Insertar OC
             query = """
                 INSERT INTO ordenes_compra (
-                    numero_orden, obra_id, proveedor_id, requisicion_id, fecha_entrega,
-                    estado, tipo_entrega, subtotal, descuento, descuento_monto, iva, total,
+                    numero_orden, obra_id, proveedor_id, requisicion_id, comprador_nombre, fecha_entrega,
+                    estado, tipo_entrega, has_iva, subtotal, descuento, descuento_monto, iva, total,
                     observaciones, creado_por
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
                 RETURNING *
             """
             row = await conn.fetchrow(
                 query,
-                numero, oc.obra_id, oc.proveedor_id, oc.requisicion_id, oc.fecha_entrega,
-                'emitida', oc.tipo_entrega, subtotal, 0, descuento_monto, iva, total,
-                oc.observaciones, oc.creado_por
+                numero,
+                oc.obra_id,
+                oc.proveedor_id,
+                oc.requisicion_id,
+                oc.comprador_nombre,
+                oc.fecha_entrega,
+                'emitida',
+                oc.tipo_entrega,
+                oc.has_iva,
+                subtotal,
+                descuento,
+                descuento_monto,
+                iva,
+                total,
+                oc.observaciones,
+                oc.creado_por,
             )
             orden = dict(row)
             
@@ -852,6 +1037,8 @@ async def list_pagos(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     obra_id: Optional[str] = None,
+    proveedor_id: Optional[str] = None,
+    orden_compra_id: Optional[str] = None,
     estado: Optional[str] = None
 ):
     async with db_pool.acquire() as conn:
@@ -862,6 +1049,16 @@ async def list_pagos(
         if obra_id:
             where_clauses.append(f"obra_id = ${idx}")
             params.append(obra_id)
+            idx += 1
+
+        if proveedor_id:
+            where_clauses.append(f"proveedor_id = ${idx}")
+            params.append(proveedor_id)
+            idx += 1
+
+        if orden_compra_id:
+            where_clauses.append(f"orden_compra_id = ${idx}")
+            params.append(orden_compra_id)
             idx += 1
         
         if estado:
@@ -909,15 +1106,19 @@ async def create_pago(pago: PagoCreate):
         query = """
             INSERT INTO pagos (
                 numero_pago, obra_id, proveedor_id, orden_compra_id, monto,
-                metodo_pago, fecha_programada, estado, referencia, observaciones
+                metodo_pago, fecha_programada, estado, referencia,
+                folio_factura, monto_factura, fecha_factura, dias_credito, fecha_vencimiento,
+                observaciones
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             RETURNING *
         """
         row = await conn.fetchrow(
             query,
             numero, pago.obra_id, pago.proveedor_id, pago.orden_compra_id, pago.monto,
-            pago.metodo_pago, pago.fecha_programada, 'programado', pago.referencia, pago.observaciones
+            pago.metodo_pago, pago.fecha_programada, 'programado', pago.referencia,
+            pago.folio_factura, pago.monto_factura, pago.fecha_factura, pago.dias_credito,
+            pago.fecha_vencimiento, pago.observaciones
         )
         return dict(row)
 
@@ -970,6 +1171,77 @@ async def delete_pago(pago_id: str):
         if result == "DELETE 0":
             raise HTTPException(status_code=404, detail="Pago no encontrado")
         return {"message": "Pago eliminado exitosamente"}
+
+# =====================================================
+# ENDPOINTS: BANK TRANSACTIONS (CONCILIACIÓN)
+# =====================================================
+
+@app.get("/api/bank-transactions")
+async def list_bank_transactions(matched: Optional[bool] = None):
+    async with db_pool.acquire() as conn:
+        where_clause = ""
+        params = []
+        if matched is not None:
+            where_clause = " WHERE matched = $1"
+            params.append(matched)
+        rows = await conn.fetch(
+            f"SELECT * FROM bank_transactions{where_clause} ORDER BY fecha DESC, created_at DESC",
+            *params
+        )
+        return [dict(row) for row in rows]
+
+@app.post("/api/bank-transactions/import")
+async def import_bank_transactions(items: List[BankTransactionCreate]):
+    async with db_pool.acquire() as conn:
+        async with conn.transaction():
+            inserted = []
+            for item in items:
+                normalized = " ".join(item.descripcion_banco.lower().split())
+                row = await conn.fetchrow(
+                    """
+                    INSERT INTO bank_transactions (
+                        fecha, descripcion_banco, descripcion_banco_normalizada, monto,
+                        referencia_bancaria, origen, match_confidence, match_manual, orden_compra_id, matched
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                    RETURNING *
+                    """,
+                    item.fecha,
+                    item.descripcion_banco,
+                    normalized,
+                    item.monto,
+                    item.referencia_bancaria,
+                    item.origen,
+                    item.match_confidence,
+                    item.match_manual,
+                    item.orden_compra_id,
+                    item.matched,
+                )
+                inserted.append(dict(row))
+            return inserted
+
+@app.put("/api/bank-transactions/{transaction_id}/match")
+async def match_bank_transaction(transaction_id: str, data: BankTransactionMatch):
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            UPDATE bank_transactions
+            SET orden_compra_id = $1,
+                matched = TRUE,
+                match_confidence = $2,
+                match_manual = $3,
+                updated_at = NOW()
+            WHERE id = $4
+            RETURNING *
+            """,
+            data.orden_compra_id,
+            data.match_confidence,
+            data.match_manual,
+            transaction_id,
+        )
+        if not row:
+            raise HTTPException(status_code=404, detail="Transacción no encontrada")
+        return dict(row)
 
 # =====================================================
 # FIN DEL BACKEND

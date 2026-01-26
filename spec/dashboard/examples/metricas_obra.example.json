@@ -1,0 +1,11 @@
+{
+  "obra_id": "00000000-0000-0000-0000-000000000001",
+  "comprometido": 400780,
+  "pagado": 20000,
+  "saldo": 380780,
+  "porcentaje_ejecutado": 0.38,
+  "total_estimaciones": 2100000,
+  "total_gastos": 525000,
+  "saldo_actual": 1575000,
+  "avance_fisico_porcentaje": 40
+}
