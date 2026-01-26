@@ -3,21 +3,29 @@
 -- Sistema de Gestión Empresarial IDP
 -- =====================================================
 
--- Extension para UUID
+-- Extensiones para UUID
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =====================================================
 -- TABLA: obras
 -- =====================================================
 CREATE TABLE IF NOT EXISTS obras (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   codigo VARCHAR(50) UNIQUE NOT NULL,
   nombre VARCHAR(255) NOT NULL,
   numero_contrato VARCHAR(100) UNIQUE NOT NULL,
   cliente VARCHAR(255) NOT NULL,
   residente VARCHAR(255) NOT NULL,
+  residente_iniciales VARCHAR(10),
   direccion TEXT,
   monto_contratado DECIMAL(15, 2) NOT NULL,
+  anticipo_porcentaje DECIMAL(5, 2) DEFAULT 0,
+  retencion_porcentaje DECIMAL(5, 2) DEFAULT 0,
+  saldo_actual DECIMAL(15, 2) DEFAULT 0,
+  total_estimaciones DECIMAL(15, 2) DEFAULT 0,
+  total_gastos DECIMAL(15, 2) DEFAULT 0,
+  avance_fisico_porcentaje DECIMAL(5, 2) DEFAULT 0,
   fecha_inicio DATE NOT NULL,
   fecha_fin_programada DATE NOT NULL,
   plazo_ejecucion INTEGER NOT NULL,
@@ -34,8 +42,9 @@ CREATE INDEX idx_obras_estado ON obras(estado);
 -- TABLA: proveedores
 -- =====================================================
 CREATE TABLE IF NOT EXISTS proveedores (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   razon_social VARCHAR(255) NOT NULL,
+  alias_proveedor VARCHAR(100),
   nombre_comercial VARCHAR(255),
   rfc VARCHAR(13) UNIQUE NOT NULL,
   direccion TEXT,
@@ -63,7 +72,7 @@ CREATE INDEX idx_proveedores_activo ON proveedores(activo);
 -- TABLA: requisiciones
 -- =====================================================
 CREATE TABLE IF NOT EXISTS requisiciones (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   numero_requisicion VARCHAR(50) UNIQUE NOT NULL,
   obra_id UUID NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
   solicitado_por VARCHAR(255) NOT NULL,
@@ -87,7 +96,7 @@ CREATE INDEX idx_requisiciones_numero ON requisiciones(numero_requisicion);
 -- TABLA: requisicion_items
 -- =====================================================
 CREATE TABLE IF NOT EXISTS requisicion_items (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   requisicion_id UUID NOT NULL REFERENCES requisiciones(id) ON DELETE CASCADE,
   cantidad DECIMAL(10, 2) NOT NULL,
   unidad VARCHAR(20) NOT NULL,
@@ -102,15 +111,17 @@ CREATE INDEX idx_requisicion_items_requisicion ON requisicion_items(requisicion_
 -- TABLA: ordenes_compra
 -- =====================================================
 CREATE TABLE IF NOT EXISTS ordenes_compra (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   numero_orden VARCHAR(50) UNIQUE NOT NULL,
   obra_id UUID NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
   proveedor_id UUID NOT NULL REFERENCES proveedores(id) ON DELETE RESTRICT,
   requisicion_id UUID REFERENCES requisiciones(id) ON DELETE SET NULL,
+  comprador_nombre VARCHAR(255),
   fecha_emision TIMESTAMP DEFAULT NOW(),
   fecha_entrega DATE NOT NULL,
   estado VARCHAR(50) NOT NULL CHECK (estado IN ('borrador', 'emitida', 'recibida', 'facturada', 'pagada', 'cancelada')),
   tipo_entrega VARCHAR(50) CHECK (tipo_entrega IN ('en_obra', 'bodega', 'recoger')),
+  has_iva BOOLEAN DEFAULT TRUE,
   subtotal DECIMAL(15, 2) NOT NULL,
   descuento DECIMAL(5, 2) DEFAULT 0,
   descuento_monto DECIMAL(15, 2) DEFAULT 0,
@@ -132,7 +143,7 @@ CREATE INDEX idx_ordenes_compra_numero ON ordenes_compra(numero_orden);
 -- TABLA: orden_compra_items
 -- =====================================================
 CREATE TABLE IF NOT EXISTS orden_compra_items (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   orden_compra_id UUID NOT NULL REFERENCES ordenes_compra(id) ON DELETE CASCADE,
   cantidad DECIMAL(10, 2) NOT NULL,
   unidad VARCHAR(20) NOT NULL,
@@ -149,7 +160,7 @@ CREATE INDEX idx_orden_compra_items_orden ON orden_compra_items(orden_compra_id)
 -- TABLA: pagos
 -- =====================================================
 CREATE TABLE IF NOT EXISTS pagos (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   numero_pago VARCHAR(50) UNIQUE NOT NULL,
   obra_id UUID NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
   proveedor_id UUID NOT NULL REFERENCES proveedores(id) ON DELETE RESTRICT,
@@ -160,6 +171,11 @@ CREATE TABLE IF NOT EXISTS pagos (
   fecha_procesado TIMESTAMP,
   estado VARCHAR(50) NOT NULL CHECK (estado IN ('programado', 'procesando', 'completado', 'cancelado')),
   referencia VARCHAR(100),
+  folio_factura VARCHAR(100),
+  monto_factura DECIMAL(15, 2),
+  fecha_factura DATE,
+  dias_credito INTEGER DEFAULT 0,
+  fecha_vencimiento DATE,
   comprobante TEXT,
   observaciones TEXT,
   procesado_por VARCHAR(255),
@@ -174,10 +190,33 @@ CREATE INDEX idx_pagos_orden_compra ON pagos(orden_compra_id);
 CREATE INDEX idx_pagos_estado ON pagos(estado);
 
 -- =====================================================
+-- TABLA: bank_transactions (conciliación bancaria)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS bank_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  fecha DATE NOT NULL,
+  descripcion_banco TEXT NOT NULL,
+  descripcion_banco_normalizada TEXT,
+  monto DECIMAL(15, 2) NOT NULL,
+  referencia_bancaria VARCHAR(100),
+  orden_compra_id UUID REFERENCES ordenes_compra(id) ON DELETE SET NULL,
+  matched BOOLEAN DEFAULT FALSE,
+  origen VARCHAR(50) NOT NULL DEFAULT 'csv',
+  match_confidence INTEGER DEFAULT 0,
+  match_manual BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_bank_transactions_fecha ON bank_transactions(fecha);
+CREATE INDEX idx_bank_transactions_matched ON bank_transactions(matched);
+CREATE INDEX idx_bank_transactions_oc ON bank_transactions(orden_compra_id);
+
+-- =====================================================
 -- TABLA: destajos
 -- =====================================================
 CREATE TABLE IF NOT EXISTS destajos (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   obra_id UUID NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
   concepto VARCHAR(255) NOT NULL,
   destajista VARCHAR(255) NOT NULL,
@@ -197,7 +236,7 @@ CREATE INDEX idx_destajos_obra ON destajos(obra_id);
 -- TABLA: usuarios
 -- =====================================================
 CREATE TABLE IF NOT EXISTS usuarios (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nombre VARCHAR(255) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,

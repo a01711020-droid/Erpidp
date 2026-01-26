@@ -1,0 +1,31 @@
+{
+  "numero_orden": "227-A01GM-CEMEX",
+  "obra_id": "00000000-0000-0000-0000-000000000001",
+  "proveedor_id": "00000000-0000-0000-0000-000000000010",
+  "comprador_nombre": "Gabriela Mendoza",
+  "fecha_entrega": "2025-01-20",
+  "estado": "emitida",
+  "tipo_entrega": "en_obra",
+  "has_iva": true,
+  "descuento": 0,
+  "subtotal": 34550,
+  "iva": 5528,
+  "total": 40078,
+  "observaciones": "Entrega en obra, horario de 8am a 2pm",
+  "items": [
+    {
+      "descripcion": "Cemento gris CPC 30R",
+      "cantidad": 100,
+      "unidad": "saco",
+      "precio_unitario": 185.5,
+      "total": 18550
+    },
+    {
+      "descripcion": "Arena fina de río",
+      "cantidad": 50,
+      "unidad": "m3",
+      "precio_unitario": 320,
+      "total": 16000
+    }
+  ]
+}
