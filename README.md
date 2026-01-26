@@ -1,68 +1,81 @@
-# Sistema ERP IDP
+# ERP IDP (API-first)
 
-Sistema de gestión empresarial para obras, proveedores, requisiciones, órdenes de compra y pagos.
+Sistema ERP para obras, proveedores, requisiciones, órdenes de compra y pagos. **La fuente de verdad es el backend (FastAPI + Supabase)**.
 
----
+## Prerrequisitos
+- Node.js 18+
+- Python 3.11+
+- PostgreSQL (Supabase)
+- Windows + Git Bash (soportado)
 
-## ⚠️ IMPORTANTE: Archivo _redirects
+## Configuración de entorno
 
-**Antes de desplegar en Render**, ejecuta:
-
+### Backend (`backend/.env`)
 ```bash
-cd public
-cat _redirects/main.tsx > _redirects_temp
-rm -rf _redirects
-mv _redirects_temp _redirects
-```
-
-**Por qué**: Figma Make no puede crear archivos con `_`. Ver [RUNBOOK.md](./RUNBOOK.md) para detalles.
-
----
-
-## Stack
-
-- **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS
-- **Backend**: FastAPI + Python 3.11
-- **Base de Datos**: PostgreSQL (Supabase)
-
-## Arquitectura
-
-```
-Frontend (React) → Backend (FastAPI) → PostgreSQL (Supabase)
-```
-
-## Módulos
-
-1. Obras
-2. Proveedores
-3. Requisiciones
-4. Órdenes de Compra
-5. Pagos
-
-## Variables de Entorno
-
-**Frontend** (`.env`):
-```bash
-VITE_API_URL=http://localhost:8000
-VITE_DATA_MODE=api
-```
-
-**Backend** (`.env`):
-```bash
-DATABASE_URL=postgresql://user:password@host:5432/dbname
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DBNAME?sslmode=require
 FRONTEND_URL=http://localhost:5173
 ```
 
-## Ejecutar
+> El backend falla en el arranque si `DATABASE_URL` no existe. Esto evita conexiones locales por error.
 
-Ver **[RUNBOOK.md](./RUNBOOK.md)** para instrucciones completas.
+### Frontend (`.env` en la raíz)
+```bash
+VITE_API_URL=http://localhost:8000
+```
 
-## API Endpoints
+> Si `VITE_API_URL` falta, el UI muestra un error visible.
 
-- `GET/POST/PUT/DELETE /api/obras`
-- `GET/POST/PUT/DELETE /api/proveedores`
-- `GET/POST /api/requisiciones`
-- `GET/POST/PUT/DELETE /api/ordenes-compra`
-- `GET/POST/PUT/DELETE /api/pagos`
+## Comandos (Windows Git Bash)
 
-**Docs**: http://localhost:8000/docs
+### Backend
+```bash
+cd /workspace/Erpidp/backend
+python -m venv .venv
+source .venv/Scripts/activate
+pip install -r requirements.txt
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Frontend
+```bash
+cd /workspace/Erpidp
+npm install
+npm run dev -- --host 0.0.0.0 --port 5173
+```
+
+## Rutas principales
+- `/dashboard`
+- `/dashboard/obras/:obraId`
+- `/dashboard/obras/:obraId/desglose`
+- `/compras`
+- `/compras/nueva`
+- `/compras/:ocId`
+- `/compras/obra/:obraId`
+- `/pagos`
+- `/pagos/conciliacion`
+- `/pagos/obra/:obraId`
+
+## SPA routing (Render)
+El archivo **`public/_redirects`** debe existir como archivo con el contenido:
+```
+/* /index.html 200
+```
+
+## Contrato de datos (spec)
+Los JSON Schema canónicos viven en `spec/` (obras, proveedores, compras, pagos y métricas).
+El reporte de extracción desde la UI original está en `docs/data-contract-report.md`.
+
+## Flujos a probar
+1) **Crear obra** → aparece en `/dashboard` → refrescar y confirmar persistencia.
+2) **Crear proveedor** → aparece en filtros de compras/pagos.
+3) **Crear OC** en `/compras/nueva` → aparece en `/compras` → refrescar.
+4) **Registrar pago parcial** en `/pagos` → reduce saldo en la lista.
+5) **Ver métricas por obra** en `/dashboard/obras/:obraId`.
+6) **Conciliar CSV** en `/pagos/conciliacion` → auto-match por folio OC o match manual.
+
+## Troubleshooting
+- **ERR_CONNECTION_REFUSED**: backend apagado o `VITE_API_URL` incorrecto.
+- **DATABASE_URL inválida**: el backend no arranca; corrige `backend/.env` y valida host/DB.
+- **422 (FastAPI)**: revisar payload y conversiones camelCase ↔ snake_case (API Provider).
+- **Refresh en Render vuelve al home**: falta `public/_redirects` como archivo.
+- **Imágenes no cargan**: verifica rutas absolutas desde `/public` (ej: `/logo-idp-normal.svg`).

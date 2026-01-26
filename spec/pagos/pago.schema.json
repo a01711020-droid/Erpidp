@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PagoOC",
+  "type": "object",
+  "required": ["orden_compra_id", "monto", "metodo_pago", "fecha_programada", "estado"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "numero_pago": { "type": "string" },
+    "obra_id": { "type": "string", "format": "uuid" },
+    "proveedor_id": { "type": "string", "format": "uuid" },
+    "orden_compra_id": { "type": "string", "format": "uuid" },
+    "monto": { "type": "number", "minimum": 0 },
+    "metodo_pago": { "type": "string" },
+    "fecha_programada": { "type": "string", "format": "date" },
+    "estado": { "type": "string" },
+    "referencia": { "type": ["string", "null"] },
+    "folio_factura": { "type": ["string", "null"] },
+    "monto_factura": { "type": ["number", "null"] },
+    "fecha_factura": { "type": ["string", "null"], "format": "date" },
+    "dias_credito": { "type": ["integer", "null"] },
+    "fecha_vencimiento": { "type": ["string", "null"], "format": "date" },
+    "observaciones": { "type": ["string", "null"] },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}
