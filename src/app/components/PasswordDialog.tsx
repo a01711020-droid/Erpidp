@@ -23,7 +23,7 @@ export function PasswordDialog({ isOpen, onClose, onSuccess }: PasswordDialogPro
   const [error, setError] = useState(false);
   
   // Contraseña secreta para acceder a la gestión de proveedores
-  const ADMIN_PASSWORD = "admin123";
+  const ADMIN_PASSWORD = "idpjedi01";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

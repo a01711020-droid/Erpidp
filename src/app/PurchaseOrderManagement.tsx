@@ -11,6 +11,7 @@ import { MaterialRequisition } from "./components/MaterialRequisitionForm";
 import { RequisitionsSection } from "./components/RequisitionsSection";
 import { SupplierManagement } from "./components/SupplierManagement";
 import { PasswordDialog } from "./components/PasswordDialog";
+import GestionProveedores from "./components/GestionProveedores";
 import { generatePurchaseOrderPDF } from "./utils/generatePurchaseOrderPDF";
 import {
   Plus,
@@ -34,6 +35,7 @@ import {
   Zap,
   AlertTriangle,
   X,
+  Users,
 } from "lucide-react";
 import { Input } from "./components/ui/input";
 import {
@@ -575,22 +577,34 @@ export default function PurchaseOrderManagement() {
       <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div 
-              className="p-3 bg-blue-700 rounded-lg cursor-pointer hover:bg-blue-800 transition-colors active:scale-95"
-              onClick={handleSecretClick}
-              title={secretClickCount > 0 ? `${secretClickCount}/5 clicks` : ""}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div 
+                className="p-3 bg-blue-700 rounded-lg cursor-pointer hover:bg-blue-800 transition-colors active:scale-95"
+                onClick={handleSecretClick}
+                title={secretClickCount > 0 ? `${secretClickCount}/5 clicks` : ""}
+              >
+                <FileText className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Departamento de Compras
+                </h1>
+                <p className="text-muted-foreground">
+                  Gestión centralizada de órdenes de compra y requisiciones
+                </p>
+              </div>
+            </div>
+            
+            {/* Botón visible de Gestión de Proveedores */}
+            <Button 
+              onClick={() => setShowPasswordDialog(true)}
+              className="gap-2 bg-green-600 hover:bg-green-700 shadow-lg"
+              size="lg"
             >
-              <FileText className="h-8 w-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Departamento de Compras
-              </h1>
-              <p className="text-muted-foreground">
-                Gestión centralizada de órdenes de compra y requisiciones
-              </p>
-            </div>
+              <Users className="h-5 w-5" />
+              Gestión de Proveedores
+            </Button>
           </div>
         </div>
 
