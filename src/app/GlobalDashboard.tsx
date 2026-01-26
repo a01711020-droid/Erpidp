@@ -216,8 +216,8 @@ export default function GlobalDashboard({ onSelectProject }: GlobalDashboardProp
 
   // Main Dashboard
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8 bg-[rgba(189,155,92,0)]">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">

@@ -9,6 +9,8 @@ import {
 import { PurchaseOrderPDF } from "./components/PurchaseOrderPDF";
 import { MaterialRequisition } from "./components/MaterialRequisitionForm";
 import { RequisitionsSection } from "./components/RequisitionsSection";
+import { SupplierManagement } from "./components/SupplierManagement";
+import { PasswordDialog } from "./components/PasswordDialog";
 import { generatePurchaseOrderPDF } from "./utils/generatePurchaseOrderPDF";
 import {
   Plus,
@@ -402,6 +404,28 @@ export default function PurchaseOrderManagement() {
   const [workFilter, setWorkFilter] = useState<string>("Todos");
   const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
   const [pdfOrder, setPdfOrder] = useState<PurchaseOrder | null>(null);
+  
+  // Estados para gestión de proveedores
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [showSupplierManagement, setShowSupplierManagement] = useState(false);
+  const [secretClickCount, setSecretClickCount] = useState(0);
+
+  // Handler para el botón secreto (click en el icono)
+  const handleSecretClick = () => {
+    const newCount = secretClickCount + 1;
+    setSecretClickCount(newCount);
+    
+    // Después de 5 clicks, mostrar diálogo de contraseña
+    if (newCount >= 5) {
+      setShowPasswordDialog(true);
+      setSecretClickCount(0); // Reset counter
+    }
+  };
+
+  // Handler cuando se ingresa contraseña correcta
+  const handlePasswordSuccess = () => {
+    setShowSupplierManagement(true);
+  };
 
   const handleSaveOrder = (order: PurchaseOrder) => {
     if (editingOrder) {
@@ -547,12 +571,16 @@ export default function PurchaseOrderManagement() {
   const reqUrgent = requisitions.filter((r) => r.urgency === "Urgente" && r.status !== "Convertida a OC").length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-3 bg-blue-700 rounded-lg">
+            <div 
+              className="p-3 bg-blue-700 rounded-lg cursor-pointer hover:bg-blue-800 transition-colors active:scale-95"
+              onClick={handleSecretClick}
+              title={secretClickCount > 0 ? `${secretClickCount}/5 clicks` : ""}
+            >
               <FileText className="h-8 w-8 text-white" />
             </div>
             <div>
@@ -1032,6 +1060,23 @@ export default function PurchaseOrderManagement() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Password Dialog */}
+      {showPasswordDialog && (
+        <PasswordDialog
+          isOpen={showPasswordDialog}
+          onClose={() => setShowPasswordDialog(false)}
+          onSuccess={handlePasswordSuccess}
+        />
+      )}
+
+      {/* Supplier Management */}
+      {showSupplierManagement && (
+        <SupplierManagement
+          isOpen={showSupplierManagement}
+          onClose={() => setShowSupplierManagement(false)}
+        />
       )}
     </div>
   );

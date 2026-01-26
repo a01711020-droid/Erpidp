@@ -2,9 +2,11 @@ import { ContractHeader } from "./components/ContractHeader";
 import { EstimationsTable } from "./components/EstimationsTable";
 import { WeeklyExpenses } from "./components/WeeklyExpenses";
 import { WeeklyExpensesDetail } from "./components/WeeklyExpensesDetail";
-import { HardHat, AlertCircle, TrendingUp } from "lucide-react";
+import { EstimationForm, EstimationFormData } from "./components/EstimationForm";
+import { HardHat, AlertCircle, TrendingUp, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { Badge } from "./components/ui/badge";
+import { Button } from "./components/ui/button";
 import { useState } from "react";
 
 interface ContractTrackingProps {
@@ -13,6 +15,7 @@ interface ContractTrackingProps {
 
 export default function ContractTracking({ projectId }: ContractTrackingProps) {
   const [showDetailView, setShowDetailView] = useState(false);
+  const [showEstimationForm, setShowEstimationForm] = useState(false);
   
   // Datos del contrato
   const contractInfo = {
@@ -26,10 +29,11 @@ export default function ContractTracking({ projectId }: ContractTrackingProps) {
     guaranteeFundPercentage: 10,
   };
 
-  // Datos de estimaciones
-  const estimations = [
+  // Datos de movimientos del contrato (estimaciones, aditivas, deductivas)
+  const contractMovements = [
     {
       no: 1,
+      type: "estimacion" as const,
       date: "15 Oct 2025",
       description: "Estimación 1 - Trabajos preliminares y cimentación",
       amount: 580000,
@@ -42,6 +46,7 @@ export default function ContractTracking({ projectId }: ContractTrackingProps) {
     },
     {
       no: 2,
+      type: "estimacion" as const,
       date: "15 Nov 2025",
       description: "Estimación 2 - Estructura y muros",
       amount: 820000,
@@ -54,6 +59,7 @@ export default function ContractTracking({ projectId }: ContractTrackingProps) {
     },
     {
       no: 3,
+      type: "estimacion" as const,
       date: "15 Dic 2025",
       description: "Estimación 3 - Instalaciones hidráulicas y sanitarias",
       amount: 650000,
@@ -66,6 +72,7 @@ export default function ContractTracking({ projectId }: ContractTrackingProps) {
     },
     {
       no: 4,
+      type: "estimacion" as const,
       date: "15 Ene 2026",
       description: "Estimación 4 - Instalaciones eléctricas",
       amount: 720000,
@@ -78,6 +85,7 @@ export default function ContractTracking({ projectId }: ContractTrackingProps) {
     },
     {
       no: 5,
+      type: "estimacion" as const,
       date: "09 Ene 2026",
       description: "Estimación 5 - Acabados generales (En proceso)",
       amount: 890000,
@@ -125,8 +133,14 @@ export default function ContractTracking({ projectId }: ContractTrackingProps) {
     };
   });
 
+  const handleSaveEstimation = (data: EstimationFormData) => {
+    console.log("Nuevo movimiento guardado:", data);
+    // Aquí se implementaría la lógica para guardar en el backend
+    // Por ahora solo mostramos en consola
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {showDetailView ? (
         <WeeklyExpensesDetail 
           expenses={weeklyExpensesWithIndirect} 
@@ -148,11 +162,21 @@ export default function ContractTracking({ projectId }: ContractTrackingProps) {
                 </div>
               </div>
 
+              {/* Add Movement Button - Ahora ARRIBA del ContractHeader */}
+              <Button
+                variant="outline"
+                className="w-full md:w-auto"
+                onClick={() => setShowEstimationForm(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Agregar Movimiento
+              </Button>
+
               {/* Contract Information */}
               <ContractHeader contract={contractInfo} />
 
-              {/* Estimations Table */}
-              <EstimationsTable estimations={estimations} />
+              {/* Contract Movements Table (antes Estimations) */}
+              <EstimationsTable estimations={contractMovements} />
 
               {/* Weekly Expenses */}
               <WeeklyExpenses 
@@ -249,6 +273,15 @@ export default function ContractTracking({ projectId }: ContractTrackingProps) {
           </main>
         </>
       )}
+
+      {/* Estimation Form Modal */}
+      <EstimationForm
+        isOpen={showEstimationForm}
+        onClose={() => setShowEstimationForm(false)}
+        onSave={handleSaveEstimation}
+        contractInfo={contractInfo}
+        lastEstimation={contractMovements[contractMovements.length - 1]}
+      />
     </div>
   );
 }

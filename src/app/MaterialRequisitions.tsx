@@ -413,7 +413,7 @@ export default function MaterialRequisitions() {
 
   // Main Interface - Mobile First
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pb-20">
+    <div className="min-h-screen bg-background pb-20">
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
         {/* Header - Mobile Optimized */}
         <div className="bg-gradient-to-r from-amber-700 to-amber-800 rounded-xl p-6 text-white shadow-lg">

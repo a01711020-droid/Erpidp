@@ -19,9 +19,6 @@ import PaymentManagement from "./PaymentManagement";
 import ContractTracking from "./ContractTracking";
 import ExpenseDetails from "./ExpenseDetails";
 
-// Logo IDP
-import logoIdp from "figma:asset/f8466b45551caf0d2ba4727b71061c2b0b7fdee1.png";
-
 type Module =
   | "home"
   | "dashboard"
