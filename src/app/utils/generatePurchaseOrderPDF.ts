@@ -76,8 +76,8 @@ export async function generatePurchaseOrderPDF(order: {
     doc.rect(12, 12, 26, 26, "F");
     doc.addImage(logoImage, "PNG", 12, 12, 26, 26);
   } catch (error) {
-    // Si falla, el placeholder amarillo ya está dibujado
-    console.warn("No se pudo cargar el logo, usando placeholder amarillo:", error);
+    // Si falla, el placeholder amarillo ya está dibujado - no mostrar error
+    // console.warn("No se pudo cargar el logo, usando placeholder amarillo:", error);
   }
 
   // Título "ORDEN DE COMPRA" centrado en BLANCO
@@ -261,11 +261,11 @@ export async function generatePurchaseOrderPDF(order: {
       lineColor: [0, 0, 0],
     },
     columnStyles: {
-      0: { cellWidth: 20, halign: "center" },
-      1: { cellWidth: 18, halign: "center" },
-      2: { cellWidth: 95 },
-      3: { cellWidth: 28, halign: "right" },
-      4: { cellWidth: 28, halign: "right" },
+      0: { cellWidth: 18, halign: "center" }, // Cantidad - reducido
+      1: { cellWidth: 16, halign: "center" }, // Unidad - reducido
+      2: { cellWidth: 90 }, // Descripción - ajustado
+      3: { cellWidth: 26, halign: "right" }, // P.U. - reducido
+      4: { cellWidth: 26, halign: "right" }, // Importe - reducido
     },
     margin: { left: 10, right: 10 },
   });
@@ -372,6 +372,11 @@ async function svgToDataURL(
     try {
       // Obtener el SVG
       const response = await fetch(svgPath);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const svgText = await response.text();
 
       // Crear una imagen del SVG
