@@ -1,0 +1,17 @@
+{
+  "razon_social": "CEMEX México S.A. de C.V.",
+  "alias_proveedor": "CEMEX",
+  "nombre_comercial": "CEMEX",
+  "rfc": "CEM850101ABC",
+  "direccion": "Av. Insurgentes 123, CDMX",
+  "telefono": "(55) 5555-1234",
+  "email": "compras@cemex.com",
+  "contacto_principal": "Ing. Roberto Martínez",
+  "banco": "BBVA",
+  "numero_cuenta": "0123456789",
+  "clabe": "012345678901234567",
+  "tipo_proveedor": "material",
+  "credito_dias": 30,
+  "limite_credito": 1500000,
+  "activo": true
+}

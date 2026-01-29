@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Proveedor",
+  "type": "object",
+  "required": ["razon_social", "rfc"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "razon_social": { "type": "string" },
+    "alias_proveedor": { "type": ["string", "null"] },
+    "nombre_comercial": { "type": ["string", "null"] },
+    "rfc": { "type": "string" },
+    "direccion": { "type": ["string", "null"] },
+    "ciudad": { "type": ["string", "null"] },
+    "codigo_postal": { "type": ["string", "null"] },
+    "telefono": { "type": ["string", "null"] },
+    "email": { "type": ["string", "null"] },
+    "contacto_principal": { "type": ["string", "null"] },
+    "banco": { "type": ["string", "null"] },
+    "numero_cuenta": { "type": ["string", "null"] },
+    "clabe": { "type": ["string", "null"] },
+    "tipo_proveedor": { "type": ["string", "null"] },
+    "credito_dias": { "type": "integer", "minimum": 0 },
+    "limite_credito": { "type": "number", "minimum": 0 },
+    "activo": { "type": "boolean" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

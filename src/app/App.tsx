@@ -1,52 +1,53 @@
-import { useState } from "react";
-import MainApp from "./MainApp";
-import DataProviderTest from "./DataProviderTest";
-import { Button } from "./components/ui/button";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import DashboardLayout from "../pages/layouts/DashboardLayout";
+import CatalogosLayout from "../pages/layouts/CatalogosLayout";
+import ComprasLayout from "../pages/layouts/ComprasLayout";
+import PagosLayout from "../pages/layouts/PagosLayout";
+import DashboardPage from "../pages/dashboard/DashboardPage";
+import DashboardObraPage from "../pages/dashboard/DashboardObraPage";
+import DashboardObraDesglosePage from "../pages/dashboard/DashboardObraDesglosePage";
+import ObrasCatalogoPage from "../pages/catalogos/ObrasCatalogoPage";
+import ProveedoresCatalogoPage from "../pages/catalogos/ProveedoresCatalogoPage";
+import ComprasListPage from "../pages/compras/ComprasListPage";
+import ComprasNuevaPage from "../pages/compras/ComprasNuevaPage";
+import ComprasDetallePage from "../pages/compras/ComprasDetallePage";
+import PagosListPage from "../pages/pagos/PagosListPage";
+import PagosOcPage from "../pages/pagos/PagosOcPage";
 
 export default function App() {
-  const [showTest, setShowTest] = useState(false);
-
-  // Si quieres ver el panel de pruebas del DataProvider, cambia showTest a true
-  // o agrega un botón para alternar
-  if (showTest) {
-    return (
-      <div>
-        <div className="fixed top-4 right-4 z-50">
-          <Button onClick={() => setShowTest(false)}>
-            Volver a la App
-          </Button>
-        </div>
-        <DataProviderTest />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen" style={{
-      backgroundImage: `
-        linear-gradient(to bottom, #f5f3f0 0%, #f8f6f3 100%),
-        repeating-linear-gradient(
-          45deg,
-          transparent,
-          transparent 2px,
-          rgba(0, 0, 0, 0.008) 2px,
-          rgba(0, 0, 0, 0.008) 4px
-        )
-      `,
-      backgroundBlendMode: 'overlay'
-    }}>
-      {/* Botón flotante para acceder al panel de pruebas (temporal) */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <Button 
-          onClick={() => setShowTest(true)}
-          variant="outline"
-          size="sm"
-          className="shadow-lg"
-        >
-          🧪 Probar DataProvider
-        </Button>
-      </div>
-      <MainApp />
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+        <Route path="/dashboard" element={<DashboardLayout />}>
+          <Route index element={<DashboardPage />} />
+          <Route path="obras/:obraId" element={<DashboardObraPage />} />
+          <Route path="obras/:obraId/desglose" element={<DashboardObraDesglosePage />} />
+        </Route>
+
+        <Route path="/obras" element={<CatalogosLayout />}>
+          <Route index element={<ObrasCatalogoPage />} />
+        </Route>
+
+        <Route path="/proveedores" element={<CatalogosLayout />}>
+          <Route index element={<ProveedoresCatalogoPage />} />
+        </Route>
+
+        <Route path="/compras" element={<ComprasLayout />}>
+          <Route index element={<Navigate to="/compras/ordenes-compra" replace />} />
+          <Route path="ordenes-compra" element={<ComprasListPage />} />
+          <Route path="ordenes-compra/nueva" element={<ComprasNuevaPage />} />
+          <Route path="ordenes-compra/:ocId" element={<ComprasDetallePage />} />
+        </Route>
+
+        <Route path="/pagos" element={<PagosLayout />}>
+          <Route index element={<PagosListPage />} />
+          <Route path="oc/:ocId" element={<PagosOcPage />} />
+        </Route>
+
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }

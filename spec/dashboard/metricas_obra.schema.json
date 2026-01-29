@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MetricasObra",
+  "type": "object",
+  "required": ["obra_id", "comprometido", "pagado", "saldo", "porcentaje_ejecutado"],
+  "properties": {
+    "obra_id": { "type": "string", "format": "uuid" },
+    "comprometido": { "type": "number" },
+    "pagado": { "type": "number" },
+    "saldo": { "type": "number" },
+    "porcentaje_ejecutado": { "type": "number" },
+    "total_estimaciones": { "type": "number" },
+    "total_gastos": { "type": "number" },
+    "saldo_actual": { "type": "number" },
+    "avance_fisico_porcentaje": { "type": "number" }
+  }
+}

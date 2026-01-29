@@ -1,0 +1,20 @@
+{
+  "codigo": "227",
+  "nombre": "CASTELLO E",
+  "numero_contrato": "CONT-2025-045",
+  "cliente": "Desarrolladora Inmobiliaria del Centro",
+  "residente": "Ing. Miguel Ángel Torres",
+  "residente_iniciales": "MAT",
+  "direccion": "Zona Centro, Puebla",
+  "monto_contratado": 5250000,
+  "anticipo_porcentaje": 30,
+  "retencion_porcentaje": 5,
+  "saldo_actual": 1575000,
+  "total_estimaciones": 2100000,
+  "total_gastos": 525000,
+  "avance_fisico_porcentaje": 40,
+  "fecha_inicio": "2024-11-01",
+  "fecha_fin_programada": "2025-06-30",
+  "plazo_ejecucion": 240,
+  "estado": "activa"
+}
