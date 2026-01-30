@@ -18,6 +18,7 @@ import MaterialRequisitions from "./MaterialRequisitions";
 import PaymentManagement from "./PaymentManagement";
 import ContractTracking from "./ContractTracking";
 import ExpenseDetails from "./ExpenseDetails";
+import { DevModeToggle } from "@/core/ui/DevModeToggle";
 
 type Module =
   | "home"
@@ -161,6 +162,9 @@ export default function MainApp() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {/* Dev Mode Toggle - Solo visible en desarrollo */}
+              <DevModeToggle />
+              <div className="h-10 w-px bg-slate-500/50"></div>
               <Button
                 variant="outline"
                 onClick={handleBackToHome}

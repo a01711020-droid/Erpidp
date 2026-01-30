@@ -41,11 +41,15 @@ import type {
 } from './types';
 
 // Importar seed data
-import { mockDatabase } from '/spec/mock-db/seed';
+import { mockDatabase, emptyDatabase } from '/spec/mock-db/seed';
+import { TEST_EMPTY_STATE } from '../config';
 
 // ============================================================================
 // CONFIGURACIÓN
 // ============================================================================
+
+// Determinar qué base de datos usar según configuración
+const db = TEST_EMPTY_STATE ? emptyDatabase : mockDatabase;
 
 const SIMULATE_NETWORK_DELAY = true;
 const MIN_DELAY = 200; // ms
@@ -82,7 +86,7 @@ export class MockDataAdapter implements IDataAdapter {
     await simulateDelay();
     
     try {
-      let obras = [...mockDatabase.obras];
+      let obras = [...db.obras];
       
       if (filters?.estatus) {
         obras = obras.filter((o) => o.estatus === filters.estatus);
@@ -101,7 +105,7 @@ export class MockDataAdapter implements IDataAdapter {
   async getObra(obraId: string): Promise<DataResponse<Obra>> {
     await simulateDelay();
     
-    const obra = mockDatabase.obras.find((o) => o.obra_id === obraId);
+    const obra = db.obras.find((o) => o.obra_id === obraId);
     
     if (!obra) {
       return createErrorResponse(`Obra con ID ${obraId} no encontrada`);
@@ -135,7 +139,7 @@ export class MockDataAdapter implements IDataAdapter {
   async updateObra(obraId: string, data: UpdateObraDTO): Promise<DataResponse<Obra>> {
     await simulateDelay();
     
-    const obra = mockDatabase.obras.find((o) => o.obra_id === obraId);
+    const obra = db.obras.find((o) => o.obra_id === obraId);
     
     if (!obra) {
       return createErrorResponse(`Obra con ID ${obraId} no encontrada`);
@@ -153,7 +157,7 @@ export class MockDataAdapter implements IDataAdapter {
   async deleteObra(obraId: string): Promise<DataResponse<void>> {
     await simulateDelay();
     
-    const obra = mockDatabase.obras.find((o) => o.obra_id === obraId);
+    const obra = db.obras.find((o) => o.obra_id === obraId);
     
     if (!obra) {
       return createErrorResponse(`Obra con ID ${obraId} no encontrada`);
@@ -172,7 +176,7 @@ export class MockDataAdapter implements IDataAdapter {
   }): Promise<ListResponse<Proveedor>> {
     await simulateDelay();
     
-    let proveedores = [...mockDatabase.proveedores];
+    let proveedores = [...db.proveedores];
     
     if (filters?.activo !== undefined) {
       proveedores = proveedores.filter((p) => p.activo === filters.activo);
@@ -188,7 +192,7 @@ export class MockDataAdapter implements IDataAdapter {
   async getProveedor(proveedorId: string): Promise<DataResponse<Proveedor>> {
     await simulateDelay();
     
-    const proveedor = mockDatabase.proveedores.find((p) => p.proveedor_id === proveedorId);
+    const proveedor = db.proveedores.find((p) => p.proveedor_id === proveedorId);
     
     if (!proveedor) {
       return createErrorResponse(`Proveedor con ID ${proveedorId} no encontrado`);
@@ -231,7 +235,7 @@ export class MockDataAdapter implements IDataAdapter {
   ): Promise<DataResponse<Proveedor>> {
     await simulateDelay();
     
-    const proveedor = mockDatabase.proveedores.find((p) => p.proveedor_id === proveedorId);
+    const proveedor = db.proveedores.find((p) => p.proveedor_id === proveedorId);
     
     if (!proveedor) {
       return createErrorResponse(`Proveedor con ID ${proveedorId} no encontrado`);
@@ -249,7 +253,7 @@ export class MockDataAdapter implements IDataAdapter {
   async deactivateProveedor(proveedorId: string): Promise<DataResponse<void>> {
     await simulateDelay();
     
-    const proveedor = mockDatabase.proveedores.find((p) => p.proveedor_id === proveedorId);
+    const proveedor = db.proveedores.find((p) => p.proveedor_id === proveedorId);
     
     if (!proveedor) {
       return createErrorResponse(`Proveedor con ID ${proveedorId} no encontrado`);
@@ -269,7 +273,7 @@ export class MockDataAdapter implements IDataAdapter {
   }): Promise<ListResponse<RequisicionMaterial>> {
     await simulateDelay();
     
-    let requisiciones = [...mockDatabase.requisiciones_material];
+    let requisiciones = [...db.requisiciones_material];
     
     if (filters?.obra_id) {
       requisiciones = requisiciones.filter((r) => r.obra_id === filters.obra_id);
@@ -293,7 +297,7 @@ export class MockDataAdapter implements IDataAdapter {
   }>> {
     await simulateDelay();
     
-    const requisicion = mockDatabase.requisiciones_material.find(
+    const requisicion = db.requisiciones_material.find(
       (r) => r.requisicion_id === requisicionId
     );
     
@@ -301,11 +305,11 @@ export class MockDataAdapter implements IDataAdapter {
       return createErrorResponse(`Requisición con ID ${requisicionId} no encontrada`);
     }
     
-    const items = mockDatabase.requisiciones_material_items.filter(
+    const items = db.requisiciones_material_items.filter(
       (i) => i.requisicion_id === requisicionId
     );
     
-    const comentarios = mockDatabase.requisiciones_comentarios.filter(
+    const comentarios = db.requisiciones_comentarios.filter(
       (c) => c.requisicion_id === requisicionId
     );
     
@@ -321,7 +325,7 @@ export class MockDataAdapter implements IDataAdapter {
   ): Promise<DataResponse<RequisicionMaterial>> {
     await simulateDelay();
     
-    const obra = mockDatabase.obras.find((o) => o.obra_id === data.obra_id);
+    const obra = db.obras.find((o) => o.obra_id === data.obra_id);
     if (!obra) {
       return createErrorResponse(`Obra con ID ${data.obra_id} no encontrada`);
     }
@@ -349,7 +353,7 @@ export class MockDataAdapter implements IDataAdapter {
   ): Promise<DataResponse<RequisicionMaterial>> {
     await simulateDelay();
     
-    const requisicion = mockDatabase.requisiciones_material.find(
+    const requisicion = db.requisiciones_material.find(
       (r) => r.requisicion_id === requisicionId
     );
     
@@ -374,7 +378,7 @@ export class MockDataAdapter implements IDataAdapter {
   ): Promise<DataResponse<RequisicionComentario>> {
     await simulateDelay();
     
-    const requisicion = mockDatabase.requisiciones_material.find(
+    const requisicion = db.requisiciones_material.find(
       (r) => r.requisicion_id === requisicionId
     );
     
@@ -405,7 +409,7 @@ export class MockDataAdapter implements IDataAdapter {
   }): Promise<ListResponse<OrdenCompra>> {
     await simulateDelay();
     
-    let ordenes = [...mockDatabase.ordenes_compra];
+    let ordenes = [...db.ordenes_compra];
     
     if (filters?.obra_id) {
       ordenes = ordenes.filter((o) => o.obra_id === filters.obra_id);
@@ -428,13 +432,13 @@ export class MockDataAdapter implements IDataAdapter {
   }>> {
     await simulateDelay();
     
-    const orden = mockDatabase.ordenes_compra.find((o) => o.oc_id === ocId);
+    const orden = db.ordenes_compra.find((o) => o.oc_id === ocId);
     
     if (!orden) {
       return createErrorResponse(`Orden de compra con ID ${ocId} no encontrada`);
     }
     
-    const items = mockDatabase.ordenes_compra_items.filter((i) => i.oc_id === ocId);
+    const items = db.ordenes_compra_items.filter((i) => i.oc_id === ocId);
     
     return createSuccessResponse({
       orden,
@@ -445,12 +449,12 @@ export class MockDataAdapter implements IDataAdapter {
   async createOrdenCompra(data: CreateOrdenCompraDTO): Promise<DataResponse<OrdenCompra>> {
     await simulateDelay();
     
-    const obra = mockDatabase.obras.find((o) => o.obra_id === data.obra_id);
+    const obra = db.obras.find((o) => o.obra_id === data.obra_id);
     if (!obra) {
       return createErrorResponse(`Obra con ID ${data.obra_id} no encontrada`);
     }
     
-    const proveedor = mockDatabase.proveedores.find((p) => p.proveedor_id === data.proveedor_id);
+    const proveedor = db.proveedores.find((p) => p.proveedor_id === data.proveedor_id);
     if (!proveedor) {
       return createErrorResponse(`Proveedor con ID ${data.proveedor_id} no encontrado`);
     }
@@ -492,7 +496,7 @@ export class MockDataAdapter implements IDataAdapter {
   ): Promise<DataResponse<OrdenCompra>> {
     await simulateDelay();
     
-    const orden = mockDatabase.ordenes_compra.find((o) => o.oc_id === ocId);
+    const orden = db.ordenes_compra.find((o) => o.oc_id === ocId);
     
     if (!orden) {
       return createErrorResponse(`Orden de compra con ID ${ocId} no encontrada`);
@@ -510,7 +514,7 @@ export class MockDataAdapter implements IDataAdapter {
   async cancelOrdenCompra(ocId: string, motivo?: string): Promise<DataResponse<void>> {
     await simulateDelay();
     
-    const orden = mockDatabase.ordenes_compra.find((o) => o.oc_id === ocId);
+    const orden = db.ordenes_compra.find((o) => o.oc_id === ocId);
     
     if (!orden) {
       return createErrorResponse(`Orden de compra con ID ${ocId} no encontrada`);
@@ -530,7 +534,7 @@ export class MockDataAdapter implements IDataAdapter {
   }): Promise<ListResponse<Pago>> {
     await simulateDelay();
     
-    let pagos = [...mockDatabase.pagos];
+    let pagos = [...db.pagos];
     
     if (filters?.obra_id) {
       pagos = pagos.filter((p) => p.obra_id === filters.obra_id);
@@ -550,7 +554,7 @@ export class MockDataAdapter implements IDataAdapter {
   async getPago(pagoId: string): Promise<DataResponse<Pago>> {
     await simulateDelay();
     
-    const pago = mockDatabase.pagos.find((p) => p.pago_id === pagoId);
+    const pago = db.pagos.find((p) => p.pago_id === pagoId);
     
     if (!pago) {
       return createErrorResponse(`Pago con ID ${pagoId} no encontrado`);
@@ -562,7 +566,7 @@ export class MockDataAdapter implements IDataAdapter {
   async createPago(data: CreatePagoDTO): Promise<DataResponse<Pago>> {
     await simulateDelay();
     
-    const oc = mockDatabase.ordenes_compra.find((o) => o.oc_id === data.oc_id);
+    const oc = db.ordenes_compra.find((o) => o.oc_id === data.oc_id);
     if (!oc) {
       return createErrorResponse(`Orden de compra con ID ${data.oc_id} no encontrada`);
     }
@@ -593,7 +597,7 @@ export class MockDataAdapter implements IDataAdapter {
   async cancelPago(pagoId: string, motivo?: string): Promise<DataResponse<void>> {
     await simulateDelay();
     
-    const pago = mockDatabase.pagos.find((p) => p.pago_id === pagoId);
+    const pago = db.pagos.find((p) => p.pago_id === pagoId);
     
     if (!pago) {
       return createErrorResponse(`Pago con ID ${pagoId} no encontrado`);
@@ -612,7 +616,7 @@ export class MockDataAdapter implements IDataAdapter {
   }): Promise<ListResponse<Entrega>> {
     await simulateDelay();
     
-    let entregas = [...mockDatabase.entregas];
+    let entregas = [...db.entregas];
     
     if (filters?.obra_id) {
       entregas = entregas.filter((e) => e.obra_id === filters.obra_id);
@@ -631,13 +635,13 @@ export class MockDataAdapter implements IDataAdapter {
   }>> {
     await simulateDelay();
     
-    const entrega = mockDatabase.entregas.find((e) => e.entrega_id === entregaId);
+    const entrega = db.entregas.find((e) => e.entrega_id === entregaId);
     
     if (!entrega) {
       return createErrorResponse(`Entrega con ID ${entregaId} no encontrada`);
     }
     
-    const items = mockDatabase.entregas_items.filter((i) => i.entrega_id === entregaId);
+    const items = db.entregas_items.filter((i) => i.entrega_id === entregaId);
     
     return createSuccessResponse({
       entrega,
@@ -652,17 +656,17 @@ export class MockDataAdapter implements IDataAdapter {
   async getMetricasObra(obraId: string): Promise<DataResponse<MetricasObra>> {
     await simulateDelay();
     
-    const obra = mockDatabase.obras.find((o) => o.obra_id === obraId);
+    const obra = db.obras.find((o) => o.obra_id === obraId);
     
     if (!obra) {
       return createErrorResponse(`Obra con ID ${obraId} no encontrada`);
     }
     
     // Calcular métricas
-    const ordenesObra = mockDatabase.ordenes_compra.filter(
+    const ordenesObra = db.ordenes_compra.filter(
       (o) => o.obra_id === obraId && (o.estatus === 'aprobada' || o.estatus === 'entregada')
     );
-    const pagosObra = mockDatabase.pagos.filter(
+    const pagosObra = db.pagos.filter(
       (p) => p.obra_id === obraId && p.estatus === 'aplicado'
     );
     
@@ -688,7 +692,7 @@ export class MockDataAdapter implements IDataAdapter {
     
     const metricas: MetricasObra[] = [];
     
-    for (const obra of mockDatabase.obras) {
+    for (const obra of db.obras) {
       const result = await this.getMetricasObra(obra.obra_id);
       if (result.data) {
         metricas.push(result.data);
@@ -703,16 +707,16 @@ export class MockDataAdapter implements IDataAdapter {
   ): Promise<DataResponse<ResumenProveedorOC>> {
     await simulateDelay();
     
-    const proveedor = mockDatabase.proveedores.find((p) => p.proveedor_id === proveedorId);
+    const proveedor = db.proveedores.find((p) => p.proveedor_id === proveedorId);
     
     if (!proveedor) {
       return createErrorResponse(`Proveedor con ID ${proveedorId} no encontrado`);
     }
     
-    const ordenesProveedor = mockDatabase.ordenes_compra.filter(
+    const ordenesProveedor = db.ordenes_compra.filter(
       (o) => o.proveedor_id === proveedorId && (o.estatus === 'aprobada' || o.estatus === 'entregada')
     );
-    const pagosProveedor = mockDatabase.pagos.filter(
+    const pagosProveedor = db.pagos.filter(
       (p) => p.proveedor_id === proveedorId && p.estatus === 'aplicado'
     );
     
@@ -736,11 +740,11 @@ export class MockDataAdapter implements IDataAdapter {
     await simulateDelay();
     
     const obras = obraId
-      ? mockDatabase.obras.filter((o) => o.obra_id === obraId)
-      : mockDatabase.obras;
+      ? db.obras.filter((o) => o.obra_id === obraId)
+      : db.obras;
     
     const estados: EstadoRequisiciones[] = obras.map((obra) => {
-      const requisiciones = mockDatabase.requisiciones_material.filter(
+      const requisiciones = db.requisiciones_material.filter(
         (r) => r.obra_id === obra.obra_id
       );
       
@@ -770,22 +774,22 @@ export class MockDataAdapter implements IDataAdapter {
   }>> {
     await simulateDelay();
     
-    const obrasActivas = mockDatabase.obras.filter((o) => o.estatus === 'activa');
+    const obrasActivas = db.obras.filter((o) => o.estatus === 'activa');
     const total_presupuesto = obrasActivas.reduce((sum, o) => sum + o.presupuesto_total, 0);
     
-    const ordenesAprobadas = mockDatabase.ordenes_compra.filter(
+    const ordenesAprobadas = db.ordenes_compra.filter(
       (o) => o.estatus === 'aprobada' || o.estatus === 'entregada'
     );
     const total_comprometido = ordenesAprobadas.reduce((sum, o) => sum + o.total, 0);
     
-    const pagosAplicados = mockDatabase.pagos.filter((p) => p.estatus === 'aplicado');
+    const pagosAplicados = db.pagos.filter((p) => p.estatus === 'aplicado');
     const total_pagado = pagosAplicados.reduce((sum, p) => sum + p.monto_pagado, 0);
     
-    const requisiciones_pendientes = mockDatabase.requisiciones_material.filter(
+    const requisiciones_pendientes = db.requisiciones_material.filter(
       (r) => r.estatus === 'pendiente' || r.estatus === 'en_revision'
     ).length;
     
-    const ordenes_pendientes = mockDatabase.ordenes_compra.filter(
+    const ordenes_pendientes = db.ordenes_compra.filter(
       (o) => o.estatus === 'pendiente'
     ).length;
     

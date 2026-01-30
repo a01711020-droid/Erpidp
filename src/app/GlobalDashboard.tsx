@@ -22,6 +22,8 @@ import {
   FileSpreadsheet,
   Upload,
 } from "lucide-react";
+import { dataAdapter } from "@/core/data";
+import type { Obra } from "@/core/data/types";
 
 interface GlobalDashboardProps {
   onSelectProject: (projectId: string) => void;
@@ -54,11 +56,51 @@ export default function GlobalDashboard({ onSelectProject }: GlobalDashboardProp
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState("");
-  const [works, setWorks] = useState<Work[]>(initialWorks);
+  const [works, setWorks] = useState<Work[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showWorkForm, setShowWorkForm] = useState(false);
   const [editingWork, setEditingWork] = useState<Work | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [showIndirectCosts, setShowIndirectCosts] = useState(false);
+
+  // Cargar obras desde el dataAdapter
+  useEffect(() => {
+    async function loadObras() {
+      setLoading(true);
+      try {
+        const response = await dataAdapter.listObras({ estatus: 'activa' });
+        if (response.success && response.data) {
+          // Convertir Obra[] a Work[]
+          const worksFromObras: Work[] = response.data.map((obra: Obra) => ({
+            code: obra.codigo_obra,
+            name: obra.nombre_obra,
+            client: obra.cliente,
+            contractNumber: `CONT-${obra.codigo_obra}`,
+            contractAmount: obra.presupuesto_total,
+            advancePercentage: 30,
+            retentionPercentage: 5,
+            startDate: obra.fecha_inicio || '',
+            estimatedEndDate: obra.fecha_fin_estimada || '',
+            resident: obra.residente || 'Sin asignar',
+            residentInitials: obra.residente?.split(' ').map(n => n[0]).join('') || 'SA',
+            status: obra.estatus === 'activa' ? 'Activa' as const : 'Archivada' as const,
+            actualBalance: 0,
+            totalEstimates: 0,
+            totalExpenses: 0,
+          }));
+          setWorks(worksFromObras);
+        }
+      } catch (error) {
+        console.error('Error cargando obras:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (isAuthenticated) {
+      loadObras();
+    }
+  }, [isAuthenticated]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -475,146 +517,169 @@ export default function GlobalDashboard({ onSelectProject }: GlobalDashboardProp
 
         {/* Works Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayWorks.map((work) => {
-            const progress = work.contractAmount > 0
-              ? ((work.totalEstimates || 0) / work.contractAmount) * 100
-              : 0;
-
-            return (
-              <Card
-                key={work.code}
-                className={`hover:shadow-lg transition-shadow ${
-                  work.status === "Archivada" ? "opacity-75 bg-gray-50" : ""
-                }`}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline" className="font-mono">
-                          {work.code}
-                        </Badge>
-                        <Badge
-                          variant={work.status === "Activa" ? "default" : "secondary"}
-                        >
-                          {work.status}
-                        </Badge>
-                      </div>
-                      <CardTitle className="text-lg">{work.name}</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">{work.client}</p>
-                    </div>
-                  </div>
+          {loading ? (
+            // Loading Skeletons
+            [1, 2, 3, 4, 5, 6].map((i) => (
+              <Card key={i} className="animate-pulse">
+                <CardHeader>
+                  <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+                  <div className="h-6 bg-gray-300 rounded w-2/3 mb-1"></div>
+                  <div className="h-4 bg-gray-200 rounded w-full"></div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Financial Info */}
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Contrato:</span>
-                      <span className="font-semibold">
-                        ${(work.contractAmount / 1000000).toFixed(2)}M
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Saldo Real:</span>
-                      <span className="font-semibold text-green-600">
-                        ${((work.actualBalance || 0) / 1000000).toFixed(2)}M
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Estimaciones:</span>
-                      <span className="font-semibold">
-                        ${((work.totalEstimates || 0) / 1000000).toFixed(2)}M
-                      </span>
-                    </div>
+                    <div className="h-4 bg-gray-200 rounded"></div>
+                    <div className="h-4 bg-gray-200 rounded"></div>
+                    <div className="h-4 bg-gray-200 rounded"></div>
                   </div>
-
-                  {/* Progress Bar */}
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-muted-foreground">Avance</span>
-                      <span className="font-medium">{progress.toFixed(1)}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all"
-                        style={{ width: `${Math.min(progress, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Resident */}
-                  <div className="pt-2 border-t text-sm">
-                    <span className="text-muted-foreground">Residente: </span>
-                    <span className="font-medium">{work.resident}</span>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-2">
-                    {work.status === "Activa" ? (
-                      <>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => onSelectProject(work.code)}
-                        >
-                          Abrir Dashboard
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditWork(work)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleArchiveWork(work.code)}
-                          className="text-orange-600"
-                        >
-                          <Archive className="h-4 w-4" />
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => handleUnarchiveWork(work.code)}
-                        >
-                          Restaurar
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onSelectProject(work.code)}
-                        >
-                          Ver
-                        </Button>
-                      </>
-                    )}
-                  </div>
+                  <div className="h-2 bg-gray-200 rounded-full"></div>
+                  <div className="h-10 bg-gray-200 rounded"></div>
                 </CardContent>
               </Card>
-            );
-          })}
+            ))
+          ) : displayWorks.length === 0 ? (
+            <div className="col-span-full">
+              <Card className="p-12">
+                <div className="text-center text-muted-foreground">
+                  <Building2 className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">
+                    {showArchived ? "No hay obras archivadas" : "No hay obras activas"}
+                  </p>
+                  <p className="text-sm mt-2">
+                    {!showArchived && "Comienza agregando una nueva obra al sistema"}
+                  </p>
+                </div>
+              </Card>
+            </div>
+          ) : (
+            displayWorks.map((work) => {
+              const progress = work.contractAmount > 0
+                ? ((work.totalEstimates || 0) / work.contractAmount) * 100
+                : 0;
+
+              return (
+                <Card
+                  key={work.code}
+                  className={`hover:shadow-lg transition-shadow ${
+                    work.status === "Archivada" ? "opacity-75 bg-gray-50" : ""
+                  }`}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge variant="outline" className="font-mono">
+                            {work.code}
+                          </Badge>
+                          <Badge
+                            variant={work.status === "Activa" ? "default" : "secondary"}
+                          >
+                            {work.status}
+                          </Badge>
+                        </div>
+                        <CardTitle className="text-lg">{work.name}</CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">{work.client}</p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Financial Info */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Contrato:</span>
+                        <span className="font-semibold">
+                          ${(work.contractAmount / 1000000).toFixed(2)}M
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Saldo Real:</span>
+                        <span className="font-semibold text-green-600">
+                          ${((work.actualBalance || 0) / 1000000).toFixed(2)}M
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Estimaciones:</span>
+                        <span className="font-semibold">
+                          ${((work.totalEstimates || 0) / 1000000).toFixed(2)}M
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">Avance</span>
+                        <span className="font-medium">{progress.toFixed(1)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all"
+                          style={{ width: `${Math.min(progress, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Resident */}
+                    <div className="pt-2 border-t text-sm">
+                      <span className="text-muted-foreground">Residente: </span>
+                      <span className="font-medium">{work.resident}</span>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 pt-2">
+                      {work.status === "Activa" ? (
+                        <>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => onSelectProject(work.code)}
+                          >
+                            Abrir Dashboard
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditWork(work)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleArchiveWork(work.code)}
+                            className="text-orange-600"
+                          >
+                            <Archive className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleUnarchiveWork(work.code)}
+                          >
+                            Restaurar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onSelectProject(work.code)}
+                          >
+                            Ver
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
         </div>
 
-        {displayWorks.length === 0 && (
-          <Card className="p-12">
-            <div className="text-center text-muted-foreground">
-              <Building2 className="h-16 w-16 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">
-                {showArchived ? "No hay obras archivadas" : "No hay obras activas"}
-              </p>
-              <p className="text-sm mt-2">
-                {!showArchived && "Comienza agregando una nueva obra al sistema"}
-              </p>
-            </div>
-          </Card>
-        )}
       </div>
 
       {/* Work Form Modal */}

@@ -908,6 +908,10 @@ export const mockDatabase: MockDatabase = {
 // HELPER: Modo vacío para testing
 // ============================================================================
 
+/**
+ * Base de datos vacía para probar estados sin datos
+ * Cambia TEST_EMPTY_STATE = true en config.ts para activar
+ */
 export const emptyDatabase: MockDatabase = {
   obras: [],
   proveedores: [],

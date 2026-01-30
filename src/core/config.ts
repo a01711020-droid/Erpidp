@@ -19,6 +19,14 @@
 export const MOCK_MODE = true;
 
 /**
+ * TEST_EMPTY_STATE
+ * 
+ * true: Usa emptyDatabase (sin datos) para probar estados vacíos
+ * false: Usa mockDatabase (con datos de ejemplo)
+ */
+export const TEST_EMPTY_STATE = false;
+
+/**
  * SIMULATE_NETWORK_DELAY
  * 
  * Simula latencia de red en mockAdapter para UX realista
