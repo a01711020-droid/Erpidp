@@ -47,7 +47,7 @@ export FRONTEND_URL="http://localhost:5173"
 uvicorn main:app --reload --port 8000
 ```
 
-Verificar: http://localhost:8000/health → `{"status": "healthy"}`
+Verificar: http://localhost:8000/api/v1/health → `{"status": "success", "data": {"database": "connected"}, "error": null}`
 
 ### 3. Frontend
 
@@ -55,7 +55,7 @@ Verificar: http://localhost:8000/health → `{"status": "healthy"}`
 pnpm install
 
 cat > .env << EOF
-VITE_API_URL=http://localhost:8000
+VITE_API_URL=http://localhost:8000/api/v1
 VITE_DATA_MODE=api
 EOF
 
@@ -89,7 +89,7 @@ DATABASE_URL=postgresql://...supabase.com:6543/postgres?sslmode=require
 FRONTEND_URL=https://tu-frontend.onrender.com
 ```
 
-Health Check: `/health`
+Health Check: `/api/v1/health`
 
 ### Frontend (Static Site)
 
@@ -100,7 +100,7 @@ Publish: dist
 
 **Env vars**:
 ```bash
-VITE_API_URL=https://tu-backend.onrender.com
+VITE_API_URL=https://tu-backend.onrender.com/api/v1
 VITE_DATA_MODE=api
 ```
 
@@ -113,7 +113,7 @@ VITE_DATA_MODE=api
 
 ### Verificar
 
-- [ ] Backend: `https://tu-backend.onrender.com/health`
+- [ ] Backend: `https://tu-backend.onrender.com/api/v1/health`
 - [ ] Frontend carga
 - [ ] Sin errores CORS
 - [ ] Crear obra → refrescar → persiste
