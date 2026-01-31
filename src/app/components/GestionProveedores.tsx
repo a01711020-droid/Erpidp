@@ -297,7 +297,7 @@ function ProveedorForm({ open, onClose, proveedor, onGuardar }: ProveedorFormPro
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">
             {proveedor ? "Editar Proveedor" : "Nuevo Proveedor"}

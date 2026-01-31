@@ -46,6 +46,7 @@ interface EstimationFormProps {
     no: number;
     advanceBalance: number;
     contractPending: number;
+    contractAmountCurrent: number;
   };
 }
 
@@ -68,11 +69,57 @@ export function EstimationForm({
     balanceToPay: 0,
   });
 
-  // Calcular automáticamente los valores
-  const calculateValues = (amount: number) => {
-    const advanceAmortization = (amount * contractInfo.advancePercentage) / 100;
-    const guaranteeFund = (amount * contractInfo.guaranteeFundPercentage) / 100;
-    const balanceToPay = amount - advanceAmortization - guaranteeFund;
+  // ====================================================================
+  // LÓGICA DE CÁLCULO CORREGIDA
+  // ====================================================================
+  // IMPORTANTE: Esta lógica debe considerar:
+  // 1. El saldo de anticipo disponible (no amortizar más de lo que queda)
+  // 2. Las aditivas/deductivas modifican el contractPending Y el contractAmountCurrent
+  // 3. El fondo de garantía se calcula sobre el importe y está CAPEADO al 3% del contrato ($30,000)
+  // 4. El campo "Pagado" es editable por el usuario
+  // 5. Saldo por Pagar = Neto - Pagado
+  // 6. NUEVA FÓRMULA DE AMORTIZACIÓN PROPORCIONAL:
+  //    advanceAmortization = (Monto estimación / Contrato vigente actual) × Anticipo total
+  //    Esta fórmula garantiza que el anticipo se amortice proporcionalmente al avance
+  //    sobre el contrato vigente (que puede cambiar con aditivas/deductivas)
+  // ====================================================================
+  const calculateValues = (amount: number, type: "estimacion" | "aditiva" | "deductiva", paid: number = 0) => {
+    // Para aditivas y deductivas NO se calcula amortización ni fondo de garantía
+    if (type === "aditiva" || type === "deductiva") {
+      return {
+        advanceAmortization: 0,
+        guaranteeFund: 0,
+        balanceToPay: 0,
+      };
+    }
+
+    // Para estimaciones:
+    // 1. Calcular amortización de anticipo con NUEVA FÓRMULA PROPORCIONAL
+    // contractAmountCurrent puede haber cambiado si hubo aditivas/deductivas
+    const contractAmountCurrent = lastEstimation?.contractAmountCurrent || contractInfo.contractAmount;
+    const advanceTotal = (contractInfo.contractAmount * contractInfo.advancePercentage) / 100;
+    
+    // FÓRMULA PROPORCIONAL: (Monto estimación / Contrato vigente) × Anticipo total
+    const calculatedAmortization = (amount / contractAmountCurrent) * advanceTotal;
+    
+    // VALIDACIÓN: No amortizar más del saldo de anticipo disponible
+    const availableAdvanceBalance = lastEstimation?.advanceBalance || 0;
+    const advanceAmortization = Math.min(calculatedAmortization, availableAdvanceBalance);
+    
+    // 2. Calcular fondo de garantía con CAP
+    // IMPORTANTE: El fondo de garantía está CAPEADO al 3% del monto del contrato
+    const guaranteeFundCap = (contractInfo.contractAmount * contractInfo.guaranteeFundPercentage) / 100; // $30,000 para contrato de $1M
+    const guaranteeFundCalculated = (amount * contractInfo.guaranteeFundPercentage) / 100;
+    
+    // TODO: En producción, necesitamos saber cuánto se ha retenido acumulado
+    // Para este ejemplo, asumimos que aún no se ha alcanzado el cap
+    const guaranteeFund = Math.min(guaranteeFundCalculated, guaranteeFundCap);
+    
+    // 3. Calcular NETO (lo que se debe pagar después de deducciones)
+    const netAmount = amount - advanceAmortization - guaranteeFund;
+    
+    // 4. Calcular SALDO POR PAGAR (Neto - Lo que ya se pagó)
+    const balanceToPay = netAmount - paid;
     
     return {
       advanceAmortization,
@@ -83,7 +130,7 @@ export function EstimationForm({
 
   const handleAmountChange = (value: string) => {
     const amount = parseFloat(value) || 0;
-    const calculated = calculateValues(amount);
+    const calculated = calculateValues(amount, formData.type, 0); // paid siempre es 0 al crear
     
     setFormData({
       ...formData,
@@ -92,10 +139,38 @@ export function EstimationForm({
     });
   };
 
+  const handlePaidChange = (value: string) => {
+    const paid = parseFloat(value) || 0;
+    const calculated = calculateValues(formData.amount, formData.type, paid);
+    
+    setFormData({
+      ...formData,
+      paid,
+      ...calculated,
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    
+    // Contar cuántos movimientos del mismo tipo ya existen para determinar el número
+    // En producción esto vendría del backend
+    const typeLabel = getTypeLabel();
+    const typeNumber = formData.movementNumber;
+    
+    // Generar la descripción formateada con el prefijo automático
+    // Si el usuario ya incluyó el prefijo, no lo duplicamos
+    let finalDescription = formData.description;
+    if (!finalDescription.startsWith(`${typeLabel} ${typeNumber} -`)) {
+      finalDescription = `${typeLabel} ${typeNumber} - ${formData.description}`;
+    }
+    
+    onSave({
+      ...formData,
+      description: finalDescription,
+    });
     onClose();
+    
     // Reset form
     setFormData({
       movementNumber: (lastEstimation?.no || 0) + 1,
@@ -152,9 +227,28 @@ export function EstimationForm({
               <Label htmlFor="type">Tipo de Movimiento</Label>
               <Select
                 value={formData.type}
-                onValueChange={(value: "estimacion" | "aditiva" | "deductiva") =>
-                  setFormData({ ...formData, type: value })
-                }
+                onValueChange={(value: "estimacion" | "aditiva" | "deductiva") => {
+                  setFormData({ ...formData, type: value });
+                  // Si cambia a deductiva y el monto es positivo, hacerlo negativo
+                  if (value === "deductiva" && formData.amount > 0) {
+                    const calculated = calculateValues(-formData.amount, value, 0);
+                    setFormData({
+                      ...formData,
+                      type: value,
+                      amount: -formData.amount,
+                      ...calculated,
+                    });
+                  } else if (value !== "deductiva" && formData.amount < 0) {
+                    // Si cambia a estimación/aditiva y el monto es negativo, hacerlo positivo
+                    const calculated = calculateValues(Math.abs(formData.amount), value, 0);
+                    setFormData({
+                      ...formData,
+                      type: value,
+                      amount: Math.abs(formData.amount),
+                      ...calculated,
+                    });
+                  }
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona tipo" />
@@ -199,27 +293,43 @@ export function EstimationForm({
                 id="movementNumber"
                 type="number"
                 value={formData.movementNumber}
-                onChange={(e) => setFormData({ ...formData, movementNumber: parseInt(e.target.value) })}
-                required
+                disabled
+                className="bg-gray-100 cursor-not-allowed"
               />
+              <p className="text-xs text-muted-foreground">
+                Este número se asigna automáticamente de forma consecutiva
+              </p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Descripción</Label>
+            <Label htmlFor="description">
+              Descripción
+              <span className="text-xs text-muted-foreground ml-2">
+                (Solo escribe tu descripción, el prefijo se agrega automáticamente)
+              </span>
+            </Label>
             <Textarea
               id="description"
-              placeholder={`Ej: ${getTypeLabel()} - Descripción del movimiento`}
+              placeholder="Ej: Trabajos preliminares y cimentación"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               required
               rows={2}
             />
+            <p className="text-xs text-blue-600">
+              ✨ Se guardará como: "{getTypeLabel()} {formData.movementNumber} - {formData.description || '[tu descripción]'}"
+            </p>
           </div>
 
           {/* Monto del movimiento */}
           <div className="space-y-2">
-            <Label htmlFor="amount">Monto del Movimiento</Label>
+            <Label htmlFor="amount">
+              Monto del Movimiento
+              {formData.type === "deductiva" && (
+                <span className="text-red-600 text-xs ml-2">(Ingresa el valor como negativo para deductivas)</span>
+              )}
+            </Label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <Input
@@ -233,6 +343,11 @@ export function EstimationForm({
                 required
               />
             </div>
+            {formData.type === "estimacion" && (
+              <p className="text-xs text-muted-foreground">
+                💡 El campo "Pagado" se editará después desde la tabla de movimientos
+              </p>
+            )}
           </div>
 
           {/* Cálculos automáticos */}

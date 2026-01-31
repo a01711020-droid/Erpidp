@@ -159,7 +159,7 @@ export function SupplierManagement({ isOpen, onClose }: SupplierManagementProps)
     <>
       {/* Main Dialog - Lista de Proveedores */}
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-2xl">
               <Users className="h-6 w-6 text-blue-600" />

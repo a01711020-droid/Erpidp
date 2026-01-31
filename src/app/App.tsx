@@ -1,6 +1,12 @@
 import MainApp from "./MainApp";
+import AppDemo from "../AppDemo";
 import { DevModeProvider } from "@/core/contexts/DevModeContext";
 import { useDevModeSync } from "@/core/hooks/useDevModeSync";
+import { useState } from "react";
+import { Button } from "./components/ui/button";
+
+// Toggle para cambiar entre App normal y Demo
+const USE_DEMO_MODE = true; // Cambia a false para usar MainApp original
 
 function AppWithSync() {
   // Sincronizar contexto con mockAdapter
@@ -10,6 +16,12 @@ function AppWithSync() {
 }
 
 export default function App() {
+  // Si USE_DEMO_MODE está activo, mostrar AppDemo directamente
+  if (USE_DEMO_MODE) {
+    return <AppDemo />;
+  }
+
+  // App original con DevModeProvider
   return (
     <DevModeProvider>
       <div className="min-h-screen" style={{

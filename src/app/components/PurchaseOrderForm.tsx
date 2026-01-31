@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { X, Plus, Trash2 } from "lucide-react";
+import { X, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -65,14 +65,16 @@ interface PurchaseOrderFormProps {
   onClose: () => void;
   onSave: (order: PurchaseOrder) => void;
   editOrder?: PurchaseOrder | null;
+  requisitionData?: { workCode: string; workName: string; items: Array<{ description: string; quantity: number; unit: string }> } | null;
 }
 
 export function PurchaseOrderForm({
   onClose,
   onSave,
   editOrder,
+  requisitionData,
 }: PurchaseOrderFormProps) {
-  const [workCode, setWorkCode] = useState(editOrder?.workCode || "");
+  const [workCode, setWorkCode] = useState(editOrder?.workCode || requisitionData?.workCode || "");
   const [supplier, setSupplier] = useState(editOrder?.supplier || "");
   const [buyer, setBuyer] = useState(editOrder?.buyer || "");
   const [orderNumber, setOrderNumber] = useState(editOrder?.orderNumber || "");
@@ -126,8 +128,20 @@ export function PurchaseOrderForm({
   const [hasIVA, setHasIVA] = useState(editOrder?.hasIVA ?? true);
   const [discountAmount, setDiscountAmount] = useState(editOrder?.discountAmount || 0);
   const [observations, setObservations] = useState(editOrder?.observations || "");
-  const [items, setItems] = useState<PurchaseOrderItem[]>(
-    editOrder?.items || [
+  const [items, setItems] = useState<PurchaseOrderItem[]>(() => {
+    if (editOrder?.items) {
+      return editOrder.items;
+    }
+    if (requisitionData?.items) {
+      return requisitionData.items.map((item) => ({
+        id: generateId(),
+        description: `${item.description} (${item.unit})`,
+        quantity: item.quantity,
+        unitPrice: 0,
+        total: 0,
+      }));
+    }
+    return [
       {
         id: generateId(),
         description: "",
@@ -135,9 +149,13 @@ export function PurchaseOrderForm({
         unitPrice: 0,
         total: 0,
       },
-    ]
-  );
+    ];
+  });
 
+  // Estados para colapsar/expandir las secciones
+  const [isWorkInfoExpanded, setIsWorkInfoExpanded] = useState(false);
+  const [isSupplierInfoExpanded, setIsSupplierInfoExpanded] = useState(false);
+  
   // Auto-fill work information when code changes
   useEffect(() => {
     if (workCode && worksDirectory[workCode as keyof typeof worksDirectory]) {
@@ -246,9 +264,9 @@ export function PurchaseOrderForm({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full my-8">
+      <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full my-8">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700">
+        <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700 rounded-t-xl">
           <div>
             <h2 className="text-2xl font-bold text-white">
               {editOrder ? "Editar Orden de Compra" : "Nueva Orden de Compra"}
@@ -287,9 +305,32 @@ export function PurchaseOrderForm({
             </div>
 
             {/* Work Code Section */}
-            <div className="space-y-4 p-4 border-2 border-blue-200 rounded-lg">
-              <h3 className="font-semibold text-lg text-blue-900">Información de Obra</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3 p-4 border-2 border-blue-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-lg text-blue-900">Información de Obra</h3>
+                {workInfo && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsWorkInfoExpanded(!isWorkInfoExpanded)}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    {isWorkInfoExpanded ? (
+                      <>
+                        <ChevronUp className="h-4 w-4 mr-1" />
+                        Ocultar
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4 mr-1" />
+                        Ver detalles
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="workCode">Código de Obra *</Label>
                   <Select value={workCode} onValueChange={setWorkCode}>
@@ -305,8 +346,8 @@ export function PurchaseOrderForm({
                     </SelectContent>
                   </Select>
                 </div>
-                {workInfo && (
-                  <>
+                {workInfo && isWorkInfoExpanded && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-blue-100">
                     <div className="space-y-2">
                       <Label>Nombre de Obra</Label>
                       <Input value={workInfo.name} disabled className="bg-blue-50" />
@@ -315,19 +356,42 @@ export function PurchaseOrderForm({
                       <Label>Cliente</Label>
                       <Input value={workInfo.client} disabled className="bg-blue-50" />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 md:col-span-2">
                       <Label>Contrato</Label>
                       <Input value={workInfo.contractNumber} disabled className="bg-blue-50" />
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
 
             {/* Supplier Section */}
-            <div className="space-y-4 p-4 border-2 border-green-200 rounded-lg">
-              <h3 className="font-semibold text-lg text-green-900">Información de Proveedor</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3 p-4 border-2 border-green-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-lg text-green-900">Información de Proveedor</h3>
+                {supplierInfo && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsSupplierInfoExpanded(!isSupplierInfoExpanded)}
+                    className="text-green-600 hover:text-green-700"
+                  >
+                    {isSupplierInfoExpanded ? (
+                      <>
+                        <ChevronUp className="h-4 w-4 mr-1" />
+                        Ocultar
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4 mr-1" />
+                        Ver detalles
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="supplier">Proveedor (Código Corto) *</Label>
                   <Select value={supplier} onValueChange={setSupplier}>
@@ -343,13 +407,13 @@ export function PurchaseOrderForm({
                     </SelectContent>
                   </Select>
                 </div>
-                {supplierInfo && (
-                  <>
+                {supplierInfo && isSupplierInfoExpanded && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-green-100">
                     <div className="space-y-2">
                       <Label>Nombre Completo</Label>
                       <Input value={supplierInfo.fullName} disabled className="bg-green-50" />
                     </div>
-                    <div className="space-y-2 md:col-span-2">
+                    <div className="space-y-2">
                       <Label>Contacto</Label>
                       <Input value={supplierInfo.contact} disabled className="bg-green-50" />
                     </div>
@@ -389,7 +453,7 @@ export function PurchaseOrderForm({
                         <Input value={supplierInfo.clabe} disabled className="bg-green-50" />
                       </div>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
             </div>

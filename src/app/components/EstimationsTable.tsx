@@ -8,8 +8,28 @@ import {
   TableRow,
 } from "./ui/table";
 import { Badge } from "./ui/badge";
-import { FileText, TrendingUp, TrendingDown } from "lucide-react";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { FileText, TrendingUp, TrendingDown, Edit2, Check, X } from "lucide-react";
+import { useState } from "react";
 
+// ====================================================================
+// IMPORTANTE: Lógica de Movimientos del Contrato
+// ====================================================================
+// Esta tabla muestra TODOS los movimientos: estimaciones, aditivas y deductivas
+// 
+// ADITIVAS/DEDUCTIVAS:
+// - Modifican el "Pendiente de Contrato"
+// - NO tienen amortización de anticipo ni fondo de garantía
+// - Aditiva: SUMA al contrato pendiente
+// - Deductiva: RESTA del contrato pendiente
+// 
+// ESTIMACIONES:
+// - Amortización de anticipo: se calcula según el SALDO disponible
+// - Fondo de garantía: se calcula sobre el importe
+// - Pagado: campo editable por el usuario
+// - Saldo por Pagar: (Importe - Amortización - Fondo) - Pagado
+// ====================================================================
 interface Estimation {
   no: number;
   type?: "estimacion" | "aditiva" | "deductiva";
@@ -22,6 +42,7 @@ interface Estimation {
   paid: number;
   balanceToPay: number;
   contractPending: number;
+  contractAmountCurrent?: number; // Monto vigente del contrato (cambia con aditivas/deductivas)
 }
 
 interface EstimationsTableProps {
@@ -72,6 +93,29 @@ export function EstimationsTable({ estimations }: EstimationsTableProps) {
     { amount: 0, advanceAmortization: 0, guaranteeFund: 0, paid: 0, balanceToPay: 0 }
   );
 
+  // State to handle editing
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editedEstimation, setEditedEstimation] = useState<Estimation | null>(null);
+
+  // Function to handle edit
+  const handleEdit = (estimation: Estimation, uniqueKey: string) => {
+    setEditing(uniqueKey);
+    setEditedEstimation(estimation);
+  };
+
+  // Function to handle save
+  const handleSave = (estimation: Estimation) => {
+    setEditing(null);
+    setEditedEstimation(null);
+    // Here you would typically update the estimation in the backend
+  };
+
+  // Function to handle cancel
+  const handleCancel = () => {
+    setEditing(null);
+    setEditedEstimation(null);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -93,13 +137,16 @@ export function EstimationsTable({ estimations }: EstimationsTableProps) {
                 <TableHead className="text-right min-w-[120px]">Pagado</TableHead>
                 <TableHead className="text-right min-w-[130px]">Saldo por Pagar</TableHead>
                 <TableHead className="text-right min-w-[140px]">Pendiente Contrato</TableHead>
+                <TableHead className="w-[100px]">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {estimations.map((estimation) => {
+              {estimations.map((estimation, index) => {
                 const typeInfo = getTypeInfo(estimation.type);
+                // Usar índice + número para garantizar uniqueness
+                const uniqueKey = `${estimation.no}-${index}`;
                 return (
-                  <TableRow key={estimation.no}>
+                  <TableRow key={uniqueKey}>
                     <TableCell className="font-medium">
                       <Badge variant="outline">{estimation.no}</Badge>
                     </TableCell>
@@ -124,13 +171,55 @@ export function EstimationsTable({ estimations }: EstimationsTableProps) {
                       {formatCurrency(estimation.advanceBalance)}
                     </TableCell>
                     <TableCell className="text-right font-semibold text-green-600">
-                      {formatCurrency(estimation.paid)}
+                      {editing === uniqueKey ? (
+                        <Input
+                          type="number"
+                          value={editedEstimation?.paid || estimation.paid}
+                          onChange={(e) =>
+                            setEditedEstimation({
+                              ...estimation,
+                              paid: parseFloat(e.target.value),
+                            })
+                          }
+                          className="w-full"
+                        />
+                      ) : (
+                        formatCurrency(estimation.paid)
+                      )}
                     </TableCell>
                     <TableCell className="text-right font-medium text-amber-600">
                       {formatCurrency(estimation.balanceToPay)}
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       {formatCurrency(estimation.contractPending)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {editing === uniqueKey ? (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="icon"
+                            variant="success"
+                            onClick={() => handleSave(estimation)}
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="danger"
+                            onClick={handleCancel}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          onClick={() => handleEdit(estimation, uniqueKey)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
@@ -159,6 +248,7 @@ export function EstimationsTable({ estimations }: EstimationsTableProps) {
                 <TableCell className="text-right">
                   {formatCurrency(estimations[estimations.length - 1]?.contractPending || 0)}
                 </TableCell>
+                <TableCell></TableCell>
               </TableRow>
             </TableBody>
           </Table>

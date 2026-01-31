@@ -20,6 +20,8 @@ import {
   Package,
   ArrowRight,
   Eye,
+  Copy,
+  FileText,
 } from "lucide-react";
 import {
   Select,
@@ -41,18 +43,27 @@ export function RequisitionsSection({
   onConvertToOC,
 }: RequisitionsSectionProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("Todos");
+  const [statusFilter, setStatusFilter] = useState<string>("Activas");
   const [urgencyFilter, setUrgencyFilter] = useState<string>("Todos");
   const [selectedRequisition, setSelectedRequisition] = useState<MaterialRequisition | null>(null);
   const [newComment, setNewComment] = useState("");
 
   const filteredRequisitions = requisitions.filter((req) => {
+    // Shadowban: Por defecto ocultar las "Compradas", solo aparecen si se buscan o si el filtro es "Comprado" o "Todos"
+    const isArchived = req.status === "Comprado";
+    const hasSearch = searchTerm.trim() !== "";
+    const showingArchived = statusFilter === "Comprado" || statusFilter === "Todos";
+    
+    if (isArchived && !hasSearch && !showingArchived) {
+      return false; // Shadowban activo
+    }
+
     const matchesSearch =
       req.requisitionNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       req.workName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       req.residentName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus =
-      statusFilter === "Todos" || req.status === statusFilter;
+      statusFilter === "Todos" || statusFilter === "Activas" && req.status === "En Revisión" || req.status === statusFilter;
     const matchesUrgency =
       urgencyFilter === "Todos" || req.urgency === urgencyFilter;
     return matchesSearch && matchesStatus && matchesUrgency;
@@ -88,13 +99,6 @@ export function RequisitionsSection({
 
   const getStatusBadge = (status: MaterialRequisition["status"]) => {
     switch (status) {
-      case "Pendiente":
-        return (
-          <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
-            <Clock className="h-3 w-3 mr-1" />
-            Pendiente
-          </Badge>
-        );
       case "En Revisión":
         return (
           <Badge className="bg-blue-100 text-blue-800 border-blue-300">
@@ -102,25 +106,11 @@ export function RequisitionsSection({
             En Revisión
           </Badge>
         );
-      case "Aprobada":
+      case "Comprado":
         return (
           <Badge className="bg-green-100 text-green-800 border-green-300">
             <CheckCircle className="h-3 w-3 mr-1" />
-            Aprobada
-          </Badge>
-        );
-      case "Convertida a OC":
-        return (
-          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Convertida a OC
-          </Badge>
-        );
-      case "Rechazada":
-        return (
-          <Badge className="bg-red-100 text-red-800 border-red-300">
-            <AlertCircle className="h-3 w-3 mr-1" />
-            Rechazada
+            Comprado
           </Badge>
         );
     }
@@ -152,27 +142,26 @@ export function RequisitionsSection({
     }
   };
 
-  // Statistics
-  const pendingCount = requisitions.filter((r) => r.status === "Pendiente").length;
-  const urgentCount = requisitions.filter(
-    (r) => r.urgency === "Urgente" && r.status !== "Convertida a OC"
-  ).length;
+  // Statistics - Solo para requisiciones activas (no "Compradas")
   const inReviewCount = requisitions.filter((r) => r.status === "En Revisión").length;
-  const approvedCount = requisitions.filter((r) => r.status === "Aprobada").length;
+  const urgentCount = requisitions.filter(
+    (r) => r.urgency === "Urgente" && r.status !== "Comprado"
+  ).length;
+  const purchasedCount = requisitions.filter((r) => r.status === "Comprado").length;
 
   return (
     <div className="space-y-6">
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Pendientes</p>
-                <p className="text-3xl font-bold text-yellow-600">{pendingCount}</p>
+                <p className="text-sm text-muted-foreground mb-1">En Revisión</p>
+                <p className="text-3xl font-bold text-blue-600">{inReviewCount}</p>
               </div>
-              <div className="p-3 bg-yellow-100 rounded-lg">
-                <Clock className="h-6 w-6 text-yellow-600" />
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <AlertCircle className="h-6 w-6 text-blue-600" />
               </div>
             </div>
           </CardContent>
@@ -196,22 +185,8 @@ export function RequisitionsSection({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">En Revisión</p>
-                <p className="text-3xl font-bold text-blue-600">{inReviewCount}</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <AlertCircle className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Aprobadas</p>
-                <p className="text-3xl font-bold text-green-600">{approvedCount}</p>
+                <p className="text-sm text-muted-foreground mb-1">Compradas</p>
+                <p className="text-3xl font-bold text-green-600">{purchasedCount}</p>
               </div>
               <div className="p-3 bg-green-100 rounded-lg">
                 <CheckCircle className="h-6 w-6 text-green-600" />
@@ -240,12 +215,10 @@ export function RequisitionsSection({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Todos">Todos los estados</SelectItem>
-                <SelectItem value="Pendiente">Pendiente</SelectItem>
+                <SelectItem value="Activas">Activas (En Revisión)</SelectItem>
                 <SelectItem value="En Revisión">En Revisión</SelectItem>
-                <SelectItem value="Aprobada">Aprobada</SelectItem>
-                <SelectItem value="Convertida a OC">Convertida a OC</SelectItem>
-                <SelectItem value="Rechazada">Rechazada</SelectItem>
+                <SelectItem value="Comprado">Comprado</SelectItem>
+                <SelectItem value="Todos">Todos los estados</SelectItem>
               </SelectContent>
             </Select>
             <Select value={urgencyFilter} onValueChange={setUrgencyFilter}>
@@ -276,7 +249,7 @@ export function RequisitionsSection({
           filteredRequisitions.map((req) => (
             <Card
               key={req.id}
-              className="hover:shadow-md transition-shadow border-l-4 border-l-purple-500"
+              className="hover:shadow-md transition-shadow border-l-4 border-l-blue-500"
             >
               <CardContent className="p-6">
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -320,18 +293,18 @@ export function RequisitionsSection({
                     </div>
 
                     {/* Items Preview */}
-                    <div className="p-3 bg-purple-50 rounded-lg">
-                      <h4 className="font-semibold text-sm text-purple-900 mb-2">
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                      <h4 className="font-semibold text-sm text-blue-900 mb-2">
                         Materiales ({req.items.length})
                       </h4>
                       <div className="space-y-1">
                         {req.items.slice(0, 2).map((item) => (
-                          <div key={item.id} className="text-sm text-purple-800">
+                          <div key={item.id} className="text-sm text-blue-800">
                             • {item.description} - {item.quantity} {item.unit}
                           </div>
                         ))}
                         {req.items.length > 2 && (
-                          <div className="text-sm text-purple-600 font-medium">
+                          <div className="text-sm text-blue-600 font-medium">
                             +{req.items.length - 2} más...
                           </div>
                         )}
@@ -380,12 +353,12 @@ export function RequisitionsSection({
       {selectedRequisition && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-purple-600 to-indigo-600">
+            <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700">
               <div>
                 <h2 className="text-2xl font-bold text-white">
                   Detalle de Requisición
                 </h2>
-                <p className="text-purple-100 text-sm">
+                <p className="text-blue-100 text-sm">
                   {selectedRequisition.requisitionNumber}
                 </p>
               </div>
@@ -393,7 +366,7 @@ export function RequisitionsSection({
                 variant="ghost"
                 size="icon"
                 onClick={() => setSelectedRequisition(null)}
-                className="text-white hover:bg-purple-700"
+                className="text-white hover:bg-blue-700"
               >
                 <X className="h-5 w-5" />
               </Button>
@@ -408,8 +381,8 @@ export function RequisitionsSection({
 
               {/* Work and Resident Info */}
               <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-3 p-4 bg-purple-50 rounded-lg">
-                  <h3 className="font-semibold text-purple-900">
+                <div className="space-y-3 p-4 bg-blue-50 rounded-lg">
+                  <h3 className="font-semibold text-blue-900">
                     Información de Obra
                   </h3>
                   <div className="space-y-2 text-sm">
@@ -424,8 +397,8 @@ export function RequisitionsSection({
                   </div>
                 </div>
 
-                <div className="space-y-3 p-4 bg-blue-50 rounded-lg">
-                  <h3 className="font-semibold text-blue-900">
+                <div className="space-y-3 p-4 bg-slate-50 rounded-lg">
+                  <h3 className="font-semibold text-slate-900">
                     Información del Residente
                   </h3>
                   <div className="space-y-2 text-sm">
@@ -500,7 +473,7 @@ export function RequisitionsSection({
                         key={comment.id}
                         className={`p-4 rounded-lg ${
                           comment.role === "Residente"
-                            ? "bg-purple-50 border-l-4 border-l-purple-500"
+                            ? "bg-blue-50 border-l-4 border-l-blue-400"
                             : "bg-blue-50 border-l-4 border-l-blue-500"
                         }`}
                       >
@@ -547,53 +520,31 @@ export function RequisitionsSection({
               </div>
 
               {/* Change Status */}
-              {selectedRequisition.status !== "Convertida a OC" && (
-                <div>
-                  <h3 className="font-semibold mb-3">Cambiar Estado</h3>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleChangeStatus("Pendiente")}
-                      disabled={selectedRequisition.status === "Pendiente"}
-                      className="border-yellow-300 text-yellow-700 hover:bg-yellow-50"
-                    >
-                      <Clock className="h-4 w-4 mr-2" />
-                      Marcar Pendiente
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleChangeStatus("En Revisión")}
-                      disabled={selectedRequisition.status === "En Revisión"}
-                      className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                    >
-                      <AlertCircle className="h-4 w-4 mr-2" />
-                      En Revisión
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleChangeStatus("Aprobada")}
-                      disabled={selectedRequisition.status === "Aprobada"}
-                      className="border-green-300 text-green-700 hover:bg-green-50"
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Aprobar
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleChangeStatus("Rechazada")}
-                      disabled={selectedRequisition.status === "Rechazada"}
-                      className="border-red-300 text-red-700 hover:bg-red-50"
-                    >
-                      <AlertCircle className="h-4 w-4 mr-2" />
-                      Rechazar
-                    </Button>
-                  </div>
+              <div>
+                <h3 className="font-semibold mb-3">Cambiar Estado</h3>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleChangeStatus("En Revisión")}
+                    disabled={selectedRequisition.status === "En Revisión"}
+                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                  >
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    En Revisión
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleChangeStatus("Comprado")}
+                    disabled={selectedRequisition.status === "Comprado"}
+                    className="border-green-300 text-green-700 hover:bg-green-50"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Marcar como Comprado
+                  </Button>
                 </div>
-              )}
+              </div>
             </div>
 
             <div className="p-6 border-t bg-gray-50">
@@ -604,6 +555,17 @@ export function RequisitionsSection({
                   className="flex-1"
                 >
                   Cerrar
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 border-blue-600 text-blue-600 hover:bg-blue-50"
+                  onClick={() => {
+                    onConvertToOC(selectedRequisition);
+                    setSelectedRequisition(null);
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copiar Materiales a OC
                 </Button>
                 {selectedRequisition.status === "Aprobada" && (
                   <Button

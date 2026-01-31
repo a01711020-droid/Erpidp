@@ -36,6 +36,7 @@ import {
   AlertTriangle,
   X,
   Users,
+  Ban,
 } from "lucide-react";
 import { Input } from "./components/ui/input";
 import {
@@ -45,6 +46,56 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./components/ui/select";
+
+// Datos estructurados para selects inteligentes
+const WORKS_DATA = [
+  { code: "227", name: "CASTELLO E", client: "Desarrolladora Inmobiliaria del Centro", nextConsecutive: 6 },
+  { code: "228", name: "CASTELLO F", client: "Grupo Constructor Metropolitano", nextConsecutive: 2 },
+  { code: "229", name: "CASTELLO G", client: "Gobierno del Estado de México", nextConsecutive: 2 },
+  { code: "231", name: "DOZA A", client: "Constructora Doza SA", nextConsecutive: 2 },
+  { code: "232", name: "BALVANERA", client: "Desarrollos Balvanera", nextConsecutive: 2 },
+];
+
+const BUYERS_DATA = [
+  { name: "Gabriela Mendoza", initials: "GM" },
+  { name: "Ricardo Sánchez", initials: "RS" },
+  { name: "Juan Reyes", initials: "JR" },
+];
+
+const SUPPLIERS_DATA = [
+  { code: "CEMEX", fullName: "CEMEX México S.A. de C.V.", contact: "Ing. Roberto Martínez - (55) 5555-1234" },
+  { code: "LEVINSON", fullName: "Aceros Levinson", contact: "Ing. Carlos Pérez - (55) 5555-3456" },
+  { code: "INTERCERAMIC", fullName: "Interceramic", contact: "Arq. Ana García - (55) 5555-5678" },
+  { code: "BEREL", fullName: "Pinturas Berel", contact: "Lic. Sofia Vargas - (55) 5555-9012" },
+  { code: "HIERROS", fullName: "Hierros y Materiales SA", contact: "Sr. Juan Hernández - (55) 5555-4567" },
+];
+
+// Función para regenerar el folio cuando cambian obra/comprador/proveedor
+const generateOrderNumber = (
+  workCode: string, 
+  buyer: string, 
+  supplier: string, 
+  orders: PurchaseOrder[],
+  currentOrderId?: string
+): string => {
+  // Obtener el consecutivo base para la obra
+  const work = WORKS_DATA.find(w => w.code === workCode);
+  if (!work) return "";
+  
+  // Contar órdenes existentes de esta obra (excluyendo la orden actual si se está editando)
+  const workOrders = orders.filter(o => 
+    o.workCode === workCode && (!currentOrderId || o.id !== currentOrderId)
+  );
+  const consecutive = work.nextConsecutive + workOrders.length;
+  const consecutiveStr = `A${consecutive.toString().padStart(2, '0')}`;
+  
+  // Obtener iniciales del comprador
+  const buyerData = BUYERS_DATA.find(b => b.name === buyer);
+  const initials = buyerData?.initials || "";
+  
+  // Formato: [OBRA]-[CONSECUTIVO][INICIALES]-[PROVEEDOR]
+  return `${workCode}-${consecutiveStr}${initials}-${supplier}`;
+};
 
 // Mock data for orders
 const mockOrders: PurchaseOrder[] = [
@@ -248,6 +299,37 @@ const mockOrders: PurchaseOrder[] = [
     createdDate: "2025-01-11",
     status: "Aprobada",
   },
+  {
+    id: "7",
+    orderNumber: "227-A03RS-BEREL",
+    workCode: "227",
+    workName: "CASTELLO E",
+    client: "Desarrolladora Inmobiliaria del Centro",
+    supplier: "BEREL",
+    supplierFullName: "Pinturas Berel",
+    supplierContact: "Lic. Sofia Vargas - (55) 5555-9012",
+    buyer: "Ricardo Sánchez",
+    deliveryDate: "2025-01-15",
+    deliveryType: "Entrega",
+    hasIVA: true,
+    discount: 0,
+    observations: "Orden cancelada - Material no disponible",
+    items: [
+      {
+        id: "1",
+        description: "Pintura vinílica azul 19L",
+        quantity: 20,
+        unitPrice: 450,
+        total: 9000,
+      },
+    ],
+    subtotal: 9000,
+    iva: 1440,
+    discountAmount: 0,
+    total: 10440,
+    createdDate: "2025-01-03",
+    status: "Cancelada",
+  },
 ];
 
 // Mock data for requisitions
@@ -288,7 +370,7 @@ const mockRequisitions: MaterialRequisition[] = [
         timestamp: "2025-01-10T11:00:00",
       },
     ],
-    status: "Convertida a OC",
+    status: "Comprado",
     createdDate: "2025-01-10",
     urgency: "Urgente",
     deliveryNeededBy: "2025-01-17",
@@ -314,7 +396,7 @@ const mockRequisitions: MaterialRequisition[] = [
       },
     ],
     comments: [],
-    status: "Pendiente",
+    status: "En Revisión",
     createdDate: "2025-01-11",
     urgency: "Normal",
     deliveryNeededBy: "2025-01-20",
@@ -368,7 +450,7 @@ const mockRequisitions: MaterialRequisition[] = [
       },
     ],
     comments: [],
-    status: "Pendiente",
+    status: "En Revisión",
     createdDate: "2025-01-12",
     urgency: "Urgente",
     deliveryNeededBy: "2025-01-19",
@@ -388,14 +470,18 @@ const mockRequisitions: MaterialRequisition[] = [
       },
     ],
     comments: [],
-    status: "Aprobada",
+    status: "En Revisión",
     createdDate: "2025-01-13",
     urgency: "Planeado",
     deliveryNeededBy: "2025-01-30",
   },
 ];
 
-export default function PurchaseOrderManagement() {
+interface PurchaseOrderManagementProps {
+  onNavigateToSuppliers?: () => void;
+}
+
+export default function PurchaseOrderManagement({ onNavigateToSuppliers }: PurchaseOrderManagementProps = {}) {
   const [activeTab, setActiveTab] = useState<"orders" | "requisitions">("orders");
   const [orders, setOrders] = useState<PurchaseOrder[]>(mockOrders);
   const [requisitions, setRequisitions] = useState<MaterialRequisition[]>(mockRequisitions);
@@ -405,7 +491,14 @@ export default function PurchaseOrderManagement() {
   const [statusFilter, setStatusFilter] = useState<string>("Todos");
   const [workFilter, setWorkFilter] = useState<string>("Todos");
   const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
+  const [originalOrder, setOriginalOrder] = useState<PurchaseOrder | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [requisitionToConvert, setRequisitionToConvert] = useState<MaterialRequisition | null>(null);
   const [pdfOrder, setPdfOrder] = useState<PurchaseOrder | null>(null);
+  const [showEditPasswordDialog, setShowEditPasswordDialog] = useState(false);
+  const [showCancelPasswordDialog, setShowCancelPasswordDialog] = useState(false);
+  const [pendingOrderChanges, setPendingOrderChanges] = useState<PurchaseOrder | null>(null);
+  const [pendingCancelOrder, setPendingCancelOrder] = useState<PurchaseOrder | null>(null);
   
   // Estados para gestión de proveedores
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
@@ -427,6 +520,73 @@ export default function PurchaseOrderManagement() {
   // Handler cuando se ingresa contraseña correcta
   const handlePasswordSuccess = () => {
     setShowSupplierManagement(true);
+  };
+
+  // Handler cuando se verifica la contraseña para guardar cambios
+  const handleEditPasswordSuccess = async () => {
+    if (pendingOrderChanges) {
+      setOrders(orders.map((o) => (o.id === pendingOrderChanges.id ? pendingOrderChanges : o)));
+      setPendingOrderChanges(null);
+      setSelectedOrder(null);
+      setOriginalOrder(null);
+      setIsEditMode(false);
+      
+      const { toast } = await import("sonner");
+      toast.success("Orden actualizada exitosamente");
+    }
+  };
+
+  // Handler cuando se verifica la contraseña para cancelar orden
+  const handleCancelPasswordSuccess = async () => {
+    if (pendingCancelOrder) {
+      const updatedOrder = { ...pendingCancelOrder, status: "Cancelada" as PurchaseOrder["status"] };
+      setOrders(orders.map((o) => (o.id === pendingCancelOrder.id ? updatedOrder : o)));
+      setPendingCancelOrder(null);
+      
+      const { toast } = await import("sonner");
+      toast.success(`Orden ${pendingCancelOrder.orderNumber} cancelada exitosamente`);
+    }
+  };
+
+  // Función para detectar si hubo cambios
+  const hasChanges = (original: PurchaseOrder, current: PurchaseOrder) => {
+    return JSON.stringify(original) !== JSON.stringify(current);
+  };
+
+  // Handler para abrir modal de vista/edición
+  const handleViewEditOrder = (order: PurchaseOrder) => {
+    setSelectedOrder({ ...order });
+    setOriginalOrder({ ...order });
+    setIsEditMode(false);
+  };
+
+  // Handler para activar modo edición
+  const handleEnableEdit = () => {
+    setIsEditMode(true);
+  };
+
+  // Handler para guardar cambios (con validación de contraseña)
+  const handleSaveChanges = () => {
+    if (selectedOrder && originalOrder) {
+      if (hasChanges(originalOrder, selectedOrder)) {
+        // Hay cambios, solicitar contraseña
+        setPendingOrderChanges(selectedOrder);
+        setShowEditPasswordDialog(true);
+      } else {
+        // No hay cambios, cerrar sin contraseña
+        setSelectedOrder(null);
+        setOriginalOrder(null);
+        setIsEditMode(false);
+      }
+    }
+  };
+
+  // Handler para cancelar orden
+  const handleCancelOrder = async (order: PurchaseOrder) => {
+    if (confirm(`¿Está seguro de CANCELAR la orden ${order.orderNumber}?\n\nLa orden será marcada como cancelada. El folio ya fue quemado y no se puede reutilizar.`)) {
+      setPendingCancelOrder(order);
+      setShowCancelPasswordDialog(true);
+    }
   };
 
   const handleSaveOrder = (order: PurchaseOrder) => {
@@ -497,6 +657,7 @@ export default function PurchaseOrderManagement() {
   const handleCloseForm = () => {
     setShowForm(false);
     setEditingOrder(null);
+    setRequisitionToConvert(null);
   };
 
   const uniqueWorks = Array.from(new Set(orders.map((o) => o.workCode)));
@@ -558,19 +719,19 @@ export default function PurchaseOrderManagement() {
   };
 
   const handleConvertToOC = (requisition: MaterialRequisition) => {
-    // Mark requisition as converted
-    handleUpdateRequisition({ ...requisition, status: "Convertida a OC" });
+    // Store requisition to convert
+    setRequisitionToConvert(requisition);
     
     // Switch to orders tab
     setActiveTab("orders");
     
-    // Show form with pre-filled data (in real app)
-    alert(`Requisición ${requisition.requisitionNumber} lista para convertir a OC.\n\nEn producción, se abriría el formulario de OC con los datos precargados.`);
+    // Open form with pre-filled data
+    setEditingOrder(null);
+    setShowForm(true);
   };
 
   // Requisitions stats
-  const reqPending = requisitions.filter((r) => r.status === "Pendiente").length;
-  const reqUrgent = requisitions.filter((r) => r.urgency === "Urgente" && r.status !== "Convertida a OC").length;
+  const reqUrgent = requisitions.filter((r) => r.urgency === "Urgente" && r.status !== "Comprado").length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -598,7 +759,13 @@ export default function PurchaseOrderManagement() {
             
             {/* Botón visible de Gestión de Proveedores */}
             <Button 
-              onClick={() => setShowPasswordDialog(true)}
+              onClick={() => {
+                if (onNavigateToSuppliers) {
+                  onNavigateToSuppliers();
+                } else {
+                  setShowPasswordDialog(true);
+                }
+              }}
               className="gap-2 bg-green-600 hover:bg-green-700 shadow-lg"
               size="lg"
             >
@@ -638,11 +805,6 @@ export default function PurchaseOrderManagement() {
               <Badge variant="secondary" className="ml-2">
                 {requisitions.length}
               </Badge>
-              {reqPending > 0 && (
-                <Badge className="ml-1 bg-yellow-500">
-                  {reqPending} pendientes
-                </Badge>
-              )}
               {reqUrgent > 0 && (
                 <Badge className="ml-1 bg-red-500">
                   <Zap className="h-3 w-3 mr-1" />
@@ -656,65 +818,6 @@ export default function PurchaseOrderManagement() {
         {/* Content Based on Active Tab */}
         {activeTab === "orders" ? (
           <>
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">
-                        Total OCs
-                      </p>
-                      <p className="text-3xl font-bold">{totalOrders}</p>
-                    </div>
-                    <div className="p-3 bg-blue-100 rounded-lg">
-                      <FileText className="h-6 w-6 text-blue-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">
-                        Monto Total
-                      </p>
-                      <p className="text-2xl font-bold">
-                        ${totalAmount.toLocaleString("es-MX", {
-                          minimumFractionDigits: 0,
-                        })}
-                      </p>
-                    </div>
-                    <div className="p-3 bg-green-100 rounded-lg">
-                      <Package className="h-6 w-6 text-green-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">
-                        Descuentos
-                      </p>
-                      <p className="text-2xl font-bold text-orange-600">
-                        ${totalDiscount.toLocaleString("es-MX", {
-                          minimumFractionDigits: 0,
-                        })}
-                      </p>
-                    </div>
-                    <div className="p-3 bg-orange-100 rounded-lg">
-                      <TrendingDown className="h-6 w-6 text-orange-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
             {/* Filters and Actions */}
             <Card className="mb-6">
               <CardContent className="p-4">
@@ -753,6 +856,7 @@ export default function PurchaseOrderManagement() {
                         <SelectItem value="Aprobada">Aprobada</SelectItem>
                         <SelectItem value="Rechazada">Rechazada</SelectItem>
                         <SelectItem value="Entregada">Entregada</SelectItem>
+                        <SelectItem value="Cancelada">Cancelada</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -792,9 +896,6 @@ export default function PurchaseOrderManagement() {
                         <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
                           Total
                         </th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
-                          Estado
-                        </th>
                         <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">
                           Acciones
                         </th>
@@ -804,7 +905,12 @@ export default function PurchaseOrderManagement() {
                       {filteredOrders.map((order) => (
                         <tr key={order.id} className="hover:bg-gray-50">
                           <td className="px-4 py-4">
-                            <div className="font-medium">{order.orderNumber}</div>
+                            <div className="font-medium">
+                              {order.orderNumber}
+                              {order.status === "Cancelada" && (
+                                <span className="text-red-600 font-bold ml-1">*</span>
+                              )}
+                            </div>
                             <div className="text-xs text-muted-foreground">
                               {new Date(order.createdDate).toLocaleDateString("es-MX")}
                             </div>
@@ -848,28 +954,14 @@ export default function PurchaseOrderManagement() {
                             )}
                           </td>
                           <td className="px-4 py-4">
-                            <Badge variant={getStatusVariant(order.status)} className="gap-1">
-                              {getStatusIcon(order.status)}
-                              {order.status}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-4">
                             <div className="flex items-center justify-end gap-2">
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => setSelectedOrder(order)}
-                                title="Ver detalle"
+                                onClick={() => handleViewEditOrder(order)}
+                                title="Ver / Editar"
                               >
                                 <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEditOrder(order)}
-                                title="Editar"
-                              >
-                                <Edit className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -919,6 +1011,7 @@ export default function PurchaseOrderManagement() {
           onClose={handleCloseForm}
           onSave={handleSaveOrder}
           editOrder={editingOrder}
+          requisitionData={requisitionToConvert}
         />
       )}
 
@@ -928,13 +1021,24 @@ export default function PurchaseOrderManagement() {
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700">
               <div>
-                <h2 className="text-2xl font-bold text-white">Detalle de Orden de Compra</h2>
-                <p className="text-blue-100 text-sm">{selectedOrder.orderNumber}</p>
+                <h2 className="text-2xl font-bold text-white">
+                  {isEditMode ? "Editando Orden de Compra" : "Detalle de Orden de Compra"}
+                </h2>
+                <p className="text-blue-100 text-sm">
+                  {selectedOrder.orderNumber}
+                  {selectedOrder.status === "Cancelada" && (
+                    <span className="text-red-400 font-bold ml-1">*</span>
+                  )}
+                </p>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setSelectedOrder(null)}
+                onClick={() => {
+                  setSelectedOrder(null);
+                  setOriginalOrder(null);
+                  setIsEditMode(false);
+                }}
                 className="text-white hover:bg-blue-800"
               >
                 <X className="h-5 w-5" />
@@ -948,12 +1052,44 @@ export default function PurchaseOrderManagement() {
                     <h3 className="font-semibold text-blue-900">Información de Obra</h3>
                     <div className="space-y-2 text-sm">
                       <div>
-                        <span className="text-muted-foreground">Código:</span>
-                        <p className="font-medium">{selectedOrder.workCode}</p>
-                      </div>
-                      <div>
                         <span className="text-muted-foreground">Obra:</span>
-                        <p className="font-medium">{selectedOrder.workName}</p>
+                        {isEditMode ? (
+                          <Select
+                            value={selectedOrder.workCode}
+                            onValueChange={(value) => {
+                              const work = WORKS_DATA.find(w => w.code === value);
+                              if (work) {
+                                const newOrderNumber = generateOrderNumber(
+                                  value,
+                                  selectedOrder.buyer,
+                                  selectedOrder.supplier,
+                                  orders,
+                                  selectedOrder.id
+                                );
+                                setSelectedOrder({
+                                  ...selectedOrder,
+                                  workCode: value,
+                                  workName: work.name,
+                                  client: work.client,
+                                  orderNumber: newOrderNumber,
+                                });
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {WORKS_DATA.map((work) => (
+                                <SelectItem key={work.code} value={work.code}>
+                                  {work.code} - {work.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <p className="font-medium">{selectedOrder.workCode} - {selectedOrder.workName}</p>
+                        )}
                       </div>
                       <div>
                         <span className="text-muted-foreground">Cliente:</span>
@@ -966,67 +1102,321 @@ export default function PurchaseOrderManagement() {
                     <h3 className="font-semibold text-green-900">Información de Proveedor</h3>
                     <div className="space-y-2 text-sm">
                       <div>
-                        <span className="text-muted-foreground">Código:</span>
-                        <p className="font-medium">{selectedOrder.supplier}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Nombre:</span>
-                        <p className="font-medium">{selectedOrder.supplierFullName}</p>
+                        <span className="text-muted-foreground">Proveedor:</span>
+                        {isEditMode ? (
+                          <Select
+                            value={selectedOrder.supplier}
+                            onValueChange={(value) => {
+                              const supplier = SUPPLIERS_DATA.find(s => s.code === value);
+                              if (supplier) {
+                                const newOrderNumber = generateOrderNumber(
+                                  selectedOrder.workCode,
+                                  selectedOrder.buyer,
+                                  value,
+                                  orders,
+                                  selectedOrder.id
+                                );
+                                setSelectedOrder({
+                                  ...selectedOrder,
+                                  supplier: value,
+                                  supplierFullName: supplier.fullName,
+                                  supplierContact: supplier.contact,
+                                  orderNumber: newOrderNumber,
+                                });
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {SUPPLIERS_DATA.map((supplier) => (
+                                <SelectItem key={supplier.code} value={supplier.code}>
+                                  {supplier.code} - {supplier.fullName}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <p className="font-medium">{selectedOrder.supplier} - {selectedOrder.supplierFullName}</p>
+                        )}
                       </div>
                       <div>
                         <span className="text-muted-foreground">Contacto:</span>
-                        <p className="font-medium">{selectedOrder.supplierContact}</p>
+                        <p className="font-medium text-xs">{selectedOrder.supplierContact}</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
+                {/* Folio Update Notice */}
+                {isEditMode && originalOrder && selectedOrder.orderNumber !== originalOrder.orderNumber && (
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-amber-900 mb-1">Actualización de Folio</h4>
+                        <div className="text-sm text-amber-800 space-y-1">
+                          <p>
+                            <span className="font-medium">Folio anterior:</span>{" "}
+                            <span className="line-through">{originalOrder.orderNumber}</span>
+                          </p>
+                          <p>
+                            <span className="font-medium">Nuevo folio:</span>{" "}
+                            <span className="font-bold text-amber-900">{selectedOrder.orderNumber}</span>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Purchase Details */}
                 <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="text-sm text-muted-foreground">Comprador</p>
-                    <p className="font-medium">{selectedOrder.buyer}</p>
+                    <p className="text-sm text-muted-foreground mb-1">Comprador</p>
+                    {isEditMode ? (
+                      <Select
+                        value={selectedOrder.buyer}
+                        onValueChange={(value) => {
+                          const newOrderNumber = generateOrderNumber(
+                            selectedOrder.workCode,
+                            value,
+                            selectedOrder.supplier,
+                            orders,
+                            selectedOrder.id
+                          );
+                          setSelectedOrder({
+                            ...selectedOrder,
+                            buyer: value,
+                            orderNumber: newOrderNumber,
+                          });
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {BUYERS_DATA.map((buyer) => (
+                            <SelectItem key={buyer.name} value={buyer.name}>
+                              {buyer.name} ({buyer.initials})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="font-medium">{selectedOrder.buyer}</p>
+                    )}
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Fecha de Entrega</p>
-                    <p className="font-medium">
-                      {new Date(selectedOrder.deliveryDate).toLocaleDateString("es-MX")}
-                    </p>
+                    <p className="text-sm text-muted-foreground mb-1">Fecha de Entrega</p>
+                    {isEditMode ? (
+                      <Input
+                        type="date"
+                        value={selectedOrder.deliveryDate}
+                        onChange={(e) =>
+                          setSelectedOrder({ ...selectedOrder, deliveryDate: e.target.value })
+                        }
+                      />
+                    ) : (
+                      <p className="font-medium">
+                        {new Date(selectedOrder.deliveryDate).toLocaleDateString("es-MX")}
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Tipo de Entrega</p>
-                    <Badge variant="outline">{selectedOrder.deliveryType}</Badge>
+                    <p className="text-sm text-muted-foreground mb-1">Tipo de Entrega</p>
+                    {isEditMode ? (
+                      <Select
+                        value={selectedOrder.deliveryType}
+                        onValueChange={(value: "Entrega" | "Recolección") =>
+                          setSelectedOrder({ ...selectedOrder, deliveryType: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Entrega">Entrega</SelectItem>
+                          <SelectItem value="Recolección">Recolección</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge variant="outline">{selectedOrder.deliveryType}</Badge>
+                    )}
                   </div>
                 </div>
 
                 {/* Items */}
                 <div>
                   <h3 className="font-semibold mb-3">Conceptos</h3>
-                  <table className="w-full border rounded-lg">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-sm">Descripción</th>
-                        <th className="px-4 py-2 text-left text-sm">Cantidad</th>
-                        <th className="px-4 py-2 text-left text-sm">P. Unitario</th>
-                        <th className="px-4 py-2 text-left text-sm">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {selectedOrder.items.map((item) => (
-                        <tr key={item.id}>
-                          <td className="px-4 py-2 text-sm">{item.description}</td>
-                          <td className="px-4 py-2 text-sm">{item.quantity}</td>
-                          <td className="px-4 py-2 text-sm">
-                            ${item.unitPrice.toLocaleString("es-MX")}
-                          </td>
-                          <td className="px-4 py-2 text-sm font-medium">
-                            ${item.total.toLocaleString("es-MX")}
-                          </td>
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-sm">Descripción</th>
+                          <th className="px-4 py-2 text-left text-sm w-24">Cantidad</th>
+                          <th className="px-4 py-2 text-left text-sm w-32">P. Unitario</th>
+                          <th className="px-4 py-2 text-left text-sm w-32">Total</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y">
+                        {selectedOrder.items.map((item, index) => (
+                          <tr key={item.id}>
+                            <td className="px-4 py-2 text-sm">
+                              {isEditMode ? (
+                                <Input
+                                  value={item.description}
+                                  onChange={(e) => {
+                                    const newItems = [...selectedOrder.items];
+                                    newItems[index] = {
+                                      ...item,
+                                      description: e.target.value,
+                                    };
+                                    setSelectedOrder({ ...selectedOrder, items: newItems });
+                                  }}
+                                  className="w-full"
+                                />
+                              ) : (
+                                item.description
+                              )}
+                            </td>
+                            <td className="px-4 py-2 text-sm">
+                              {isEditMode ? (
+                                <Input
+                                  type="number"
+                                  value={item.quantity}
+                                  onChange={(e) => {
+                                    const newItems = [...selectedOrder.items];
+                                    const quantity = Number(e.target.value);
+                                    const total = quantity * item.unitPrice;
+                                    newItems[index] = {
+                                      ...item,
+                                      quantity,
+                                      total,
+                                    };
+                                    
+                                    const subtotal = newItems.reduce((sum, it) => sum + it.total, 0);
+                                    const discountAmount = subtotal * (selectedOrder.discount / 100);
+                                    const iva = selectedOrder.hasIVA ? (subtotal - discountAmount) * 0.16 : 0;
+                                    const totalOrder = subtotal - discountAmount + iva;
+                                    
+                                    setSelectedOrder({
+                                      ...selectedOrder,
+                                      items: newItems,
+                                      subtotal,
+                                      discountAmount,
+                                      iva,
+                                      total: totalOrder,
+                                    });
+                                  }}
+                                  className="w-full"
+                                />
+                              ) : (
+                                item.quantity
+                              )}
+                            </td>
+                            <td className="px-4 py-2 text-sm">
+                              {isEditMode ? (
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={item.unitPrice}
+                                  onChange={(e) => {
+                                    const newItems = [...selectedOrder.items];
+                                    const unitPrice = Number(e.target.value);
+                                    const total = item.quantity * unitPrice;
+                                    newItems[index] = {
+                                      ...item,
+                                      unitPrice,
+                                      total,
+                                    };
+                                    
+                                    const subtotal = newItems.reduce((sum, it) => sum + it.total, 0);
+                                    const discountAmount = subtotal * (selectedOrder.discount / 100);
+                                    const iva = selectedOrder.hasIVA ? (subtotal - discountAmount) * 0.16 : 0;
+                                    const totalOrder = subtotal - discountAmount + iva;
+                                    
+                                    setSelectedOrder({
+                                      ...selectedOrder,
+                                      items: newItems,
+                                      subtotal,
+                                      discountAmount,
+                                      iva,
+                                      total: totalOrder,
+                                    });
+                                  }}
+                                  className="w-full"
+                                />
+                              ) : (
+                                `$${item.unitPrice.toLocaleString("es-MX")}`
+                              )}
+                            </td>
+                            <td className="px-4 py-2 text-sm font-medium">
+                              ${item.total.toLocaleString("es-MX")}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
+
+                {/* Discount and IVA Options */}
+                {isEditMode && (
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Descuento (%)</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={selectedOrder.discount}
+                        onChange={(e) => {
+                          const discount = Number(e.target.value);
+                          const discountAmount = selectedOrder.subtotal * (discount / 100);
+                          const iva = selectedOrder.hasIVA
+                            ? (selectedOrder.subtotal - discountAmount) * 0.16
+                            : 0;
+                          const total = selectedOrder.subtotal - discountAmount + iva;
+                          
+                          setSelectedOrder({
+                            ...selectedOrder,
+                            discount,
+                            discountAmount,
+                            iva,
+                            total,
+                          });
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedOrder.hasIVA}
+                          onChange={(e) => {
+                            const hasIVA = e.target.checked;
+                            const iva = hasIVA
+                              ? (selectedOrder.subtotal - selectedOrder.discountAmount) * 0.16
+                              : 0;
+                            const total = selectedOrder.subtotal - selectedOrder.discountAmount + iva;
+                            
+                            setSelectedOrder({
+                              ...selectedOrder,
+                              hasIVA,
+                              iva,
+                              total,
+                            });
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm font-medium">Aplicar IVA (16%)</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
 
                 {/* Totals */}
                 <div className="border-t pt-4">
@@ -1062,13 +1452,72 @@ export default function PurchaseOrderManagement() {
                   </div>
                 </div>
 
-                {selectedOrder.observations && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Observaciones</p>
-                    <p className="text-sm bg-gray-50 p-3 rounded">
-                      {selectedOrder.observations}
-                    </p>
-                  </div>
+                {/* Observations */}
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Observaciones</p>
+                  {isEditMode ? (
+                    <textarea
+                      value={selectedOrder.observations}
+                      onChange={(e) =>
+                        setSelectedOrder({ ...selectedOrder, observations: e.target.value })
+                      }
+                      className="w-full border rounded-md p-3 text-sm min-h-[80px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Observaciones adicionales..."
+                    />
+                  ) : selectedOrder.observations ? (
+                    <p className="text-sm bg-gray-50 p-3 rounded">{selectedOrder.observations}</p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">Sin observaciones</p>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between p-6 border-t bg-gray-50">
+              <div className="space-x-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => handleCancelOrder(selectedOrder)}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Ban className="h-4 w-4 mr-2" />
+                  Cancelar Orden
+                </Button>
+              </div>
+              <div className="space-x-2">
+                {isEditMode ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedOrder({ ...originalOrder! });
+                        setIsEditMode(false);
+                      }}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Deshacer Cambios
+                    </Button>
+                    <Button
+                      onClick={handleSaveChanges}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Guardar Cambios
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" onClick={() => {
+                      setSelectedOrder(null);
+                      setOriginalOrder(null);
+                      setIsEditMode(false);
+                    }}>
+                      Cerrar
+                    </Button>
+                    <Button onClick={handleEnableEdit} className="bg-blue-600 hover:bg-blue-700">
+                      <Edit className="h-4 w-4 mr-2" />
+                      Editar Orden
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -1082,6 +1531,30 @@ export default function PurchaseOrderManagement() {
           isOpen={showPasswordDialog}
           onClose={() => setShowPasswordDialog(false)}
           onSuccess={handlePasswordSuccess}
+        />
+      )}
+
+      {/* Edit Password Dialog */}
+      {showEditPasswordDialog && (
+        <PasswordDialog
+          isOpen={showEditPasswordDialog}
+          onClose={() => {
+            setShowEditPasswordDialog(false);
+            setPendingOrderChanges(null);
+          }}
+          onSuccess={handleEditPasswordSuccess}
+        />
+      )}
+
+      {/* Cancel Password Dialog */}
+      {showCancelPasswordDialog && (
+        <PasswordDialog
+          isOpen={showCancelPasswordDialog}
+          onClose={() => {
+            setShowCancelPasswordDialog(false);
+            setPendingCancelOrder(null);
+          }}
+          onSuccess={handleCancelPasswordSuccess}
         />
       )}
 

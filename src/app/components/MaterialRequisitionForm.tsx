@@ -40,7 +40,7 @@ export interface MaterialRequisition {
   residentName: string;
   items: RequisitionItem[];
   comments: Comment[];
-  status: "Pendiente" | "En Revisión" | "Aprobada" | "Rechazada" | "Convertida a OC";
+  status: "En Revisión" | "Comprado";
   createdDate: string;
   urgency: "Urgente" | "Normal" | "Planeado";
   deliveryNeededBy: string;
@@ -171,7 +171,7 @@ export function MaterialRequisitionForm({
       residentName: workInfo?.resident || "",
       items,
       comments,
-      status: editRequisition?.status || "Pendiente",
+      status: editRequisition?.status || "En Revisión",
       createdDate: editRequisition?.createdDate || new Date().toISOString().split("T")[0],
       urgency,
       deliveryNeededBy,

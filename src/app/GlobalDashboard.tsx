@@ -19,8 +19,6 @@ import {
   Unlock,
   ChevronDown,
   ChevronUp,
-  FileSpreadsheet,
-  Upload,
 } from "lucide-react";
 import { dataAdapter } from "@/core/data";
 import type { Obra } from "@/core/data/types";
@@ -33,21 +31,55 @@ const ADMIN_PASSWORD = "idpjedi01"; // En producción, esto debería estar en un
 
 const initialWorks: Work[] = [
   {
-    code: "227",
-    name: "CASTELLO E",
-    client: "Desarrolladora Inmobiliaria del Centro",
-    contractNumber: "CONT-2025-045",
-    contractAmount: 5250000,
+    code: "228",
+    name: "CASTELLO F",
+    client: "Grupo Constructor Metropolitano",
+    contractNumber: "CONT-2025-046",
+    contractAmount: 3200000,
     advancePercentage: 30,
     retentionPercentage: 5,
-    startDate: "2024-11-01",
-    estimatedEndDate: "2025-06-30",
-    resident: "Ing. Miguel Ángel Torres",
-    residentInitials: "MAT",
+    startDate: "2024-12-01",
+    estimatedEndDate: "2025-07-31",
+    resident: "Arq. Laura Martínez",
+    residentInitials: "LM",
     status: "Activa",
-    actualBalance: 1575000,
-    totalEstimates: 2100000,
-    totalExpenses: 525000,
+    actualBalance: 960000,
+    totalEstimates: 1600000,
+    totalExpenses: 640000,
+  },
+  {
+    code: "229",
+    name: "CASTELLO G",
+    client: "Gobierno del Estado de México",
+    contractNumber: "CONT-2025-047",
+    contractAmount: 4800000,
+    advancePercentage: 20,
+    retentionPercentage: 10,
+    startDate: "2025-01-01",
+    estimatedEndDate: "2025-09-30",
+    resident: "Ing. Roberto Sánchez",
+    residentInitials: "RS",
+    status: "Activa",
+    actualBalance: 960000,
+    totalEstimates: 2400000,
+    totalExpenses: 1440000,
+  },
+  {
+    code: "230",
+    name: "CASTELLO H",
+    client: "Desarrolladora Inmobiliaria Premium",
+    contractNumber: "CONT-2025-048",
+    contractAmount: 5500000,
+    advancePercentage: 30,
+    retentionPercentage: 5,
+    startDate: "2024-11-15",
+    estimatedEndDate: "2025-08-15",
+    resident: "Ing. Carlos Ramírez",
+    residentInitials: "CR",
+    status: "Activa",
+    actualBalance: 1650000,
+    totalEstimates: 3300000,
+    totalExpenses: 1650000,
   },
 ];
 
@@ -63,42 +95,15 @@ export default function GlobalDashboard({ onSelectProject }: GlobalDashboardProp
   const [showArchived, setShowArchived] = useState(false);
   const [showIndirectCosts, setShowIndirectCosts] = useState(false);
 
-  // Cargar obras desde el dataAdapter
+  // Cargar obras desde mock data
   useEffect(() => {
-    async function loadObras() {
-      setLoading(true);
-      try {
-        const response = await dataAdapter.listObras({ estatus: 'activa' });
-        if (response.success && response.data) {
-          // Convertir Obra[] a Work[]
-          const worksFromObras: Work[] = response.data.map((obra: Obra) => ({
-            code: obra.codigo_obra,
-            name: obra.nombre_obra,
-            client: obra.cliente,
-            contractNumber: `CONT-${obra.codigo_obra}`,
-            contractAmount: obra.presupuesto_total,
-            advancePercentage: 30,
-            retentionPercentage: 5,
-            startDate: obra.fecha_inicio || '',
-            estimatedEndDate: obra.fecha_fin_estimada || '',
-            resident: obra.residente || 'Sin asignar',
-            residentInitials: obra.residente?.split(' ').map(n => n[0]).join('') || 'SA',
-            status: obra.estatus === 'activa' ? 'Activa' as const : 'Archivada' as const,
-            actualBalance: 0,
-            totalEstimates: 0,
-            totalExpenses: 0,
-          }));
-          setWorks(worksFromObras);
-        }
-      } catch (error) {
-        console.error('Error cargando obras:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
     if (isAuthenticated) {
-      loadObras();
+      setLoading(true);
+      // Simular carga asíncrona
+      setTimeout(() => {
+        setWorks(initialWorks);
+        setLoading(false);
+      }, 500);
     }
   }, [isAuthenticated]);
 
@@ -368,36 +373,13 @@ export default function GlobalDashboard({ onSelectProject }: GlobalDashboardProp
             {showArchived ? "Obras Archivadas" : "Obras Activas"}
           </h2>
           {!showArchived && (
-            <div className="flex gap-2">
-              {/* Upload Excel Destajos */}
-              <label htmlFor="upload-destajos">
-                <input
-                  id="upload-destajos"
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={handleUploadDestajos}
-                  className="hidden"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="gap-2 border-green-600 text-green-700 hover:bg-green-50"
-                  onClick={() => document.getElementById('upload-destajos')?.click()}
-                >
-                  <FileSpreadsheet className="h-4 w-4" />
-                  Cargar Destajos (Excel)
-                </Button>
-              </label>
-              
-              {/* Nueva Obra Button */}
-              <Button
-                onClick={() => setShowWorkForm(true)}
-                className="gap-2 bg-slate-700 hover:bg-slate-800"
-              >
-                <Plus className="h-4 w-4" />
-                Nueva Obra
-              </Button>
-            </div>
+            <Button
+              onClick={() => setShowWorkForm(true)}
+              className="gap-2 bg-slate-700 hover:bg-slate-800"
+            >
+              <Plus className="h-4 w-4" />
+              Nueva Obra
+            </Button>
           )}
         </div>
 

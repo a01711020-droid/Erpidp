@@ -17,86 +17,167 @@ export default function ContractTracking({ projectId }: ContractTrackingProps) {
   const [showDetailView, setShowDetailView] = useState(false);
   const [showEstimationForm, setShowEstimationForm] = useState(false);
   
-  // Datos del contrato
-  const contractInfo = {
-    contractNumber: "CONT-2025-078",
-    contractAmount: 5800000,
-    client: "Gobierno del Estado de México",
-    projectName: "Construcción de Centro Educativo Nivel Secundaria",
-    startDate: "15 Sep 2025",
-    endDate: "15 Jun 2026",
-    advancePercentage: 30,
-    guaranteeFundPercentage: 10,
-  };
-
-  // Datos de movimientos del contrato (estimaciones, aditivas, deductivas)
-  const contractMovements = [
+  // ====================================================================
+  // MOCK DATA - Movimientos del Contrato
+  // ====================================================================
+  // IMPORTANTE: En producción, estos cálculos se deben hacer así:
+  // 
+  // 1. ANTICIPO INICIAL:
+  //    advanceBalance inicial = contractAmount * (advancePercentage / 100)
+  //    contractPending inicial = contractAmount
+  //    contractAmountCurrent = contractAmount (se actualiza con aditivas/deductivas)
+  // 
+  // 2. ESTIMACIONES:
+  //    - NUEVA FÓRMULA DE AMORTIZACIÓN PROPORCIONAL:
+  //      advanceAmortization = (Monto estimación / Contrato vigente actual) × Anticipo total
+  //      advanceAmortization = MIN(calculado, advanceBalance disponible)
+  //    
+  //    - guaranteeFund = MIN(importe × guaranteeFundPercentage/100, CAP_TOTAL - acumulado)
+  //    - guaranteeFundCAP = contractAmount × guaranteeFundPercentage/100 ($30,000 para $1M al 3%)
+  //    - Neto = importe - advanceAmortization - guaranteeFund
+  //    - balanceToPay = Neto - paid
+  //    - advanceBalance = advanceBalance anterior - advanceAmortization
+  //    - contractPending = contractPending anterior - importe
+  //    - contractAmountCurrent NO cambia (solo cambia con aditivas/deductivas)
+  // 
+  // 3. ADITIVAS:
+  //    - NO tienen advanceAmortization ni guaranteeFund
+  //    - contractPending = contractPending anterior + importe (SUMA)
+  //    - contractAmountCurrent = contractAmountCurrent anterior + importe (ACTUALIZA BASE)
+  //    - advanceBalance se mantiene igual
+  // 
+  // 4. DEDUCTIVAS:
+  //    - NO tienen advanceAmortization ni guaranteeFund
+  //    - contractPending = contractPending anterior - |importe| (RESTA)
+  //    - contractAmountCurrent = contractAmountCurrent anterior - |importe| (ACTUALIZA BASE)
+  //    - advanceBalance se mantiene igual
+  // ====================================================================
+  const [contractMovements, setContractMovements] = useState([
     {
       no: 1,
       type: "estimacion" as const,
       date: "15 Oct 2025",
       description: "Estimación 1 - Trabajos preliminares y cimentación",
-      amount: 580000,
-      advanceAmortization: 174000,
-      guaranteeFund: 58000,
-      advanceBalance: 1566000,
-      paid: 348000,
+      amount: 150000,
+      advanceAmortization: 15000, // (150k / 1M) × 100k = 15k
+      guaranteeFund: 4500, // 150k × 3% = 4.5k (Acumulado: 4.5k)
+      advanceBalance: 85000, // 100k - 15k = 85k
+      paid: 130500, // 150k - 15k - 4.5k = 130.5k
       balanceToPay: 0,
-      contractPending: 5220000,
+      contractPending: 850000, // 1M - 150k = 850k
+      contractAmountCurrent: 1000000, // Base inicial
     },
     {
       no: 2,
       type: "estimacion" as const,
       date: "15 Nov 2025",
       description: "Estimación 2 - Estructura y muros",
-      amount: 820000,
-      advanceAmortization: 246000,
-      guaranteeFund: 82000,
-      advanceBalance: 1320000,
-      paid: 492000,
+      amount: 180000,
+      advanceAmortization: 18000, // (180k / 1M) × 100k = 18k
+      guaranteeFund: 5400, // 180k × 3% = 5.4k (Acumulado: 9.9k)
+      advanceBalance: 67000, // 85k - 18k = 67k
+      paid: 156600, // 180k - 18k - 5.4k = 156.6k
       balanceToPay: 0,
-      contractPending: 4400000,
+      contractPending: 670000, // 850k - 180k = 670k
+      contractAmountCurrent: 1000000, // Base sin cambios
     },
     {
       no: 3,
       type: "estimacion" as const,
       date: "15 Dic 2025",
       description: "Estimación 3 - Instalaciones hidráulicas y sanitarias",
-      amount: 650000,
-      advanceAmortization: 195000,
-      guaranteeFund: 65000,
-      advanceBalance: 1125000,
-      paid: 390000,
+      amount: 200000,
+      advanceAmortization: 20000, // (200k / 1M) × 100k = 20k
+      guaranteeFund: 6000, // 200k × 3% = 6k (Acumulado: 15.9k)
+      advanceBalance: 47000, // 67k - 20k = 47k
+      paid: 174000, // 200k - 20k - 6k = 174k
       balanceToPay: 0,
-      contractPending: 3750000,
+      contractPending: 470000, // 670k - 200k = 470k
+      contractAmountCurrent: 1000000, // Base sin cambios
     },
     {
       no: 4,
-      type: "estimacion" as const,
-      date: "15 Ene 2026",
-      description: "Estimación 4 - Instalaciones eléctricas",
-      amount: 720000,
-      advanceAmortization: 216000,
-      guaranteeFund: 72000,
-      advanceBalance: 909000,
-      paid: 432000,
+      type: "aditiva" as const,
+      date: "20 Dic 2025",
+      description: "Aditiva 1 - Ampliación de áreas verdes y estacionamiento",
+      amount: 150000,
+      advanceAmortization: 0, // Aditivas NO amortizan anticipo
+      guaranteeFund: 0, // Aditivas NO retienen fondo de garantía
+      advanceBalance: 47000, // Se mantiene igual
+      paid: 0,
       balanceToPay: 0,
-      contractPending: 3030000,
+      contractPending: 620000, // 470k + 150k = 620k (SUMA porque es aditiva)
+      contractAmountCurrent: 1150000, // ← BASE ACTUALIZADA: 1M + 150k = 1.15M
     },
     {
       no: 5,
       type: "estimacion" as const,
-      date: "09 Ene 2026",
-      description: "Estimación 5 - Acabados generales (En proceso)",
-      amount: 890000,
-      advanceAmortization: 267000,
-      guaranteeFund: 89000,
-      advanceBalance: 642000,
-      paid: 0,
-      balanceToPay: 534000,
-      contractPending: 2140000,
+      date: "15 Ene 2026",
+      description: "Estimación 4 - Instalaciones eléctricas",
+      amount: 220000,
+      advanceAmortization: 19130, // (220k / 1.15M) × 100k ≈ 19,130 ← Base cambió por aditiva
+      guaranteeFund: 6600, // 220k × 3% = 6.6k (Acumulado: 22.5k)
+      advanceBalance: 27870, // 47k - 19,130 = 27,870
+      paid: 194270, // 220k - 19,130 - 6.6k = 194,270
+      balanceToPay: 0,
+      contractPending: 400000, // 620k - 220k = 400k
+      contractAmountCurrent: 1150000, // Base vigente: 1.15M
     },
-  ];
+    {
+      no: 6,
+      type: "estimacion" as const,
+      date: "15 Feb 2026",
+      description: "Estimación 5 - Acabados generales",
+      amount: 150000,
+      advanceAmortization: 13043, // (150k / 1.15M) × 100k ≈ 13,043
+      guaranteeFund: 4500, // 150k × 3% = 4.5k (Acumulado: 27k)
+      advanceBalance: 14827, // 27,870 - 13,043 = 14,827
+      paid: 132457, // 150k - 13,043 - 4.5k = 132,457
+      balanceToPay: 0,
+      contractPending: 250000, // 400k - 150k = 250k
+      contractAmountCurrent: 1150000, // Base vigente: 1.15M
+    },
+    {
+      no: 7,
+      type: "estimacion" as const,
+      date: "15 Mar 2026",
+      description: "Estimación 6 - Instalaciones especiales y señalética",
+      amount: 150000,
+      advanceAmortization: 13043, // (150k / 1.15M) × 100k ≈ 13,043
+      guaranteeFund: 3000, // MIN(150k × 3% = 4.5k, CAP restante = 3k) = 3k ← CAP!
+      advanceBalance: 1784, // 14,827 - 13,043 = 1,784
+      paid: 133957, // 150k - 13,043 - 3k = 133,957
+      balanceToPay: 0,
+      contractPending: 100000, // 250k - 150k = 100k
+      contractAmountCurrent: 1150000, // Base vigente: 1.15M
+    },
+    {
+      no: 8,
+      type: "estimacion" as const,
+      date: "10 Jun 2026",
+      description: "Estimación 7 - Finiquito de obra (100% COMPLETADO)",
+      amount: 100000,
+      advanceAmortization: 1784, // MIN((100k/1.15M)×100k = 8,695, disponible = 1,784) = 1,784
+      guaranteeFund: 0, // MIN(100k × 3% = 3k, CAP restante = 0) = 0 ← CAP ALCANZADO
+      advanceBalance: 0, // 1,784 - 1,784 = 0 ← ¡ANTICIPO TOTALMENTE AMORTIZADO!
+      paid: 98216, // 100k - 1,784 - 0 = 98,216
+      balanceToPay: 0,
+      contractPending: 0, // 100k - 100k = 0 ← ¡CONTRATO COMPLETADO 100%!
+      contractAmountCurrent: 1150000, // Base vigente: 1.15M
+    },
+  ]);
+  
+  // Datos del contrato
+  const contractInfo = {
+    contractNumber: "CONT-2025-078",
+    contractAmount: 1000000, // $1,000,000
+    client: "Gobierno del Estado de México",
+    projectName: "Construcción de Centro Educativo Nivel Secundaria",
+    startDate: "15 Sep 2025",
+    endDate: "15 Jun 2026",
+    advancePercentage: 10, // 10%
+    guaranteeFundPercentage: 3, // 3% CAPEADO a $30,000
+  };
 
   // Datos de salidas semanales
   const weeklyExpenses = [
@@ -134,9 +215,47 @@ export default function ContractTracking({ projectId }: ContractTrackingProps) {
   });
 
   const handleSaveEstimation = (data: EstimationFormData) => {
-    console.log("Nuevo movimiento guardado:", data);
-    // Aquí se implementaría la lógica para guardar en el backend
-    // Por ahora solo mostramos en consola
+    const lastMovement = contractMovements[contractMovements.length - 1];
+    
+    // Calcular los valores según el tipo de movimiento
+    let newAdvanceBalance = lastMovement.advanceBalance;
+    let newContractPending = lastMovement.contractPending;
+    let newContractAmountCurrent = lastMovement.contractAmountCurrent || contractInfo.contractAmount;
+    
+    if (data.type === "aditiva") {
+      // Aditiva: SUMA al pendiente, NO afecta anticipo
+      newContractPending = lastMovement.contractPending + data.amount;
+      newContractAmountCurrent = lastMovement.contractAmountCurrent + data.amount;
+    } else if (data.type === "deductiva") {
+      // Deductiva: RESTA del pendiente, NO afecta anticipo
+      newContractPending = lastMovement.contractPending - Math.abs(data.amount);
+      newContractAmountCurrent = lastMovement.contractAmountCurrent - Math.abs(data.amount);
+    } else {
+      // Estimación: RESTA del pendiente, amortiza anticipo
+      newContractPending = lastMovement.contractPending - data.amount;
+      newAdvanceBalance = lastMovement.advanceBalance - data.advanceAmortization;
+    }
+    
+    // Crear nuevo movimiento
+    const newMovement = {
+      no: data.movementNumber,
+      type: data.type,
+      date: data.date,
+      description: data.description,
+      amount: data.amount,
+      advanceAmortization: data.advanceAmortization,
+      guaranteeFund: data.guaranteeFund,
+      advanceBalance: newAdvanceBalance,
+      paid: 0, // Siempre inicia en 0, se edita después desde la tabla
+      balanceToPay: data.balanceToPay,
+      contractPending: newContractPending,
+      contractAmountCurrent: newContractAmountCurrent,
+    };
+    
+    // Agregar a la lista de movimientos
+    setContractMovements([...contractMovements, newMovement]);
+    
+    console.log("✅ Nuevo movimiento agregado:", newMovement);
   };
 
   return (
