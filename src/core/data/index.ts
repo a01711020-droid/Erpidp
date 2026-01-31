@@ -6,15 +6,17 @@
  */
 
 import { mockAdapterWithDevMode } from './mockAdapterWithDevMode';
-import { MOCK_MODE } from '../config';
+import { apiAdapter } from './apiAdapter';
 
 /**
  * DataAdapter activo
  * 
- * En desarrollo: mockAdapterWithDevMode (con control de UI)
- * En producción: apiAdapter (pendiente)
+ * En desarrollo: mockAdapterWithDevMode (solo si VITE_DATA_MODE=mock)
+ * En producción: apiAdapter
  */
-export const dataAdapter = MOCK_MODE ? mockAdapterWithDevMode : mockAdapterWithDevMode; // TODO: Cambiar segundo a apiAdapter cuando esté listo
+const dataMode = import.meta.env.VITE_DATA_MODE ?? 'api';
+const shouldUseMock = import.meta.env.DEV && dataMode === 'mock';
+export const dataAdapter = shouldUseMock ? mockAdapterWithDevMode : apiAdapter;
 
 // Re-exports
 export * from './dataAdapter';

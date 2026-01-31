@@ -21,6 +21,13 @@ Verificar: `cat _redirects` debe mostrar `/*    /index.html   200`
 
 ## 🚀 Ejecución Local
 
+### 0. Actualizar rama (Windows + Git Bash)
+
+```bash
+git fetch origin
+git reset --hard origin/work
+```
+
 ### 1. Base de Datos
 
 ```bash
@@ -38,7 +45,7 @@ psql -U postgres -d tu_db -f database/schema_final.sql
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+source venv/bin/activate  # Windows (Git Bash): source venv/Scripts/activate
 pip install -r requirements.txt
 
 export DATABASE_URL="postgresql://user:pass@localhost:5432/idp_db"
@@ -47,19 +54,20 @@ export FRONTEND_URL="http://localhost:5173"
 uvicorn main:app --reload --port 8000
 ```
 
-Verificar: http://localhost:8000/health → `{"status": "healthy"}`
+Verificar: http://localhost:8000/api/v1/health → `{"status": "success", "data": {"database": "connected"}, "error": null}`
+Docs: http://localhost:8000/docs
 
 ### 3. Frontend
 
 ```bash
-pnpm install
+npm install
 
-cat > .env << EOF
-VITE_API_URL=http://localhost:8000
+cat > .env.local << EOF
+VITE_API_URL=http://localhost:8000/api/v1
 VITE_DATA_MODE=api
 EOF
 
-pnpm run dev
+npm run dev
 ```
 
 Verificar: http://localhost:5173
@@ -89,18 +97,18 @@ DATABASE_URL=postgresql://...supabase.com:6543/postgres?sslmode=require
 FRONTEND_URL=https://tu-frontend.onrender.com
 ```
 
-Health Check: `/health`
+Health Check: `/api/v1/health`
 
 ### Frontend (Static Site)
 
 ```
-Build: pnpm install && pnpm run build
+Build: npm install && npm run build
 Publish: dist
 ```
 
 **Env vars**:
 ```bash
-VITE_API_URL=https://tu-backend.onrender.com
+VITE_API_URL=https://tu-backend.onrender.com/api/v1
 VITE_DATA_MODE=api
 ```
 
@@ -113,7 +121,7 @@ VITE_DATA_MODE=api
 
 ### Verificar
 
-- [ ] Backend: `https://tu-backend.onrender.com/health`
+- [ ] Backend: `https://tu-backend.onrender.com/api/v1/health`
 - [ ] Frontend carga
 - [ ] Sin errores CORS
 - [ ] Crear obra → refrescar → persiste
