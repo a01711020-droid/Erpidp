@@ -30,7 +30,7 @@ export const SIMULATE_NETWORK_DELAY = true;
 /**
  * URL del backend FastAPI
  */
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+export const API_BASE_URL = import.meta.env.VITE_API_URL ?? '';
 
 /**
  * Timeout de requests (ms)

@@ -48,8 +48,12 @@ python -m venv venv
 source venv/bin/activate  # Windows (Git Bash): source venv/Scripts/activate
 pip install -r requirements.txt
 
-export DATABASE_URL="postgresql://user:pass@localhost:5432/idp_db"
-export FRONTEND_URL="http://localhost:5173"
+cat > .env << EOF
+DATABASE_URL=postgresql://user:pass@localhost:5432/idp_db
+FRONTEND_URL=http://localhost:5173
+EOF
+
+export $(cat .env | xargs)
 
 uvicorn main:app --reload --port 8000
 ```
@@ -78,6 +82,13 @@ Verificar: http://localhost:5173
 - [ ] Frontend carga
 - [ ] Sin errores CORS
 - [ ] Crear obra → refrescar (F5) → obra persiste
+- [ ] Crear proveedor → refrescar (F5) → persiste en Supabase
+- [ ] Crear OC con items → refrescar (F5) → persiste
+- [ ] Crear pago → refrescar (F5) → persiste
+- [ ] Backend apagado → ErrorState con retry
+- [ ] DB vacía → EmptyState con CTA
+- [ ] Abrir /pagos directo + F5 → permanece en /pagos
+- [ ] Smoke: `VITE_API_URL=http://localhost:8000/api/v1 npm run smoke`
 
 ---
 
@@ -138,6 +149,7 @@ VITE_DATA_MODE=api
 **Datos no persisten**
 → Verificar `VITE_DATA_MODE=api` (no `mock`)
 → Verificar `DATABASE_URL` correcto
+→ Confirmar que `DATABASE_URL` apunta a Postgres/Supabase (no SQLite)
 
 **404 al refrescar**
 → Verificar `/public/_redirects` es archivo (no carpeta)

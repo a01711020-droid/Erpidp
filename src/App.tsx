@@ -7,8 +7,22 @@ import OrdenesCompraPage from "./pages/OrdenesCompraPage";
 import PagosPage from "./pages/PagosPage";
 import ProveedoresPage from "./pages/ProveedoresPage";
 import RequisicionesPage from "./pages/RequisicionesPage";
+import ErrorState from "./ui/common/ErrorState";
 
 export default function App() {
+  const apiUrl = import.meta.env.VITE_API_URL;
+
+  if (!apiUrl) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+        <ErrorState
+          title="Falta configurar VITE_API_URL"
+          description="Define VITE_API_URL en .env.local para habilitar la conexión con el backend."
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className="min-h-screen"

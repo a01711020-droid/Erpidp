@@ -51,7 +51,7 @@ interface MaterialRequisitionFormProps {
   onSave: (requisition: MaterialRequisition) => void;
   editRequisition?: MaterialRequisition | null;
   userRole: "Residente" | "Compras";
-  userWorkCode?: string; // For residents, restricted to their work
+  userWorkCode?: string; // For on-site users, restricted to their work
 }
 
 const units = [
