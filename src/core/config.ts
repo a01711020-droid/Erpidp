@@ -9,16 +9,6 @@
 // ============================================================================
 
 /**
- * MOCK_MODE
- * 
- * true: Usa mockAdapter con datos de /spec/mock-db/seed.ts
- * false: Usa apiAdapter real (pendiente integración con Codex)
- * 
- * Para testing de empty states, modifica seed.ts directamente
- */
-export const MOCK_MODE = true;
-
-/**
  * TEST_EMPTY_STATE
  * 
  * true: Usa emptyDatabase (sin datos) para probar estados vacíos
@@ -39,9 +29,8 @@ export const SIMULATE_NETWORK_DELAY = true;
 
 /**
  * URL del backend FastAPI
- * Esta URL será usada cuando se implemente apiAdapter
  */
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 /**
  * Timeout de requests (ms)
