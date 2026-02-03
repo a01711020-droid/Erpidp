@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "../ui/components/ui/button";
 import { LogOut, Home as HomeIcon } from "lucide-react";
 import HomeView from "../ui/Home";
@@ -57,9 +58,30 @@ const roleConfig: Record<typeof DEFAULT_USER.role, { modules: Module[] }> = {
 };
 
 export default function MainAppPage() {
-  const [activeModule, setActiveModule] = useState<Module>("home");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [showExpenseDetails, setShowExpenseDetails] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const activeModule = useMemo<Module>(() => {
+    switch (location.pathname) {
+      case "/home":
+        return "home";
+      case "/dashboard":
+        return "dashboard";
+      case "/requisitions":
+        return "requisitions";
+      case "/purchases":
+        return "purchases";
+      case "/payments":
+        return "payments";
+      case "/contract-tracking":
+        return "contract-tracking";
+      case "/expense-details":
+        return "expense-details";
+      default:
+        return "home";
+    }
+  }, [location.pathname]);
 
   const obras = useObras();
   const proveedores = useProveedores();
@@ -84,25 +106,22 @@ export default function MainAppPage() {
 
   const handleModuleChange = (module: Module) => {
     if (hasAccess(module)) {
-      setActiveModule(module);
-      setShowExpenseDetails(false);
+      navigate(`/${module}`);
     }
   };
 
   const handleBackToHome = () => {
-    setActiveModule("home");
     setSelectedProjectId(null);
-    setShowExpenseDetails(false);
+    navigate("/home");
   };
 
   const handleBackToDashboard = () => {
-    setActiveModule("dashboard");
     setSelectedProjectId(null);
-    setShowExpenseDetails(false);
+    navigate("/dashboard");
   };
 
   const handleBackToContractTracking = () => {
-    setShowExpenseDetails(false);
+    navigate("/contract-tracking");
   };
 
   const handleLogout = () => {
@@ -111,12 +130,11 @@ export default function MainAppPage() {
 
   const handleSelectProject = (projectId: string) => {
     setSelectedProjectId(projectId);
-    setActiveModule("contract-tracking");
-    setShowExpenseDetails(false);
+    navigate("/contract-tracking");
   };
 
   const handleShowExpenseDetails = () => {
-    setShowExpenseDetails(true);
+    navigate("/expense-details");
   };
 
   const getModuleTitle = () => {
@@ -222,7 +240,7 @@ export default function MainAppPage() {
             }
           />
         )}
-        {activeModule === "contract-tracking" && !showExpenseDetails && (
+        {activeModule === "contract-tracking" && (
           <ContractTrackingView
             projectId={selectedProjectId}
             obras={obras.data}
@@ -234,7 +252,7 @@ export default function MainAppPage() {
             onBackToDashboard={handleBackToDashboard}
           />
         )}
-        {showExpenseDetails && (
+        {activeModule === "expense-details" && (
           <ExpenseDetailsView
             onBack={handleBackToContractTracking}
             ordenesCompra={ordenesCompra.data}

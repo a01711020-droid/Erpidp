@@ -26,6 +26,7 @@ Crea un archivo `.env` en `backend`:
 DATABASE_URL=postgresql://<user>:<pass>@<host>:<port>/<db>
 ADMIN_PASSWORD=idpjedi01
 ```
+> Nota: el backend carga automáticamente `.env` al iniciar (no hace falta `source .env`, aunque puedes hacerlo si deseas).
 
 ### Ejecutar API
 ```bash
@@ -56,12 +57,11 @@ npm run dev
 ```
 
 ## 5) Pruebas reales (manual)
-1. **Crear proveedor** → verificar persistencia → refrescar (F5).
-2. **Crear obra** → verificar persistencia.
-3. **Crear orden de compra** → verificar persistencia y items.
-4. **Crear pago** → verificar persistencia y estado.
+1. **Crear proveedor** → verificar persistencia → refrescar (F5) y confirmar que sigue visible.
+2. **Crear obra** → verificar persistencia → refrescar (F5) y confirmar que sigue visible.
+3. **Crear orden de compra** → verificar persistencia y items → refrescar (F5) y confirmar que sigue visible.
+4. **Crear pago** → verificar persistencia y estado → refrescar (F5) y confirmar que sigue visible.
 
 ## 6) Estados esperados
 - **Backend apagado** → UI muestra ErrorState.
 - **DB vacía** → UI muestra EmptyState.
-
