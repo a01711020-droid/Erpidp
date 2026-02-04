@@ -129,3 +129,11 @@ CREATE TABLE requisiciones_comentarios (
   mensaje TEXT NOT NULL,
   fecha TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX idx_ordenes_compra_obra_id ON ordenes_compra(obra_id);
+CREATE INDEX idx_ordenes_compra_proveedor_id ON ordenes_compra(proveedor_id);
+CREATE INDEX idx_ordenes_compra_items_oc_id ON ordenes_compra_items(orden_compra_id);
+CREATE INDEX idx_pagos_oc_id ON pagos(orden_compra_id);
+CREATE INDEX idx_requisiciones_obra_id ON requisiciones(obra_id);
+CREATE INDEX idx_requisiciones_items_req_id ON requisiciones_items(requisicion_id);
+CREATE INDEX idx_requisiciones_comentarios_req_id ON requisiciones_comentarios(requisicion_id);
