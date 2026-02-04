@@ -10,6 +10,7 @@
 ```bash
 git clone <repo-url>
 cd Erpidp
+git checkout work
 ```
 
 ## 2) Backend (FastAPI)
@@ -26,6 +27,7 @@ Crea un archivo `.env` en `backend`:
 DATABASE_URL=postgresql://<user>:<pass>@<host>:<port>/<db>
 DATABASE_SSLMODE=require
 ADMIN_PASSWORD=idpjedi01
+CORS_ORIGINS=http://localhost:5173
 ```
 > Nota: el backend carga automáticamente `.env` al iniciar (no hace falta `source .env`, aunque puedes hacerlo si deseas).
 
