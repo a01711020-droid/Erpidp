@@ -11,11 +11,12 @@ Sistema ERP completo para gestión de construcción que incluye:
 
 ---
 
-## 🎯 **Arquitectura: State-Driven UI**
+## 🎯 **Arquitectura: State Components Architecture v3.0**
 
-El sistema utiliza una arquitectura **state-driven** sin backend:
+El sistema utiliza una **arquitectura de estados separados**:
 - ✅ **Frontend puro y transportable**
 - ✅ **Mock data rica como especificación**
+- ✅ **Componentes de estado reutilizables por módulo**
 - ✅ **Componentes visuales puros** (sin lógica de negocio)
 - ✅ **Estados visuales consistentes** (loading, empty, error, data)
 
@@ -32,21 +33,31 @@ El sistema utiliza una arquitectura **state-driven** sin backend:
 ```
 /src/app/
 ├── components/
-│   ├── states/              # ✨ Componentes de estado reutilizables
+│   ├── states/                    # Componentes base de estado
 │   │   ├── LoadingState.tsx
 │   │   ├── EmptyState.tsx
 │   │   └── ErrorState.tsx
 │   │
-│   ├── ui/                  # Componentes UI base
-│   └── ...                  # Componentes específicos
+│   ├── global-dashboard/          # ✨ Estados de Dashboard
+│   │   ├── DashboardStateData.tsx
+│   │   ├── DashboardStateEmpty.tsx
+│   │   ├── DashboardStateLoading.tsx
+│   │   └── DashboardStateError.tsx
+│   │
+│   ├── purchase-order/            # Estados de Compras
+│   ├── material-requisitions/     # Estados de Requisiciones
+│   ├── payment-management/        # Estados de Pagos
+│   ├── contract-tracking/         # Estados de Contrato
+│   │
+│   └── ui/                        # Componentes UI base
 │
-├── GlobalDashboard.tsx      # Dashboard empresarial
-├── PurchaseOrderManagement.tsx  # Módulo de compras
-├── MaterialRequisitions.tsx     # Módulo de requisiciones
-├── PaymentManagement.tsx        # Módulo de pagos
-├── ContractTracking.tsx         # Seguimiento de contrato
-├── MainApp.tsx              # Navegación principal
-└── App.tsx                  # Entry point
+├── GlobalDashboard.tsx             # Dashboard empresarial
+├── PurchaseOrderManagement.tsx     # Módulo de compras
+├── MaterialRequisitions.tsx        # Módulo de requisiciones
+├── PaymentManagement.tsx           # Módulo de pagos
+├── ContractTracking.tsx            # Seguimiento de contrato
+├── MainApp.tsx                     # Navegación principal
+└── App.tsx                         # Entry point
 ```
 
 ---
@@ -199,9 +210,26 @@ export default function Module({ initialState = "data" }: ModuleProps) {
 
 ## 📚 **Documentación**
 
-- `/RESTRUCTURACION_COMPLETADA.md` - Detalles de arquitectura
-- `/DOCUMENTACION_LOGICA_MODULOS.md` - Lógica de módulos
-- `/ESQUEMA_BASE_DATOS_SQL.md` - Esquema de base de datos
+### Documentos Principales:
+- 📘 **Este archivo (README.md)** - Guía principal del proyecto
+- 🗺️ `/MAPA_NAVEGACION.md` - **Guía de navegación rápida**
+- 🎯 `/REESTRUCTURACION_ESTADOS_COMPLETADA.md` - **Arquitectura v3.0 detallada**
+- 🗄️ `/ESQUEMA_BASE_DATOS_SQL.md` - Schema SQL completo
+- 🚀 `/QUICK_START.md` - Inicio rápido
+
+### Índice Completo:
+- 📋 `/docs/INDEX.md` - **Índice de toda la documentación**
+
+### Por Tema:
+- **Arquitectura**: `/docs/architecture/`
+- **Base de Datos**: `/docs/database/`
+- **Deployment**: `/docs/DEPLOYMENT_GUIDE.md`
+- **Especificaciones**: `/spec/`
+- **Lineamientos**: `/guidelines/Guidelines.md`
+
+### Estado del Proyecto:
+- 🎉 `/PROYECTO_FINALIZADO.md` - **Estado completo y métricas**
+- 📊 `/ESTRUCTURA_PROYECTO.md` - Mapa visual del proyecto
 
 ---
 
