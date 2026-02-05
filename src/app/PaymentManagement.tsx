@@ -4,7 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { Badge } from "./components/ui/badge";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
-import { LoadingState, EmptyState, ErrorState, ViewState } from "@/app/components/states";
+import { ViewState } from "@/app/components/states";
+import {
+  PaymentManagementStateLoading,
+  PaymentManagementStateError,
+  PaymentManagementStateEmpty,
+} from "@/app/components/payment-management";
 import {
   Upload,
   DollarSign,
@@ -513,99 +518,17 @@ export default function PaymentManagement({ initialState = "data" }: PaymentMana
 
   // ESTADO: LOADING
   if (viewState === "loading") {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8">
-          <LoadingState type="dashboard" rows={8} />
-        </div>
-      </div>
-    );
+    return <PaymentManagementStateLoading />;
   }
 
   // ESTADO: ERROR
   if (viewState === "error") {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8">
-          <ErrorState
-            message="No se pudieron cargar los datos de pagos. Verifica tu conexión e intenta nuevamente."
-            onRetry={handleRetry}
-          />
-        </div>
-      </div>
-    );
+    return <PaymentManagementStateError onRetry={handleRetry} />;
   }
 
   // ESTADO: EMPTY
   if (viewState === "empty") {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg">
-                <DollarSign className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  Gestión de Pagos
-                </h1>
-                <p className="text-muted-foreground">
-                  Control de pagos, facturas y seguimiento de órdenes de compra
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <EmptyState
-            icon={Receipt}
-            title="No hay órdenes de compra para gestionar pagos"
-            description="Una vez que el departamento de compras genere órdenes, aparecerán aquí para que puedas gestionar facturas y pagos a proveedores."
-            benefits={[
-              {
-                icon: FileText,
-                title: "Múltiples Facturas",
-                description:
-                  "Una OC puede tener varias facturas parciales según entregas",
-                color: "bg-blue-100 text-blue-600",
-              },
-              {
-                icon: CreditCard,
-                title: "Múltiples Pagos",
-                description:
-                  "Registra pagos parciales por factura con diferentes métodos",
-                color: "bg-green-100 text-green-600",
-              },
-              {
-                icon: AlertCircle,
-                title: "Alertas de Vencimiento",
-                description:
-                  "Sistema automático de alertas para facturas próximas a vencer",
-                color: "bg-red-100 text-red-600",
-              },
-              {
-                icon: TrendingUp,
-                title: "Proveedores sin Factura",
-                description:
-                  "Soporte para pagos directos a proveedores informales",
-                color: "bg-purple-100 text-purple-600",
-              },
-            ]}
-            infoItems={[
-              {
-                label: "Días de Crédito",
-                description: "Configurables por proveedor (0, 15, 30, 40 días)",
-              },
-              {
-                label: "Estado de Pago",
-                description: "Pagado, Parcial, Pendiente, Vencido, Sin Factura",
-              },
-            ]}
-          />
-        </div>
-      </div>
-    );
+    return <PaymentManagementStateEmpty />;
   }
 
   // ESTADO: DATA (contenido completo original)

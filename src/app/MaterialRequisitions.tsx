@@ -4,7 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { Badge } from "./components/ui/badge";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
-import { LoadingState, EmptyState, ErrorState, ViewState } from "@/app/components/states";
+import { ViewState } from "@/app/components/states";
+import {
+  MaterialRequisitionsStateLoading,
+  MaterialRequisitionsStateError,
+  MaterialRequisitionsStateEmpty,
+} from "@/app/components/material-requisitions";
 import {
   MaterialRequisitionForm,
   MaterialRequisition,
@@ -328,102 +333,17 @@ export default function MaterialRequisitions({ initialState = "data" }: Material
 
   // ESTADO: LOADING
   if (viewState === "loading") {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8">
-          <LoadingState type="cards" rows={5} />
-        </div>
-      </div>
-    );
+    return <MaterialRequisitionsStateLoading />;
   }
 
   // ESTADO: ERROR
   if (viewState === "error") {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8">
-          <ErrorState
-            message="No se pudieron cargar las requisiciones. Verifica tu conexión e intenta nuevamente."
-            onRetry={handleRetry}
-          />
-        </div>
-      </div>
-    );
+    return <MaterialRequisitionsStateError onRetry={handleRetry} />;
   }
 
   // ESTADO: EMPTY
   if (viewState === "empty") {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-orange-600 rounded-lg">
-                <ClipboardList className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  Requisiciones de Material
-                </h1>
-                <p className="text-muted-foreground">
-                  Sistema de solicitudes para residentes de obra
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <EmptyState
-            icon={ClipboardList}
-            title="No hay requisiciones"
-            description="Los residentes de obra pueden solicitar materiales desde aquí. Una vez creadas, el departamento de compras las revisará y convertirá en órdenes."
-            ctaLabel="Crear Primera Requisición"
-            ctaIcon={Plus}
-            onCta={handleCreateRequisition}
-            benefits={[
-              {
-                icon: Send,
-                title: "Solicitud Rápida",
-                description:
-                  "Residentes envían requisiciones directamente a compras en segundos",
-                color: "bg-orange-100 text-orange-600",
-              },
-              {
-                icon: MessageSquare,
-                title: "Comunicación Directa",
-                description:
-                  "Chat integrado entre residente y compras para aclaraciones",
-                color: "bg-blue-100 text-blue-600",
-              },
-              {
-                icon: Zap,
-                title: "Urgencia Configurable",
-                description:
-                  "Marca requisiciones urgentes para atención prioritaria",
-                color: "bg-red-100 text-red-600",
-              },
-              {
-                icon: CheckCircle,
-                title: "Seguimiento en Tiempo Real",
-                description:
-                  "Rastrea el estado de cada solicitud hasta la compra",
-                color: "bg-green-100 text-green-600",
-              },
-            ]}
-            infoItems={[
-              {
-                label: "Estados",
-                description: "Enviada → En Revisión → Comprada",
-              },
-              {
-                label: "Acceso",
-                description: "Cada residente solo ve sus requisiciones",
-              },
-            ]}
-          />
-        </div>
-      </div>
-    );
+    return <MaterialRequisitionsStateEmpty />;
   }
 
   // ESTADO: DATA (contenido completo original)
