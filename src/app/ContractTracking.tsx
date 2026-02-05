@@ -3,7 +3,8 @@ import { EstimationsTable } from "./components/EstimationsTable";
 import { WeeklyExpenses } from "./components/WeeklyExpenses";
 import { WeeklyExpensesDetail } from "./components/WeeklyExpensesDetail";
 import { EstimationForm, EstimationFormData } from "./components/EstimationForm";
-import { HardHat, AlertCircle, TrendingUp, Plus } from "lucide-react";
+import { LoadingState, EmptyState, ErrorState, ViewState } from "@/app/components/states";
+import { HardHat, AlertCircle, TrendingUp, Plus, FileText, BarChart3, Calculator } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
@@ -11,9 +12,11 @@ import { useState } from "react";
 
 interface ContractTrackingProps {
   projectId: string | null;
+  initialState?: ViewState;
 }
 
-export default function ContractTracking({ projectId }: ContractTrackingProps) {
+export default function ContractTracking({ projectId, initialState = "data" }: ContractTrackingProps) {
+  const [viewState, setViewState] = useState<ViewState>(initialState);
   const [showDetailView, setShowDetailView] = useState(false);
   const [showEstimationForm, setShowEstimationForm] = useState(false);
   
@@ -258,6 +261,118 @@ export default function ContractTracking({ projectId }: ContractTrackingProps) {
     console.log("✅ Nuevo movimiento agregado:", newMovement);
   };
 
+  // Handlers placeholder
+  const handleCreateContract = () => {
+    console.log("Crear nuevo contrato");
+  };
+
+  const handleRetry = () => {
+    console.log("Reintentar carga");
+    setViewState("loading");
+    setTimeout(() => setViewState("data"), 1000);
+  };
+
+  // ESTADO: LOADING
+  if (viewState === "loading") {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-8">
+          <LoadingState type="dashboard" rows={8} />
+        </div>
+      </div>
+    );
+  }
+
+  // ESTADO: ERROR
+  if (viewState === "error") {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-8">
+          <ErrorState
+            message="No se pudieron cargar los datos del contrato. Verifica tu conexión e intenta nuevamente."
+            onRetry={handleRetry}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ESTADO: EMPTY
+  if (viewState === "empty") {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
+          <div className="mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-orange-600 rounded-lg">
+                <HardHat className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Seguimiento Físico de Contrato
+                </h1>
+                <p className="text-muted-foreground">
+                  Control de obra y flujo financiero
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <EmptyState
+            icon={FileText}
+            title="Sin datos de contrato"
+            description="No hay información de contrato disponible para esta obra. Registra los datos del contrato para comenzar el seguimiento financiero y de estimaciones."
+            ctaLabel="Registrar Contrato"
+            ctaIcon={Plus}
+            onCta={handleCreateContract}
+            benefits={[
+              {
+                icon: BarChart3,
+                title: "Estimaciones Progresivas",
+                description:
+                  "Registra estimaciones periódicas con amortización de anticipo automática",
+                color: "bg-blue-100 text-blue-600",
+              },
+              {
+                icon: Calculator,
+                title: "Cálculos Automáticos",
+                description:
+                  "Amortización de anticipo, fondo de garantía y saldos calculados",
+                color: "bg-green-100 text-green-600",
+              },
+              {
+                icon: TrendingUp,
+                title: "Aditivas y Deductivas",
+                description:
+                  "Soporte completo para modificaciones de contrato",
+                color: "bg-purple-100 text-purple-600",
+              },
+              {
+                icon: AlertCircle,
+                title: "Control de Avance",
+                description:
+                  "Compara avance financiero vs físico de la obra",
+                color: "bg-orange-100 text-orange-600",
+              },
+            ]}
+            infoItems={[
+              {
+                label: "Anticipo",
+                description: "Amortización proporcional en cada estimación",
+              },
+              {
+                label: "Fondo de Garantía",
+                description: "Generalmente 5% hasta alcanzar tope del 10% del contrato",
+              },
+            ]}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ESTADO: DATA (contenido completo original)
   return (
     <div className="min-h-screen bg-background">
       {showDetailView ? (

@@ -261,13 +261,14 @@ export async function generatePurchaseOrderPDF(order: {
       lineColor: [0, 0, 0],
     },
     columnStyles: {
-      0: { cellWidth: 18, halign: "center" }, // Cantidad - reducido
-      1: { cellWidth: 16, halign: "center" }, // Unidad - reducido
-      2: { cellWidth: 90 }, // Descripción - ajustado
-      3: { cellWidth: 26, halign: "right" }, // P.U. - reducido
-      4: { cellWidth: 26, halign: "right" }, // Importe - reducido
+      0: { cellWidth: 18, halign: "center" }, // Cantidad
+      1: { cellWidth: 16, halign: "center" }, // Unidad
+      2: { cellWidth: 100 }, // Descripción
+      3: { cellWidth: 26, halign: "right" }, // P.U.
+      4: { cellWidth: 30, halign: "right" }, // Importe
     },
-    margin: { left: 10, right: 10 },
+    margin: { left: 10, right: 10 }, // Mismo margen que las secciones de arriba
+    tableWidth: pageWidth - 20, // Ancho total = pageWidth - 20 (igual que Obra/Proveedor)
   });
 
   const afterTableY = (doc as any).lastAutoTable.finalY + 2;

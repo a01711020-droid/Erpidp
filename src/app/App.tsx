@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Button } from "./components/ui/button";
 
 // Toggle para cambiar entre App normal y Demo
-const USE_DEMO_MODE = true; // Cambia a false para usar MainApp original
+const USE_DEMO_MODE = false; // Cambia a true para usar AppDemo, false para MainApp refactorizado
 
 function AppWithSync() {
   // Sincronizar contexto con mockAdapter

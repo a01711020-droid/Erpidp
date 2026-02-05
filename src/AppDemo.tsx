@@ -1,14 +1,15 @@
 /**
  * APP DEMO - Entry Point para UI Demo
  * 
- * Usa AppSwitcher para navegar entre los 3 estados:
- * - app-full/
- * - app-empty/
- * - app-loading/
+ * DEPRECATED: Este archivo es obsoleto.
+ * Usa MainApp directamente desde /src/app/MainApp.tsx
+ * 
+ * Mantiene compatibilidad temporal pero redirige al nuevo sistema.
  */
 
-import AppSwitcher from "./AppSwitcher";
+import MainApp from "./app/MainApp";
 
 export default function AppDemo() {
-  return <AppSwitcher />;
+  console.warn("⚠️ AppDemo is deprecated. Use MainApp directly.");
+  return <MainApp />;
 }
