@@ -4,6 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { Badge } from "./components/ui/badge";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./components/ui/select";
 import { ViewState } from "@/app/components/states";
 import {
   PaymentManagementStateLoading,
@@ -11,6 +18,20 @@ import {
   PaymentManagementStateEmpty,
 } from "@/app/components/payment-management";
 import { purchaseOrdersPaymentMock } from "/spec/pagos/purchase-orders-payment.mock";
+import {
+  Upload,
+  DollarSign,
+  FileText,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Search,
+  X,
+  Receipt,
+  FileDown,
+  Plus,
+  Trash2,
+} from "lucide-react";
 
 interface Invoice {
   id: string;
@@ -328,7 +349,7 @@ export default function PaymentManagement({ initialState = "data" }: PaymentMana
 
     return (
       <span className="text-blue-600 font-semibold text-xs">
-        {diasRestantes} día{diasRestantes !== 1 ? 's' : ''}
+        {diasRestantes} d��a{diasRestantes !== 1 ? 's' : ''}
       </span>
     );
   };

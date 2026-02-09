@@ -3,7 +3,7 @@
  * Muestra el dashboard completo con todas las obras
  */
 
-import { Card } from "@/app/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -18,6 +18,8 @@ import {
   MapPin,
   Plus,
   ArrowRight,
+  Archive,
+  BarChart3,
 } from "lucide-react";
 import { obrasDashboardMock } from "/spec/dashboard/obras.mock";
 
