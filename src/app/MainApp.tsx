@@ -16,6 +16,8 @@ import SupplierManagement from "@/app/SupplierManagement";
 import PurchaseOrderManagement from "@/app/PurchaseOrderManagement";
 import MaterialRequisitions from "@/app/MaterialRequisitions";
 import PaymentManagement from "@/app/PaymentManagement";
+import Destajos from "@/app/Destajos";
+import DestajistasManagementWithStates from "@/app/components/DestajistasManagementWithStates";
 
 type Module =
   | "home"
@@ -25,7 +27,9 @@ type Module =
   | "payments"
   | "contract-tracking"
   | "expense-details"
-  | "supplier-management";
+  | "supplier-management"
+  | "destajos"
+  | "destajistas-management";
 
 export default function MainApp() {
   const [activeModule, setActiveModule] = useState<Module>("home");
@@ -68,6 +72,7 @@ export default function MainApp() {
               requisitions: "requisitions",
               purchases: "purchases",
               payments: "payments",
+              destajos: "destajos",
             };
             const mappedModule = moduleMap[mod];
             if (mappedModule) {
@@ -237,6 +242,25 @@ export default function MainApp() {
           </div>
           <PaymentManagement initialState="data" />
         </div>
+      );
+    }
+
+    // Destajos
+    if (activeModule === "destajos") {
+      return (
+        <Destajos
+          onBack={handleBackToHome}
+          onManageDestajistas={() => setActiveModule("destajistas-management")}
+        />
+      );
+    }
+
+    // Destajistas Management
+    if (activeModule === "destajistas-management") {
+      return (
+        <DestajistasManagementWithStates
+          onBack={() => setActiveModule("destajos")}
+        />
       );
     }
 

@@ -3,98 +3,26 @@
  * Muestra el dashboard completo con todas las obras
  */
 
-import { Card, CardContent } from "@/app/components/ui/card";
-import { Button } from "@/app/components/ui/button";
+import { Card } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
 import {
   Building2,
   TrendingUp,
+  TrendingDown,
   DollarSign,
+  FileText,
+  ShoppingCart,
+  Users,
+  Calendar,
+  MapPin,
   Plus,
-  Archive,
-  BarChart3,
+  ArrowRight,
 } from "lucide-react";
+import { obrasDashboardMock } from "/spec/dashboard/obras.mock";
 
-// DATOS MOCK COMPLETOS - 7 obras
-const mockWorks = [
-  {
-    code: "227",
-    name: "CASTELLO E - Tláhuac",
-    client: "Desarrolladora Inmobiliaria del Centro",
-    contractAmount: 5250000,
-    actualBalance: 1575000,
-    totalEstimates: 2100000,
-    totalExpenses: 525000,
-    resident: "Ing. Miguel Ángel Torres",
-    status: "Activa" as const,
-  },
-  {
-    code: "228",
-    name: "TORRE MILENIO - Ecatepec",
-    client: "Constructora del Valle SA",
-    contractAmount: 8900000,
-    actualBalance: 2670000,
-    totalEstimates: 3560000,
-    totalExpenses: 890000,
-    resident: "Arq. Laura Hernández",
-    status: "Activa" as const,
-  },
-  {
-    code: "229",
-    name: "RESIDENCIAL BOSQUES - Xochimilco",
-    client: "Inmobiliaria Bosques Verdes",
-    contractAmount: 12500000,
-    actualBalance: 3750000,
-    totalEstimates: 5000000,
-    totalExpenses: 1250000,
-    resident: "Ing. Carlos Mendoza",
-    status: "Activa" as const,
-  },
-  {
-    code: "230",
-    name: "PLAZA INSURGENTES - Iztapalapa",
-    client: "Grupo Comercial MX",
-    contractAmount: 6700000,
-    actualBalance: 2010000,
-    totalEstimates: 2680000,
-    totalExpenses: 670000,
-    resident: "Ing. Roberto Sánchez",
-    status: "Activa" as const,
-  },
-  {
-    code: "231",
-    name: "CONDOMINIO VALLE - Naucalpan",
-    client: "Desarrollos Metropolitanos",
-    contractAmount: 9200000,
-    actualBalance: 2760000,
-    totalEstimates: 3680000,
-    totalExpenses: 920000,
-    resident: "Arq. Patricia Gómez",
-    status: "Activa" as const,
-  },
-  {
-    code: "232",
-    name: "CORPORATIVO REFORMA - Cuauhtémoc",
-    client: "Corporativo Nacional",
-    contractAmount: 15800000,
-    actualBalance: 4740000,
-    totalEstimates: 6320000,
-    totalExpenses: 1580000,
-    resident: "Ing. Fernando Ruiz",
-    status: "Activa" as const,
-  },
-  {
-    code: "233",
-    name: "HOTEL GRAND - Benito Juárez",
-    client: "Hotelera Premium SA",
-    contractAmount: 11200000,
-    actualBalance: 3360000,
-    totalEstimates: 4480000,
-    totalExpenses: 1120000,
-    resident: "Arq. Mónica Flores",
-    status: "Activa" as const,
-  },
-];
+// DATOS MOCK COMPLETOS - 6 obras reales (importado desde spec)
+const mockWorks = obrasDashboardMock;
 
 interface DashboardStateDataProps {
   onSelectProject?: (projectId: string) => void;

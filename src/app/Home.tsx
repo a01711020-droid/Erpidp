@@ -9,9 +9,10 @@ import {
   Users,
   TrendingUp,
   Truck,
+  HardHat,
 } from "lucide-react";
 
-type Module = "dashboard" | "requisitions" | "purchases" | "payments" | "deliveries";
+type Module = "dashboard" | "requisitions" | "purchases" | "payments" | "deliveries" | "destajos";
 
 interface HomeProps {
   onSelectModule: (module: Module) => void;
@@ -74,6 +75,19 @@ const modules = [
     allowedRoles: ["admin", "pagos"],
   },
   {
+    id: "destajos" as Module,
+    title: "Control de Destajos",
+    description: "Gestión de destajos por obra, configuración de prototipos y captura semanal de avances",
+    icon: HardHat,
+    color: "from-teal-800 to-teal-900",
+    bgGradient: "from-teal-50 to-teal-100",
+    borderColor: "border-teal-300",
+    iconBg: "bg-teal-100",
+    iconColor: "text-teal-800",
+    hoverBorder: "hover:border-teal-500",
+    allowedRoles: ["admin", "residente"],
+  },
+  {
     id: "deliveries" as Module,
     title: "Módulo de Entregas",
     description: "Próximamente - Control de entregas y recepción de materiales en obra",
@@ -113,19 +127,19 @@ export default function Home({ onSelectModule, userRole, userName }: HomeProps) 
                 className="h-24 w-auto"
               />
             </div>
-            <h1 className="text-4xl font-bold text-white mb-4">
+            <h1 className="text-4xl font-bold text-white mb-4" style={{ fontFamily: "'Caveat', cursive" }}>
               Sistema de Gestión Empresarial
             </h1>
-            <p className="text-xl text-slate-300 mb-2">
+            <p className="text-xl text-slate-300 mb-2" style={{ fontFamily: "'Caveat', cursive" }}>
               IDP Construcción, Consultoría y Diseño
             </p>
             <div className="inline-flex items-center gap-2 bg-slate-700/50 px-4 py-2 rounded-full mt-4">
               <Users className="h-5 w-5 text-slate-300" />
-              <span className="text-slate-200">
+              <span className="text-slate-200" style={{ fontFamily: "'Caveat', cursive" }}>
                 Bienvenido, <span className="font-semibold text-white">{userName}</span>
               </span>
               <span className="text-slate-400">•</span>
-              <span className="text-slate-300 capitalize">
+              <span className="text-slate-300 capitalize" style={{ fontFamily: "'Caveat', cursive" }}>
                 {userRole === "admin"
                   ? "Administrador"
                   : userRole === "residente"
@@ -139,83 +153,107 @@ export default function Home({ onSelectModule, userRole, userName }: HomeProps) 
         </div>
       </div>
 
-      {/* Modules Selection */}
+      {/* Modules Selection - Círculos */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 mb-3">
+          <h2 className="text-4xl font-bold text-gray-900 mb-3" style={{ fontFamily: "'Caveat', cursive" }}>
             Selecciona un Módulo
           </h2>
-          <p className="text-lg text-gray-600">
+          <p className="text-xl text-gray-600" style={{ fontFamily: "'Caveat', cursive" }}>
             Elige el área del sistema que deseas gestionar
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-          {accessibleModules.map((module, index) => {
+        {/* 4 círculos arriba */}
+        <div className="flex justify-center gap-8 mb-12 flex-wrap">
+          {accessibleModules.slice(0, 4).map((module) => {
             const Icon = module.icon;
             const isComingSoon = module.comingSoon;
-            const isLastOdd = accessibleModules.length === 5 && index === 4;
             
             return (
-              <Card
+              <div
                 key={module.id}
-                className={`relative overflow-hidden border-2 ${module.borderColor} ${
-                  isComingSoon ? "opacity-75" : module.hoverBorder
-                } transition-all duration-300 ${
-                  isComingSoon ? "" : "hover:shadow-2xl hover:scale-[1.02] cursor-pointer"
-                } group ${
-                  isLastOdd ? "md:col-span-2 md:max-w-md md:mx-auto" : ""
+                className={`flex flex-col items-center ${
+                  isComingSoon ? "opacity-75" : "cursor-pointer"
                 }`}
                 onClick={() => !isComingSoon && onSelectModule(module.id)}
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${module.bgGradient} opacity-50`}></div>
-                <div className="relative p-8">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`p-4 ${module.iconBg} rounded-xl shadow-lg ${
-                      isComingSoon ? "" : "group-hover:scale-110"
-                    } transition-transform duration-300`}>
-                      <Icon className={`h-10 w-10 ${module.iconColor}`} />
-                    </div>
-                    {!isComingSoon && (
-                      <div className="bg-white rounded-full p-2 shadow-md group-hover:translate-x-1 transition-transform duration-300">
-                        <ArrowRight className={`h-6 w-6 ${module.iconColor}`} />
-                      </div>
-                    )}
-                    {isComingSoon && (
-                      <div className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                        PRÓXIMAMENTE
-                      </div>
-                    )}
+                <div
+                  className={`relative w-40 h-40 rounded-full border-4 ${module.borderColor} ${
+                    isComingSoon ? "" : module.hoverBorder + " hover:scale-110"
+                  } transition-all duration-300 shadow-xl flex items-center justify-center group`}
+                  style={{
+                    background: `linear-gradient(135deg, var(--tw-gradient-stops))`,
+                  }}
+                >
+                  <div className={`absolute inset-0 rounded-full bg-gradient-to-br ${module.bgGradient} opacity-90`}></div>
+                  <div className="relative z-10">
+                    <Icon className={`h-16 w-16 ${module.iconColor} ${
+                      isComingSoon ? "" : "group-hover:scale-125"
+                    } transition-transform duration-300`} />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                    {module.title}
-                  </h3>
-                  <p className="text-gray-600 leading-relaxed">
-                    {module.description}
-                  </p>
+                  {isComingSoon && (
+                    <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                      PRONTO
+                    </div>
+                  )}
                 </div>
-              </Card>
+                <h3
+                  className="mt-4 text-lg font-bold text-gray-900 text-center max-w-[160px]"
+                  style={{ fontFamily: "'Caveat', cursive", fontSize: "22px" }}
+                >
+                  {module.title}
+                </h3>
+              </div>
             );
           })}
         </div>
 
-        {/* No Access Message */}
-        {accessibleModules.length === 0 && (
-          <Card className="max-w-2xl mx-auto p-12">
-            <div className="text-center">
-              <div className="p-4 bg-orange-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-                <Building2 className="h-10 w-10 text-orange-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                Sin Módulos Disponibles
-              </h3>
-              <p className="text-gray-600">
-                Tu rol actual no tiene acceso a ningún módulo del sistema.
-                <br />
-                Por favor, contacta con el administrador.
-              </p>
-            </div>
-          </Card>
+        {/* 2 círculos abajo */}
+        {accessibleModules.length > 4 && (
+          <div className="flex justify-center gap-8 flex-wrap">
+            {accessibleModules.slice(4, 6).map((module) => {
+              const Icon = module.icon;
+              const isComingSoon = module.comingSoon;
+              
+              return (
+                <div
+                  key={module.id}
+                  className={`flex flex-col items-center ${
+                    isComingSoon ? "opacity-75" : "cursor-pointer"
+                  }`}
+                  onClick={() => !isComingSoon && onSelectModule(module.id)}
+                >
+                  <div
+                    className={`relative w-40 h-40 rounded-full border-4 ${module.borderColor} ${
+                      isComingSoon ? "" : module.hoverBorder + " hover:scale-110"
+                    } transition-all duration-300 shadow-xl flex items-center justify-center group`}
+                    style={{
+                      background: `linear-gradient(135deg, var(--tw-gradient-stops))`,
+                    }}
+                  >
+                    <div className={`absolute inset-0 rounded-full bg-gradient-to-br ${module.bgGradient} opacity-90`}></div>
+                    <div className="relative z-10">
+                      <Icon className={`h-16 w-16 ${module.iconColor} ${
+                        isComingSoon ? "" : "group-hover:scale-125"
+                      } transition-transform duration-300`} />
+                    </div>
+                    {isComingSoon && (
+                      <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                        PRONTO
+                      </div>
+                    )}
+                  </div>
+                  <h3
+                    className="mt-4 text-lg font-bold text-gray-900 text-center max-w-[160px]"
+                    style={{ fontFamily: "'Caveat', cursive", fontSize: "22px" }}
+                  >
+                    {module.title}
+                  </h3>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
