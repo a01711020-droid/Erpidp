@@ -259,3 +259,34 @@ class Pago(PagoBase):
     updatedAt: datetime = Field(alias="updated_at")
 
     model_config = {"from_attributes": True, "populate_by_name": True}
+
+
+class DestajoBase(BaseModel):
+    obraId: UUID = Field(alias="obra_id")
+    semana: str
+    fechaInicioSemana: date = Field(alias="fecha_inicio_semana")
+    fechaFinSemana: date = Field(alias="fecha_fin_semana")
+    monto: float
+    descripcion: Optional[str] = None
+    estado: str = "registrado"
+
+
+class DestajoCreate(DestajoBase):
+    pass
+
+
+class DestajoUpdate(BaseModel):
+    semana: Optional[str] = None
+    fechaInicioSemana: Optional[date] = Field(default=None, alias="fecha_inicio_semana")
+    fechaFinSemana: Optional[date] = Field(default=None, alias="fecha_fin_semana")
+    monto: Optional[float] = None
+    descripcion: Optional[str] = None
+    estado: Optional[str] = None
+
+
+class Destajo(DestajoBase):
+    id: UUID
+    createdAt: datetime = Field(alias="created_at")
+    updatedAt: datetime = Field(alias="updated_at")
+
+    model_config = {"from_attributes": True, "populate_by_name": True}

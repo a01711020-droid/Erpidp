@@ -45,6 +45,7 @@ class Obra(Base):
     requisiciones = relationship("Requisicion", back_populates="obra")
     ordenes_compra = relationship("OrdenCompra", back_populates="obra")
     pagos = relationship("Pago", back_populates="obra")
+    destajos = relationship("Destajo", back_populates="obra")
 
 
 class Proveedor(Base):
@@ -213,3 +214,27 @@ class Pago(Base):
     orden_compra = relationship("OrdenCompra", back_populates="pagos")
     proveedor = relationship("Proveedor", back_populates="pagos")
     obra = relationship("Obra", back_populates="pagos")
+
+
+class Destajo(Base):
+    __tablename__ = "destajos"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid())
+    obra_id = Column(UUID(as_uuid=True), ForeignKey("obras.id"), nullable=False)
+    semana = Column(String(20), nullable=False)
+    fecha_inicio_semana = Column(Date, nullable=False)
+    fecha_fin_semana = Column(Date, nullable=False)
+    monto = Column(Numeric(15, 2), nullable=False)
+    descripcion = Column(Text)
+    estado = Column(String(20), nullable=False, server_default="registrado")
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    __table_args__ = (
+        CheckConstraint(
+            "estado IN ('registrado','aprobado','pagado','cancelado')",
+            name="destajos_estado_check",
+        ),
+    )
+
+    obra = relationship("Obra", back_populates="destajos")

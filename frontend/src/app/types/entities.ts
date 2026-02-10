@@ -328,3 +328,30 @@ export interface PagoConRelaciones extends Pago {
 export interface RequisicionConRelaciones extends Requisicion {
   obra?: Obra;
 }
+
+// ============================================================================
+// DESTAJOS
+// SQL: destajos
+// ============================================================================
+export interface Destajo {
+  id: string;
+  obraId: string;
+  semana: string;
+  fechaInicioSemana: string;
+  fechaFinSemana: string;
+  monto: number;
+  descripcion: string | null;
+  estado: 'registrado' | 'aprobado' | 'pagado' | 'cancelado';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DestajoCreate {
+  obraId: string;
+  semana: string;
+  fechaInicioSemana: string;
+  fechaFinSemana: string;
+  monto: number;
+  descripcion?: string | null;
+  estado?: 'registrado' | 'aprobado' | 'pagado' | 'cancelado';
+}

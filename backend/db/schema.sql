@@ -154,3 +154,23 @@ create index if not exists idx_pagos_oc on pagos (orden_compra_id);
 create trigger trg_pagos_updated_at
 before update on pagos
 for each row execute function set_updated_at();
+
+create table if not exists destajos (
+  id uuid primary key default gen_random_uuid(),
+  obra_id uuid not null references obras(id),
+  semana varchar(20) not null,
+  fecha_inicio_semana date not null,
+  fecha_fin_semana date not null,
+  monto numeric(15,2) not null,
+  descripcion text,
+  estado varchar(20) not null default 'registrado' check (estado in ('registrado','aprobado','pagado','cancelado')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_destajos_obra on destajos (obra_id);
+create index if not exists idx_destajos_semana on destajos (fecha_inicio_semana);
+
+create trigger trg_destajos_updated_at
+before update on destajos
+for each row execute function set_updated_at();

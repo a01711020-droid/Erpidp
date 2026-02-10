@@ -2,38 +2,47 @@ import { PurchaseOrdersTable } from "@/ui/PurchaseOrdersTable";
 import { DestajosTable } from "@/ui/DestajosTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/ui/card";
 import { DollarSign, ShoppingCart, Users, TrendingUp } from "lucide-react";
+import { useDestajos, usePagos } from "@/core/hooks/useEntities";
 
 export default function ExpenseDetails() {
-  // Datos de gastos semanales (en producción vendrían del backend)
-  const weeklyExpenses = [
-    { week: "Semana 1", purchaseOrders: 125000, destajos: 45000, total: 170000 },
-    { week: "Semana 2", purchaseOrders: 180000, destajos: 52000, total: 232000 },
-    { week: "Semana 3", purchaseOrders: 95000, destajos: 38000, total: 133000 },
-    { week: "Semana 4", purchaseOrders: 220000, destajos: 61000, total: 281000 },
-    { week: "Semana 5", purchaseOrders: 145000, destajos: 47000, total: 192000 },
-    { week: "Semana 6", purchaseOrders: 198000, destajos: 55000, total: 253000 },
-    { week: "Semana 7", purchaseOrders: 175000, destajos: 49000, total: 224000 },
-    { week: "Semana 8", purchaseOrders: 210000, destajos: 58000, total: 268000 },
-  ];
+  const pagosQuery = usePagos();
+  const destajosQuery = useDestajos();
 
-  const totalPurchaseOrders = weeklyExpenses.reduce((sum, week) => sum + week.purchaseOrders, 0);
-  const totalDestajos = weeklyExpenses.reduce((sum, week) => sum + week.destajos, 0);
-  const totalExpenses = weeklyExpenses.reduce((sum, week) => sum + week.total, 0);
+  const totalPurchaseOrders = pagosQuery.data.reduce(
+    (sum, pago) => sum + Number(pago.monto),
+    0
+  );
+  const totalDestajos = destajosQuery.data.reduce(
+    (sum, destajo) => sum + Number(destajo.monto),
+    0
+  );
+  const totalExpenses = totalPurchaseOrders + totalDestajos;
+
+  const weeklyExpenses = [
+    ...pagosQuery.data.map((pago) => ({
+      week: pago.fechaProgramada || pago.fechaPago || "Sin fecha",
+      purchaseOrders: Number(pago.monto),
+      destajos: 0,
+      total: Number(pago.monto),
+    })),
+    ...destajosQuery.data.map((destajo) => ({
+      week: destajo.semana,
+      purchaseOrders: 0,
+      destajos: Number(destajo.monto),
+      total: Number(destajo.monto),
+    })),
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="mx-auto max-w-7xl space-y-6">
-        {/* Header */}
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">
-            Detalle de Gastos
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight">Detalle de Gastos</h1>
           <p className="text-muted-foreground">
             Información detallada de Órdenes de Compra y Destajos
           </p>
         </div>
 
-        {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardContent className="p-6">
@@ -84,7 +93,6 @@ export default function ExpenseDetails() {
           </Card>
         </div>
 
-        {/* Weekly Expenses Table */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -105,7 +113,7 @@ export default function ExpenseDetails() {
                 </thead>
                 <tbody className="divide-y">
                   {weeklyExpenses.map((expense, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
+                    <tr key={`${expense.week}-${index}`} className="hover:bg-gray-50">
                       <td className="p-3 font-medium">{expense.week}</td>
                       <td className="text-right p-3 text-blue-700">
                         ${expense.purchaseOrders.toLocaleString()}
@@ -120,15 +128,9 @@ export default function ExpenseDetails() {
                   ))}
                   <tr className="bg-slate-100 font-bold">
                     <td className="p-3">TOTALES</td>
-                    <td className="text-right p-3 text-blue-700">
-                      ${totalPurchaseOrders.toLocaleString()}
-                    </td>
-                    <td className="text-right p-3 text-purple-700">
-                      ${totalDestajos.toLocaleString()}
-                    </td>
-                    <td className="text-right p-3 text-emerald-700">
-                      ${totalExpenses.toLocaleString()}
-                    </td>
+                    <td className="text-right p-3 text-blue-700">${totalPurchaseOrders.toLocaleString()}</td>
+                    <td className="text-right p-3 text-purple-700">${totalDestajos.toLocaleString()}</td>
+                    <td className="text-right p-3 text-emerald-700">${totalExpenses.toLocaleString()}</td>
                   </tr>
                 </tbody>
               </table>
@@ -136,10 +138,7 @@ export default function ExpenseDetails() {
           </CardContent>
         </Card>
 
-        {/* Purchase Orders Table */}
         <PurchaseOrdersTable />
-
-        {/* Destajos Table */}
         <DestajosTable />
       </div>
     </div>

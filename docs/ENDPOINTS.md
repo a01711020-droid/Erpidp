@@ -100,3 +100,21 @@ Request:
   "estado": "programado"
 }
 ```
+
+## DESTAJOS
+
+### GET /api/v1/destajos?obra_id=<uuid>
+Lista destajos por obra (opcional) y paginación.
+
+### POST /api/v1/destajos
+```json
+{
+  "obra_id": "UUID",
+  "semana": "2026-S01",
+  "fecha_inicio_semana": "2026-01-06",
+  "fecha_fin_semana": "2026-01-12",
+  "monto": 12500.00,
+  "descripcion": "Cuadrilla albañilería",
+  "estado": "registrado"
+}
+```

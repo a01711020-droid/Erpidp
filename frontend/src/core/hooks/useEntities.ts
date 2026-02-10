@@ -14,6 +14,8 @@ import type {
   OrdenCompraUpdate,
   Pago,
   PagoCreate,
+  Destajo,
+  DestajoCreate,
 } from "@/app/types/entities";
 import { apiRequest, buildQuery } from "@/core/api/client";
 
@@ -199,4 +201,13 @@ export function usePagos(params?: ListParams) {
 
 export function useCreatePago() {
   return useApiCreate<PagoCreate, Pago>("/pagos");
+}
+
+
+export function useDestajos(params?: ListParams) {
+  return useApiList<Destajo>("/destajos", params);
+}
+
+export function useCreateDestajo() {
+  return useApiCreate<DestajoCreate, Destajo>("/destajos");
 }

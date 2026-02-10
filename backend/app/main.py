@@ -324,3 +324,27 @@ def delete_pago(pago_id: UUID, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Pago no encontrado")
     db.delete(pago)
     db.commit()
+
+
+@app.get("/api/v1/destajos")
+def list_destajos(
+    obra_id: UUID | None = Query(default=None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1),
+    db: Session = Depends(get_db),
+):
+    query = db.query(models.Destajo)
+    if obra_id:
+        query = query.filter(models.Destajo.obra_id == obra_id)
+    result = paginate(query.order_by(models.Destajo.fecha_inicio_semana.desc()), page, page_size)
+    result["data"] = [schemas.Destajo.model_validate(item) for item in result["data"]]
+    return result
+
+
+@app.post("/api/v1/destajos", response_model=schemas.Destajo)
+def create_destajo(payload: schemas.DestajoCreate, db: Session = Depends(get_db)):
+    destajo = models.Destajo(**payload.model_dump(by_alias=True))
+    db.add(destajo)
+    db.commit()
+    db.refresh(destajo)
+    return schemas.Destajo.model_validate(destajo)
