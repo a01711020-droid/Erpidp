@@ -1,23 +1,23 @@
 import { useEffect, useState } from "react";
-import { Button } from "./components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
-import { Badge } from "./components/ui/badge";
-import { ViewState } from "@/app/components/states";
+import { Button } from "@/ui/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/ui/ui/card";
+import { Badge } from "@/ui/ui/badge";
+import { ViewState } from "@/ui/states";
 import {
   PurchaseOrderStateLoading,
   PurchaseOrderStateError,
   PurchaseOrderStateEmpty,
-} from "@/app/components/purchase-order";
+} from "@/ui/purchase-order";
 import {
   PurchaseOrderForm,
   PurchaseOrder,
-} from "./components/PurchaseOrderForm";
-import { PurchaseOrderPDF } from "./components/PurchaseOrderPDF";
-import { MaterialRequisition } from "./components/MaterialRequisitionForm";
-import { RequisitionsSection } from "./components/RequisitionsSection";
-import { SupplierManagement } from "./components/SupplierManagement";
-import { PasswordDialog } from "./components/PasswordDialog";
-import GestionProveedores from "./components/GestionProveedores";
+} from "@/ui/PurchaseOrderForm";
+import { PurchaseOrderPDF } from "@/ui/PurchaseOrderPDF";
+import { MaterialRequisition } from "@/ui/MaterialRequisitionForm";
+import { RequisitionsSection } from "@/ui/RequisitionsSection";
+import { SupplierManagement } from "@/ui/SupplierManagement";
+import { PasswordDialog } from "@/ui/PasswordDialog";
+import GestionProveedores from "@/ui/GestionProveedores";
 import { generatePurchaseOrderPDF } from "./utils/generatePurchaseOrderPDF";
 import { getInitials, getSupplierCode } from "./utils/codeGenerators";
 import {
@@ -55,14 +55,14 @@ import {
   Ban,
   BarChart3,
 } from "lucide-react";
-import { Input } from "./components/ui/input";
+import { Input } from "@/ui/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./components/ui/select";
+} from "@/ui/ui/select";
 
 // Función para regenerar el folio cuando cambian obra/comprador/proveedor
 const generateOrderNumber = (

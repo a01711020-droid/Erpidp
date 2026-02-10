@@ -1,25 +1,25 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ViewState } from "@/app/components/states";
+import { ViewState } from "@/ui/states";
 import {
   DestajosStateLoading,
   DestajosStateEmpty,
   DestajosStateError,
-} from "@/app/components/destajos";
-import CatalogoImportExport from "@/app/components/CatalogoImportExport";
-import CatalogoImporter from "@/app/components/CatalogoImporter";
-import ResumenDestajosWithStates from "@/app/components/ResumenDestajosWithStates";
-import { Card } from "@/app/components/ui/card";
-import { Button } from "@/app/components/ui/button";
-import { Input } from "@/app/components/ui/input";
-import { Label } from "@/app/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
+} from "@/ui/destajos";
+import CatalogoImportExport from "@/ui/CatalogoImportExport";
+import CatalogoImporter from "@/ui/CatalogoImporter";
+import ResumenDestajosWithStates from "@/ui/ResumenDestajosWithStates";
+import { Card } from "@/ui/ui/card";
+import { Button } from "@/ui/ui/button";
+import { Input } from "@/ui/ui/input";
+import { Label } from "@/ui/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/ui/ui/tabs";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/app/components/ui/select";
+} from "@/ui/ui/select";
 import {
   Table,
   TableBody,
@@ -27,7 +27,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/app/components/ui/table";
+} from "@/ui/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -35,12 +35,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/app/components/ui/dialog";
+} from "@/ui/ui/dialog";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/app/components/ui/collapsible";
+} from "@/ui/ui/collapsible";
 import {
   HardHat,
   ArrowLeft,

@@ -1,22 +1,22 @@
 import { useEffect, useState } from "react";
-import { Button } from "./components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
-import { Badge } from "./components/ui/badge";
-import { Input } from "./components/ui/input";
-import { Label } from "./components/ui/label";
+import { Button } from "@/ui/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/ui/ui/card";
+import { Badge } from "@/ui/ui/badge";
+import { Input } from "@/ui/ui/input";
+import { Label } from "@/ui/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./components/ui/select";
-import { ViewState } from "@/app/components/states";
+} from "@/ui/ui/select";
+import { ViewState } from "@/ui/states";
 import {
   PaymentManagementStateLoading,
   PaymentManagementStateError,
   PaymentManagementStateEmpty,
-} from "@/app/components/payment-management";
+} from "@/ui/payment-management";
 import {
   useObras,
   useOrdenesCompra,

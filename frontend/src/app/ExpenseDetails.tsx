@@ -1,6 +1,6 @@
-import { PurchaseOrdersTable } from "./components/PurchaseOrdersTable";
-import { DestajosTable } from "./components/DestajosTable";
-import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
+import { PurchaseOrdersTable } from "@/ui/PurchaseOrdersTable";
+import { DestajosTable } from "@/ui/DestajosTable";
+import { Card, CardContent, CardHeader, CardTitle } from "@/ui/ui/card";
 import { DollarSign, ShoppingCart, Users, TrendingUp } from "lucide-react";
 
 export default function ExpenseDetails() {

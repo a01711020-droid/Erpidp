@@ -6,11 +6,11 @@
  */
 
 import { useEffect, useState } from "react";
-import { Button } from "@/app/components/ui/button";
-import { Input } from "@/app/components/ui/input";
-import { Label } from "@/app/components/ui/label";
-import { Textarea } from "@/app/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { Button } from "@/ui/ui/button";
+import { Input } from "@/ui/ui/input";
+import { Label } from "@/ui/ui/label";
+import { Textarea } from "@/ui/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/ui/ui/card";
 import {
   Table,
   TableBody,
@@ -18,8 +18,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/app/components/ui/table";
-import { Badge } from "@/app/components/ui/badge";
+} from "@/ui/ui/table";
+import { Badge } from "@/ui/ui/badge";
 import { 
   Plus, 
   Edit, 

@@ -1,18 +1,18 @@
-import { ContractHeader } from "./components/ContractHeader";
-import { EstimationsTable } from "./components/EstimationsTable";
-import { WeeklyExpenses } from "./components/WeeklyExpenses";
-import { WeeklyExpensesDetail } from "./components/WeeklyExpensesDetail";
-import { EstimationForm, EstimationFormData } from "./components/EstimationForm";
-import { ViewState } from "@/app/components/states";
+import { ContractHeader } from "@/ui/ContractHeader";
+import { EstimationsTable } from "@/ui/EstimationsTable";
+import { WeeklyExpenses } from "@/ui/WeeklyExpenses";
+import { WeeklyExpensesDetail } from "@/ui/WeeklyExpensesDetail";
+import { EstimationForm, EstimationFormData } from "@/ui/EstimationForm";
+import { ViewState } from "@/ui/states";
 import {
   ContractTrackingStateLoading,
   ContractTrackingStateError,
   ContractTrackingStateEmpty,
-} from "@/app/components/contract-tracking";
+} from "@/ui/contract-tracking";
 import { HardHat, AlertCircle, TrendingUp, Plus, FileText, BarChart3, Calculator } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
-import { Badge } from "./components/ui/badge";
-import { Button } from "./components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/ui/ui/card";
+import { Badge } from "@/ui/ui/badge";
+import { Button } from "@/ui/ui/button";
 import { useEffect, useMemo, useState } from "react";
 import { useObras, usePagos } from "@/core/hooks/useEntities";
 

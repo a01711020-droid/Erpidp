@@ -1,15 +1,15 @@
 import { useState } from "react";
-import { Card } from "@/app/components/ui/card";
-import { Button } from "@/app/components/ui/button";
-import { Input } from "@/app/components/ui/input";
-import { Label } from "@/app/components/ui/label";
+import { Card } from "@/ui/ui/card";
+import { Button } from "@/ui/ui/button";
+import { Input } from "@/ui/ui/input";
+import { Label } from "@/ui/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/app/components/ui/select";
+} from "@/ui/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/app/components/ui/dialog";
+} from "@/ui/ui/dialog";
 import { ArrowLeft, Plus, Trash2, AlertCircle, Users } from "lucide-react";
 
 interface Destajista {

@@ -3,13 +3,13 @@
  * Sistema consolidado con estado real
  */
 
-import { ViewState } from "@/app/components/states";
+import { ViewState } from "@/ui/states";
 import {
   DashboardStateLoading,
   DashboardStateError,
   DashboardStateEmpty,
   DashboardStateData,
-} from "@/app/components/global-dashboard";
+} from "@/ui/global-dashboard";
 import { useObras } from "@/core/hooks/useEntities";
 
 interface GlobalDashboardProps {

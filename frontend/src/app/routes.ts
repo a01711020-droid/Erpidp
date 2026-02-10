@@ -45,6 +45,12 @@ import RequisicionDetail from "./pages/requisiciones/RequisicionDetail";
 // Páginas de error
 import NotFoundPage from "./pages/NotFoundPage";
 
+import RequisicionesPage from "@/pages/RequisicionesPage";
+import ComprasPage from "@/pages/ComprasPage";
+import PagosPage from "@/pages/PagosPage";
+import ProveedoresPage from "@/pages/ProveedoresPage";
+import ObrasPage from "@/pages/ObrasPage";
+
 // ==================== CONFIGURACIÓN DE RUTAS ====================
 
 export const router = createBrowserRouter([
@@ -186,6 +192,27 @@ export const router = createBrowserRouter([
     ],
   },
   
+  {
+    path: "/obras",
+    Component: ObrasPage,
+  },
+  {
+    path: "/proveedores",
+    Component: ProveedoresPage,
+  },
+  {
+    path: "/ordenes-compra",
+    Component: ComprasPage,
+  },
+  {
+    path: "/pagos-page",
+    Component: PagosPage,
+  },
+  {
+    path: "/requisiciones-page",
+    Component: RequisicionesPage,
+  },
+
   // ========== PÁGINA NO ENCONTRADA ==========
   {
     path: "*",

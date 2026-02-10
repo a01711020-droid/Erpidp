@@ -1,19 +1,19 @@
 import { useEffect, useState } from "react";
-import { Button } from "./components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
-import { Badge } from "./components/ui/badge";
-import { Input } from "./components/ui/input";
-import { Label } from "./components/ui/label";
-import { ViewState } from "@/app/components/states";
+import { Button } from "@/ui/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/ui/ui/card";
+import { Badge } from "@/ui/ui/badge";
+import { Input } from "@/ui/ui/input";
+import { Label } from "@/ui/ui/label";
+import { ViewState } from "@/ui/states";
 import {
   MaterialRequisitionsStateLoading,
   MaterialRequisitionsStateError,
   MaterialRequisitionsStateEmpty,
-} from "@/app/components/material-requisitions";
+} from "@/ui/material-requisitions";
 import {
   MaterialRequisitionForm,
   MaterialRequisition,
-} from "./components/MaterialRequisitionForm";
+} from "@/ui/MaterialRequisitionForm";
 import {
   Plus,
   MessageSquare,

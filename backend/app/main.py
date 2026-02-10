@@ -1,10 +1,14 @@
 from math import ceil
+from pathlib import Path
 from typing import Any
 from uuid import UUID
 
+from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, joinedload
+
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 from . import models, schemas
 from .db import get_db
