@@ -5,7 +5,7 @@
  * Catálogo completo de proveedores con:
  * - Lista de proveedores con búsqueda y filtros
  * - Formulario de creación/edición
- * - Autenticación por contraseña (idpjedi01)
+ * - Autenticación por contraseña (12345)
  * - Tres estados visuales: Loading, Empty, WithData
  */
 
@@ -182,7 +182,7 @@ function AuthDialog({ open, onClose, onAuthenticated }: AuthDialogProps) {
     
     // Mock authentication
     setTimeout(() => {
-      if (password === "idpjedi01") {
+      if (password === "12345") {
         onAuthenticated();
         setPassword("");
         setError("");

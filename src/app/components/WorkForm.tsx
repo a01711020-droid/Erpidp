@@ -3,6 +3,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { X } from "lucide-react";
+import { obrasApi } from "@/app/utils/api";
 
 export interface Work {
   code: string;
@@ -24,11 +25,12 @@ export interface Work {
 
 interface WorkFormProps {
   onClose: () => void;
-  onSave: (work: Work) => void;
+  onSave?: (work: Work) => void;
+  onSuccess?: () => void;
   editWork?: Work | null;
 }
 
-export function WorkForm({ onClose, onSave, editWork }: WorkFormProps) {
+export function WorkForm({ onClose, onSave, onSuccess, editWork }: WorkFormProps) {
   const [code, setCode] = useState(editWork?.code || "");
   const [name, setName] = useState(editWork?.name || "");
   const [client, setClient] = useState(editWork?.client || "");
@@ -42,8 +44,10 @@ export function WorkForm({ onClose, onSave, editWork }: WorkFormProps) {
   const [estimatedEndDate, setEstimatedEndDate] = useState(editWork?.estimatedEndDate || "");
   const [resident, setResident] = useState(editWork?.resident || "");
   const [residentInitials, setResidentInitials] = useState(editWork?.residentInitials || "");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const work: Work = {
       code,
       name,
@@ -61,8 +65,45 @@ export function WorkForm({ onClose, onSave, editWork }: WorkFormProps) {
       totalEstimates: editWork?.totalEstimates || 0,
       totalExpenses: editWork?.totalExpenses || 0,
     };
-    onSave(work);
-    onClose();
+
+    // Si hay callback onSave (modo legacy), usarlo
+    if (onSave) {
+      onSave(work);
+      onClose();
+      return;
+    }
+
+    // Si no, guardar en API
+    setLoading(true);
+    setError("");
+
+    try {
+      const obraData = {
+        codigo_obra: code,
+        nombre_obra: name,
+        cliente: client,
+        direccion: "", // No está en el form anterior pero lo dejamos vacío
+        residente: resident,
+        fecha_inicio: startDate,
+        fecha_fin_estimada: estimatedEndDate,
+        presupuesto_total: contractAmount,
+        estado: "activa",
+      };
+
+      const response = await obrasApi.create(obraData);
+
+      if (response.success) {
+        if (onSuccess) onSuccess();
+        onClose();
+      } else {
+        setError(response.error || "Error al crear la obra");
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error("Error al crear obra:", err);
+      setError("Error al crear la obra. Por favor intenta de nuevo.");
+      setLoading(false);
+    }
   };
 
   const isValid =
@@ -102,6 +143,13 @@ export function WorkForm({ onClose, onSave, editWork }: WorkFormProps) {
         {/* Form Content */}
         <div className="p-6 max-h-[calc(90vh-180px)] overflow-y-auto">
           <div className="space-y-6">
+            {/* Error message */}
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
             {/* Basic Info */}
             <div className="space-y-4">
               <h3 className="font-semibold text-lg border-b pb-2">Información Básica</h3>
@@ -291,15 +339,15 @@ export function WorkForm({ onClose, onSave, editWork }: WorkFormProps) {
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancelar
           </Button>
           <Button
             onClick={handleSave}
-            disabled={!isValid}
+            disabled={!isValid || loading}
             className="bg-indigo-600 hover:bg-indigo-700"
           >
-            {editWork ? "Guardar Cambios" : "Crear Obra"}
+            {loading ? "Guardando..." : editWork ? "Guardar Cambios" : "Crear Obra"}
           </Button>
         </div>
       </div>

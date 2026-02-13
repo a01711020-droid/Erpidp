@@ -18,6 +18,8 @@ import MaterialRequisitions from "@/app/MaterialRequisitions";
 import PaymentManagement from "@/app/PaymentManagement";
 import Destajos from "@/app/Destajos";
 import DestajistasManagementWithStates from "@/app/components/DestajistasManagementWithStates";
+import WarehouseManagement from "@/app/WarehouseManagement";
+import PersonalManagement from "@/app/PersonalManagement";
 
 type Module =
   | "home"
@@ -29,7 +31,9 @@ type Module =
   | "expense-details"
   | "supplier-management"
   | "destajos"
-  | "destajistas-management";
+  | "destajistas-management"
+  | "warehouse"
+  | "personal";
 
 export default function MainApp() {
   const [activeModule, setActiveModule] = useState<Module>("home");
@@ -73,6 +77,8 @@ export default function MainApp() {
               purchases: "purchases",
               payments: "payments",
               destajos: "destajos",
+              warehouse: "warehouse",
+              personal: "personal",
             };
             const mappedModule = moduleMap[mod];
             if (mappedModule) {
@@ -262,6 +268,16 @@ export default function MainApp() {
           onBack={() => setActiveModule("destajos")}
         />
       );
+    }
+
+    // Warehouse (Almacén)
+    if (activeModule === "warehouse") {
+      return <WarehouseManagement onBack={handleBackToHome} />;
+    }
+
+    // Personal
+    if (activeModule === "personal") {
+      return <PersonalManagement onBack={handleBackToHome} />;
     }
 
     return null;

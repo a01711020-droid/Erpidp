@@ -8,11 +8,12 @@ import {
   Building2,
   Users,
   TrendingUp,
-  Truck,
+  Warehouse,
   HardHat,
+  UserCog,
 } from "lucide-react";
 
-type Module = "dashboard" | "requisitions" | "purchases" | "payments" | "deliveries" | "destajos";
+type Module = "dashboard" | "requisitions" | "purchases" | "payments" | "warehouse" | "destajos" | "personal";
 
 interface HomeProps {
   onSelectModule: (module: Module) => void;
@@ -24,82 +25,87 @@ interface HomeProps {
 const modules = [
   {
     id: "dashboard" as Module,
-    title: "Dashboard Global",
-    description: "Vista general del sistema empresarial con todas las métricas y estadísticas",
+    title: "Panel General",
+    description: "Resumen ejecutivo de todas las obras y métricas empresariales",
     icon: LayoutDashboard,
-    color: "from-slate-800 to-slate-900",
-    bgGradient: "from-slate-100 to-slate-200",
-    borderColor: "border-slate-300",
-    iconBg: "bg-slate-200",
-    iconColor: "text-slate-800",
-    hoverBorder: "hover:border-slate-500",
+    colorFrom: "#64748b", // Gris pizarra
+    colorTo: "#475569", // Gris más oscuro (serio, ejecutivo)
+    iconBg: "bg-white",
+    shadowColor: "shadow-slate-200",
+    hoverShadow: "hover:shadow-slate-300",
     allowedRoles: ["admin"],
   },
   {
     id: "requisitions" as Module,
-    title: "Requisiciones de Material",
-    description: "Gestión de solicitudes de material desde obra con sistema de urgencia y aprobaciones",
+    title: "Requisiciones",
+    description: "Solicitudes de materiales desde obra con sistema de aprobaciones",
     icon: ClipboardList,
-    color: "from-amber-700 to-amber-800",
-    bgGradient: "from-amber-50 to-amber-100",
-    borderColor: "border-amber-300",
-    iconBg: "bg-amber-100",
-    iconColor: "text-amber-700",
-    hoverBorder: "hover:border-amber-500",
+    colorFrom: "#eab308", // Amarillo vibrante
+    colorTo: "#f97316", // Naranja (urgencia, materiales)
+    iconBg: "bg-white",
+    shadowColor: "shadow-amber-200",
+    hoverShadow: "hover:shadow-amber-300",
     allowedRoles: ["admin", "residente", "compras"],
   },
   {
     id: "purchases" as Module,
-    title: "Órdenes de Compra",
-    description: "Gestión completa de órdenes de compra, proveedores y generación de PDFs",
+    title: "Compras",
+    description: "Órdenes de compra, gestión de proveedores y generación de PDFs",
     icon: ShoppingCart,
-    color: "from-blue-700 to-blue-800",
-    bgGradient: "from-blue-50 to-blue-100",
-    borderColor: "border-blue-300",
-    iconBg: "bg-blue-100",
-    iconColor: "text-blue-700",
-    hoverBorder: "hover:border-blue-500",
+    colorFrom: "#3b82f6", // Azul cielo
+    colorTo: "#1d4ed8", // Azul más profundo (confianza, profesional)
+    iconBg: "bg-white",
+    shadowColor: "shadow-blue-200",
+    hoverShadow: "hover:shadow-blue-300",
     allowedRoles: ["admin", "compras"],
   },
   {
     id: "payments" as Module,
-    title: "Módulo de Pagos",
-    description: "Control de pagos a proveedores, vinculación con OCs y pagos parciales",
+    title: "Pagos",
+    description: "Control de pagos a proveedores y vinculación con órdenes de compra",
     icon: CreditCard,
-    color: "from-emerald-700 to-emerald-800",
-    bgGradient: "from-emerald-50 to-emerald-100",
-    borderColor: "border-emerald-300",
-    iconBg: "bg-emerald-100",
-    iconColor: "text-emerald-700",
-    hoverBorder: "hover:border-emerald-500",
+    colorFrom: "#22c55e", // Verde fresco
+    colorTo: "#16a34a", // Verde más profundo (dinero, finanzas)
+    iconBg: "bg-white",
+    shadowColor: "shadow-green-200",
+    hoverShadow: "hover:shadow-green-300",
     allowedRoles: ["admin", "pagos"],
   },
   {
     id: "destajos" as Module,
-    title: "Control de Destajos",
-    description: "Gestión de destajos por obra, configuración de prototipos y captura semanal de avances",
+    title: "Destajos",
+    description: "Gestión de destajos por obra y captura semanal de avances",
     icon: HardHat,
-    color: "from-teal-800 to-teal-900",
-    bgGradient: "from-teal-50 to-teal-100",
-    borderColor: "border-teal-300",
-    iconBg: "bg-teal-100",
-    iconColor: "text-teal-800",
-    hoverBorder: "hover:border-teal-500",
+    colorFrom: "#d97706", // Ámbar/Tierra
+    colorTo: "#92400e", // Marrón tierra (construcción, trabajo físico)
+    iconBg: "bg-white",
+    shadowColor: "shadow-amber-200",
+    hoverShadow: "hover:shadow-amber-300",
     allowedRoles: ["admin", "residente"],
   },
   {
-    id: "deliveries" as Module,
-    title: "Módulo de Entregas",
-    description: "Próximamente - Control de entregas y recepción de materiales en obra",
-    icon: Truck,
-    color: "from-orange-700 to-orange-800",
-    bgGradient: "from-orange-50 to-orange-100",
-    borderColor: "border-orange-300",
-    iconBg: "bg-orange-100",
-    iconColor: "text-orange-700",
-    hoverBorder: "hover:border-orange-500",
+    id: "warehouse" as Module,
+    title: "Almacén",
+    description: "Control de almacén, recepción de materiales y gestión de remisiones",
+    icon: Warehouse,
+    colorFrom: "#f97316", // Naranja
+    colorTo: "#ea580c", // Naranja profundo (almacén, materiales, logística)
+    iconBg: "bg-white",
+    shadowColor: "shadow-orange-200",
+    hoverShadow: "hover:shadow-orange-300",
     allowedRoles: ["admin"],
-    comingSoon: true,
+  },
+  {
+    id: "personal" as Module,
+    title: "Personal",
+    description: "Gestión de empleados y control de asignación a obras",
+    icon: UserCog,
+    colorFrom: "#a855f7", // Violeta
+    colorTo: "#7c3aed", // Morado (recursos humanos, personas)
+    iconBg: "bg-white",
+    shadowColor: "shadow-purple-200",
+    hoverShadow: "hover:shadow-purple-300",
+    allowedRoles: ["admin"],
   },
 ];
 
@@ -178,29 +184,30 @@ export default function Home({ onSelectModule, userRole, userName }: HomeProps) 
                 }`}
                 onClick={() => !isComingSoon && onSelectModule(module.id)}
               >
-                <div
-                  className={`relative w-40 h-40 rounded-full border-4 ${module.borderColor} ${
-                    isComingSoon ? "" : module.hoverBorder + " hover:scale-110"
-                  } transition-all duration-300 shadow-xl flex items-center justify-center group`}
-                  style={{
-                    background: `linear-gradient(135deg, var(--tw-gradient-stops))`,
-                  }}
-                >
-                  <div className={`absolute inset-0 rounded-full bg-gradient-to-br ${module.bgGradient} opacity-90`}></div>
-                  <div className="relative z-10">
-                    <Icon className={`h-16 w-16 ${module.iconColor} ${
-                      isComingSoon ? "" : "group-hover:scale-125"
+                <div className="relative">
+                  <div
+                    className={`w-28 h-28 rounded-full ${
+                      isComingSoon ? "" : "hover:scale-110"
+                    } transition-all duration-300 shadow-lg ${module.shadowColor} ${
+                      isComingSoon ? "" : module.hoverShadow
+                    } flex items-center justify-center group`}
+                    style={{
+                      background: `linear-gradient(135deg, ${module.colorFrom}, ${module.colorTo})`,
+                    }}
+                  >
+                    <Icon className={`h-12 w-12 text-white ${
+                      isComingSoon ? "" : "group-hover:scale-110"
                     } transition-transform duration-300`} />
                   </div>
                   {isComingSoon && (
-                    <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                    <div className="absolute top-1 right-1 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
                       PRONTO
                     </div>
                   )}
                 </div>
                 <h3
-                  className="mt-4 text-lg font-bold text-gray-900 text-center max-w-[160px]"
-                  style={{ fontFamily: "'Caveat', cursive", fontSize: "22px" }}
+                  className="mt-4 text-xl font-bold text-gray-900 text-center max-w-[140px]"
+                  style={{ fontFamily: "'Caveat', cursive", fontSize: "24px" }}
                 >
                   {module.title}
                 </h3>
@@ -209,10 +216,10 @@ export default function Home({ onSelectModule, userRole, userName }: HomeProps) 
           })}
         </div>
 
-        {/* 2 círculos abajo */}
+        {/* 3 círculos abajo */}
         {accessibleModules.length > 4 && (
           <div className="flex justify-center gap-8 flex-wrap">
-            {accessibleModules.slice(4, 6).map((module) => {
+            {accessibleModules.slice(4, 7).map((module) => {
               const Icon = module.icon;
               const isComingSoon = module.comingSoon;
               
@@ -224,29 +231,30 @@ export default function Home({ onSelectModule, userRole, userName }: HomeProps) 
                   }`}
                   onClick={() => !isComingSoon && onSelectModule(module.id)}
                 >
-                  <div
-                    className={`relative w-40 h-40 rounded-full border-4 ${module.borderColor} ${
-                      isComingSoon ? "" : module.hoverBorder + " hover:scale-110"
-                    } transition-all duration-300 shadow-xl flex items-center justify-center group`}
-                    style={{
-                      background: `linear-gradient(135deg, var(--tw-gradient-stops))`,
-                    }}
-                  >
-                    <div className={`absolute inset-0 rounded-full bg-gradient-to-br ${module.bgGradient} opacity-90`}></div>
-                    <div className="relative z-10">
-                      <Icon className={`h-16 w-16 ${module.iconColor} ${
-                        isComingSoon ? "" : "group-hover:scale-125"
+                  <div className="relative">
+                    <div
+                      className={`w-28 h-28 rounded-full ${
+                        isComingSoon ? "" : "hover:scale-110"
+                      } transition-all duration-300 shadow-lg ${module.shadowColor} ${
+                        isComingSoon ? "" : module.hoverShadow
+                      } flex items-center justify-center group`}
+                      style={{
+                        background: `linear-gradient(135deg, ${module.colorFrom}, ${module.colorTo})`,
+                      }}
+                    >
+                      <Icon className={`h-12 w-12 text-white ${
+                        isComingSoon ? "" : "group-hover:scale-110"
                       } transition-transform duration-300`} />
                     </div>
                     {isComingSoon && (
-                      <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                      <div className="absolute top-1 right-1 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
                         PRONTO
                       </div>
                     )}
                   </div>
                   <h3
-                    className="mt-4 text-lg font-bold text-gray-900 text-center max-w-[160px]"
-                    style={{ fontFamily: "'Caveat', cursive", fontSize: "22px" }}
+                    className="mt-4 text-xl font-bold text-gray-900 text-center max-w-[140px]"
+                    style={{ fontFamily: "'Caveat', cursive", fontSize: "24px" }}
                   >
                     {module.title}
                   </h3>

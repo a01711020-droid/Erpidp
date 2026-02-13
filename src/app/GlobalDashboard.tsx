@@ -11,6 +11,7 @@ import {
   DashboardStateEmpty,
   DashboardStateData,
 } from "@/app/components/global-dashboard";
+import { WorkForm } from "@/app/components/WorkForm";
 
 interface GlobalDashboardProps {
   onSelectProject?: (projectId: string) => void;
@@ -22,11 +23,25 @@ export default function GlobalDashboard({
   initialState = "data",
 }: GlobalDashboardProps) {
   const [viewState, setViewState] = useState<ViewState>(initialState);
+  const [showModal, setShowModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Handlers (placeholders sin lógica real)
+  // Handler para abrir modal de crear obra
   const handleCreateWork = () => {
-    console.log("Crear nueva obra");
-    // En producción: abrir modal/formulario
+    setShowModal(true);
+  };
+
+  // Handler para cerrar modal
+  const handleCloseModal = () => {
+    setShowModal(false);
+  };
+
+  // Handler cuando se crea la obra exitosamente
+  const handleObraCreada = () => {
+    setShowModal(false);
+    // Forzar re-render del dashboard
+    setRefreshKey(prev => prev + 1);
+    console.log("Obra creada exitosamente");
   };
 
   const handleRetry = () => {
@@ -48,14 +63,32 @@ export default function GlobalDashboard({
 
   // ESTADO: EMPTY
   if (viewState === "empty") {
-    return <DashboardStateEmpty onCreateWork={handleCreateWork} />;
+    return (
+      <>
+        <DashboardStateEmpty onCreateWork={handleCreateWork} />
+        {showModal && (
+          <WorkForm
+            onClose={handleCloseModal}
+            onSuccess={handleObraCreada}
+          />
+        )}
+      </>
+    );
   }
 
   // ESTADO: DATA
   return (
-    <DashboardStateData
-      onSelectProject={onSelectProject}
-      onCreateWork={handleCreateWork}
-    />
+    <>
+      <DashboardStateData
+        onSelectProject={onSelectProject}
+        onCreateWork={handleCreateWork}
+      />
+      {showModal && (
+        <WorkForm
+          onClose={handleCloseModal}
+          onSuccess={handleObraCreada}
+        />
+      )}
+    </>
   );
 }

@@ -778,7 +778,7 @@ export default function Destajos({
   };
 
   const handlePasswordSubmit = () => {
-    if (password === "idpjedi01") {
+    if (password === "12345") {
       setEditingCatalogo(true);
       setShowPasswordDialog(false);
       setPassword("");
