@@ -100,11 +100,11 @@ const modules = [
     title: "Personal",
     description: "Gestión de empleados y control de asignación a obras",
     icon: UserCog,
-    colorFrom: "#a855f7", // Violeta
-    colorTo: "#7c3aed", // Morado (recursos humanos, personas)
+    colorFrom: "#374151", // Gris oscuro (gray-700)
+    colorTo: "#111827", // Gris muy oscuro (gray-900)
     iconBg: "bg-white",
-    shadowColor: "shadow-purple-200",
-    hoverShadow: "hover:shadow-purple-300",
+    shadowColor: "shadow-gray-500/50",
+    hoverShadow: "hover:shadow-gray-600/60",
     allowedRoles: ["admin"],
   },
 ];

@@ -2421,88 +2421,59 @@ export default function Destajos({
           />
         ) : (
           <>
-            {/* Info Card - Importar/Exportar */}
-            <Card className="mb-6 bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
-          <div className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <FileSpreadsheet className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
-                  📋 Gestión de Catálogos de Conceptos
-                  <CatalogoImportExport
-                    catalogoConceptos={mockObras[0]?.catalogoConceptos || []}
-                    nombreObra={mockObras[0]?.nombre || ""}
-                    codigoObra={mockObras[0]?.codigo || ""}
-                  />
-                </h3>
-                <p className="text-sm text-blue-800 mb-3">
-                  Descarga el catálogo de conceptos en formato Excel con tabla formateada y colores profesionales.
-                </p>
-                <ul className="text-xs text-blue-700 space-y-1">
-                  <li>• <strong>Descargar:</strong> Haz clic en el ícono de descarga para exportar el catálogo con formato de tabla profesional, colores y estilos</li>
-                  <li>• <strong>Formato:</strong> Clave | Concepto | Prot 1 | Prot 2 | etc .. (header azul, secciones amarillas, conceptos alternados)</li>
-                  <li>• <strong>Extensible:</strong> Fácil de agregar más prototipos, conceptos y secciones directamente en Excel</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Project Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {mockObras.map((obra) => (
-            <Card
-              key={obra.id}
-              className="overflow-hidden hover:shadow-xl transition-shadow"
-            >
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-gray-900 mb-1">
-                      {obra.nombre}
-                    </h3>
-                    <p className="text-sm text-gray-600">{obra.codigo}</p>
-                  </div>
-                  <div className="p-2 bg-teal-100 rounded-lg">
-                    <Home className="h-5 w-5 text-teal-700" />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Número de Lotes:</span>
-                    <span className="font-semibold text-gray-900">
-                      {obra.totalLotes}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Total Pagado:</span>
-                    <span className="font-semibold text-emerald-700">
-                      ${(obra.totalPagado / 1000000).toFixed(2)}M
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Pagado esta Semana:</span>
-                    <span className="font-semibold text-blue-700">
-                      ${obra.pagadoSemana.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t bg-gray-50 px-6 py-3">
-                <Button
-                  onClick={() => handleSelectObra(obra)}
-                  className="w-full bg-teal-700 hover:bg-teal-800"
+            {/* Project Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {mockObras.map((obra) => (
+                <Card
+                  key={obra.id}
+                  className="overflow-hidden hover:shadow-xl transition-shadow"
                 >
-                  Ver Detalle
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
+                  <div className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-gray-900 mb-1">
+                          {obra.nombre}
+                        </h3>
+                        <p className="text-sm text-gray-600">{obra.codigo}</p>
+                      </div>
+                      <div className="p-2 bg-teal-100 rounded-lg">
+                        <Home className="h-5 w-5 text-teal-700" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Número de Lotes:</span>
+                        <span className="font-semibold text-gray-900">
+                          {obra.totalLotes}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Total Pagado:</span>
+                        <span className="font-semibold text-emerald-700">
+                          ${(obra.totalPagado / 1000000).toFixed(2)}M
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Pagado esta Semana:</span>
+                        <span className="font-semibold text-blue-700">
+                          ${obra.pagadoSemana.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t bg-gray-50 px-6 py-3">
+                    <Button
+                      onClick={() => handleSelectObra(obra)}
+                      className="w-full bg-teal-700 hover:bg-teal-800"
+                    >
+                      Ver Detalle
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
           </>
         )}
       </div>

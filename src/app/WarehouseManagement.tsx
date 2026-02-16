@@ -3,8 +3,9 @@
  * 
  * Módulo para el ALMACENISTA:
  * - Registro de órdenes de compra en formato tabla
- * - Expandir para ver materiales y marcar cantidades recibidas
- * - Inventario calculado automáticamente (recibido - enviado)
+ * - Marcar material recibido (con remisión)
+ * - Marcar material que salió
+ * - Inventario = Recibido - Salió
  */
 
 import { useState } from "react";
@@ -37,29 +38,34 @@ import {
   Search,
   ChevronDown,
   ChevronRight,
-  Eye,
-  TruckIcon,
+  Upload,
+  FileText,
+  Image as ImageIcon,
+  Minus,
 } from "lucide-react";
-import { Textarea } from "./components/ui/textarea";
 
 // Tipos
 interface OrderMaterial {
   id: string;
   descripcion: string;
-  cantidadOrdenada: number;
+  cantidad: number;
   unidad: string;
-  cantidadRecibida: number;
-  cantidadEnviada: number;
+  recibido: number;
+  salio: number;
   remision?: string;
+  remisionFoto?: string;
   fechaRecepcion?: string;
   notas?: string;
 }
 
 interface PurchaseOrder {
-  id: string; // Formato: 227-A01GM-CEMEX
-  workCode: string;
-  fechaCompra: string;
-  fechaPago?: string;
+  id: string;
+  fechaOC: string;
+  obra: string;
+  obraName: string;
+  fechaEntregaEsperada: string;
+  tipoEntrega: string;
+  total: number;
   materiales: OrderMaterial[];
   expanded: boolean;
 }
@@ -72,91 +78,96 @@ interface WarehouseManagementProps {
 const initialOrders: PurchaseOrder[] = [
   {
     id: "227-A01GM-CEMEX",
-    workCode: "227",
-    fechaCompra: "19/1/2025",
-    fechaPago: "22/1/2025",
+    fechaOC: "4/1/2025",
+    obra: "227",
+    obraName: "CASTELLO F",
+    fechaEntregaEsperada: "19/1/2025",
+    tipoEntrega: "Entrega",
+    total: 40078.0,
     expanded: false,
     materiales: [
       {
         id: "M001",
         descripcion: "Cemento Gris CPC 30R",
-        cantidadOrdenada: 300,
+        cantidad: 300,
         unidad: "BULTO",
-        cantidadRecibida: 300,
-        cantidadEnviada: 120,
+        recibido: 300,
+        salio: 120,
         remision: "REM-4521",
         fechaRecepcion: "23/1/2025",
-        notas: "",
       },
       {
         id: "M002",
         descripcion: "Arena fina de río",
-        cantidadOrdenada: 20,
+        cantidad: 20,
         unidad: "M3",
-        cantidadRecibida: 20,
-        cantidadEnviada: 8,
+        recibido: 20,
+        salio: 8,
         remision: "REM-4521",
         fechaRecepcion: "23/1/2025",
-        notas: "",
       },
       {
         id: "M003",
         descripcion: "Grava 3/4\"",
-        cantidadOrdenada: 15,
+        cantidad: 15,
         unidad: "M3",
-        cantidadRecibida: 15,
-        cantidadEnviada: 15,
+        recibido: 15,
+        salio: 15,
         remision: "REM-4522",
         fechaRecepcion: "24/1/2025",
-        notas: "",
       },
     ],
   },
   {
     id: "228-A01JR-INTERCERAMIC",
-    workCode: "228",
-    fechaCompra: "24/1/2025",
-    fechaPago: "27/1/2025",
+    fechaOC: "4/1/2025",
+    obra: "228",
+    obraName: "CASTELLO G",
+    fechaEntregaEsperada: "24/1/2025",
+    tipoEntrega: "Entrega",
+    total: 89450.0,
     expanded: false,
     materiales: [
       {
         id: "M004",
         descripcion: "Piso porcelanato 60x60 gris",
-        cantidadOrdenada: 150,
+        cantidad: 150,
         unidad: "M2",
-        cantidadRecibida: 150,
-        cantidadEnviada: 0,
+        recibido: 150,
+        salio: 0,
         remision: "REM-8841",
+        remisionFoto: "FOTO-interceramic_001.jpg",
         fechaRecepcion: "28/1/2025",
-        notas: "",
       },
       {
         id: "M005",
         descripcion: "Adhesivo para porcelanato",
-        cantidadOrdenada: 50,
+        cantidad: 50,
         unidad: "BULTO",
-        cantidadRecibida: 50,
-        cantidadEnviada: 15,
+        recibido: 50,
+        salio: 15,
         remision: "REM-8841",
         fechaRecepcion: "28/1/2025",
-        notas: "",
       },
     ],
   },
   {
     id: "229-A01GM-BEREL",
-    workCode: "229",
-    fechaCompra: "17/1/2025",
-    fechaPago: "20/1/2025",
+    fechaOC: "3/1/2025",
+    obra: "229",
+    obraName: "CASTELLO H",
+    fechaEntregaEsperada: "17/1/2025",
+    tipoEntrega: "Recolección",
+    total: 25600.0,
     expanded: false,
     materiales: [
       {
         id: "M006",
         descripcion: "Pintura Vinílica Blanco 19L",
-        cantidadOrdenada: 30,
+        cantidad: 30,
         unidad: "CUBETA",
-        cantidadRecibida: 20,
-        cantidadEnviada: 0,
+        recibido: 20,
+        salio: 0,
         remision: "REM-5521",
         fechaRecepcion: "21/1/2025",
         notas: "Recepción parcial. Faltan 10 cubetas.",
@@ -164,71 +175,111 @@ const initialOrders: PurchaseOrder[] = [
       {
         id: "M007",
         descripcion: "Sellador acrílico 19L",
-        cantidadOrdenada: 20,
+        cantidad: 20,
         unidad: "CUBETA",
-        cantidadRecibida: 20,
-        cantidadEnviada: 8,
+        recibido: 20,
+        salio: 8,
         remision: "REM-5521",
         fechaRecepcion: "21/1/2025",
-        notas: "",
       },
     ],
   },
   {
     id: "231-A01RS-CEMEX",
-    workCode: "231",
-    fechaCompra: "27/1/2025",
-    fechaPago: "30/1/2025",
+    fechaOC: "5/1/2025",
+    obra: "231",
+    obraName: "DOZA A",
+    fechaEntregaEsperada: "27/1/2025",
+    tipoEntrega: "Entrega",
+    total: 32500.0,
     expanded: false,
     materiales: [
       {
         id: "M008",
         descripcion: "Cemento Gris CPC 30R",
-        cantidadOrdenada: 200,
+        cantidad: 200,
         unidad: "BULTO",
-        cantidadRecibida: 0,
-        cantidadEnviada: 0,
-        notas: "Pedido pagado. Pendiente de recibir.",
+        recibido: 0,
+        salio: 0,
+        notas: "Pendiente de recibir",
       },
       {
         id: "M009",
         descripcion: "Arena fina de río",
-        cantidadOrdenada: 15,
+        cantidad: 15,
         unidad: "M3",
-        cantidadRecibida: 0,
-        cantidadEnviada: 0,
-        notas: "Pedido pagado. Pendiente de recibir.",
+        recibido: 0,
+        salio: 0,
+        notas: "Pendiente de recibir",
       },
     ],
   },
   {
-    id: "230-A02RS-ACEROS",
-    workCode: "230",
-    fechaCompra: "3/2/2025",
-    fechaPago: "6/2/2025",
+    id: "232-A02LM-COMEX",
+    fechaOC: "6/1/2025",
+    obra: "232",
+    obraName: "BALVANERA",
+    fechaEntregaEsperada: "14/2/2025",
+    tipoEntrega: "Entrega",
+    total: 18900.0,
     expanded: false,
     materiales: [
       {
         id: "M010",
-        descripcion: "Varilla 3/8\" 12m",
-        cantidadOrdenada: 200,
-        unidad: "PIEZA",
-        cantidadRecibida: 150,
-        cantidadEnviada: 0,
-        remision: "REM-7745",
-        fechaRecepcion: "8/2/2025",
-        notas: "Recepción parcial. Faltan 50 piezas.",
+        descripcion: "Pintura esmalte rojo 19L",
+        cantidad: 25,
+        unidad: "CUBETA",
+        recibido: 0,
+        salio: 0,
+        notas: "Pendiente de recibir",
       },
       {
         id: "M011",
-        descripcion: "Alambre recocido calibre 18",
-        cantidadOrdenada: 100,
+        descripcion: "Thinner estándar",
+        cantidad: 40,
+        unidad: "LITRO",
+        recibido: 0,
+        salio: 0,
+        notas: "Pendiente de recibir",
+      },
+    ],
+  },
+  {
+    id: "230-A03GM-FERREMAX",
+    fechaOC: "7/1/2025",
+    obra: "230",
+    obraName: "DOZA C",
+    fechaEntregaEsperada: "20/2/2025",
+    tipoEntrega: "Recolección",
+    total: 12450.0,
+    expanded: false,
+    materiales: [
+      {
+        id: "M012",
+        descripcion: "Varilla corrugada 3/8\"",
+        cantidad: 500,
+        unidad: "PIEZA",
+        recibido: 0,
+        salio: 0,
+        notas: "Pendiente de recibir",
+      },
+      {
+        id: "M013",
+        descripcion: "Alambre recocido #18",
+        cantidad: 30,
         unidad: "KG",
-        cantidadRecibida: 100,
-        cantidadEnviada: 30,
-        remision: "REM-7746",
-        fechaRecepcion: "8/2/2025",
-        notas: "",
+        recibido: 0,
+        salio: 0,
+        notas: "Pendiente de recibir",
+      },
+      {
+        id: "M014",
+        descripcion: "Alambrón 1/4\"",
+        cantidad: 200,
+        unidad: "PIEZA",
+        recibido: 0,
+        salio: 0,
+        notas: "Pendiente de recibir",
       },
     ],
   },
@@ -241,7 +292,7 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
 
   // Dialogs
   const [showReceiveDialog, setShowReceiveDialog] = useState(false);
-  const [showSendDialog, setShowSendDialog] = useState(false);
+  const [showSalidaDialog, setShowSalidaDialog] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<{
     orderId: string;
     material: OrderMaterial;
@@ -250,12 +301,13 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
   const [receiveForm, setReceiveForm] = useState({
     cantidad: "",
     remision: "",
+    fechaRecepcion: new Date().toISOString().split("T")[0], // Hoy por defecto, pero editable
     notas: "",
+    foto: null as File | null,
   });
 
-  const [sendForm, setSendForm] = useState({
+  const [salidaForm, setSalidaForm] = useState({
     cantidad: "",
-    transportista: "",
     notas: "",
   });
 
@@ -266,10 +318,25 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
     );
   };
 
-  // Marcar recepción
-  const handleReceive = () => {
+  // Abrir dialog de recibir
+  const handleOpenReceive = (orderId: string, material: OrderMaterial) => {
+    setSelectedMaterial({ orderId, material });
+    setReceiveForm({ cantidad: "", remision: "", fechaRecepcion: new Date().toISOString().split("T")[0], notas: "", foto: null });
+    setShowReceiveDialog(true);
+  };
+
+  // Abrir dialog de salida
+  const handleOpenSalida = (orderId: string, material: OrderMaterial) => {
+    setSelectedMaterial({ orderId, material });
+    setSalidaForm({ cantidad: "", notas: "" });
+    setShowSalidaDialog(true);
+  };
+
+  // Guardar recepción
+  const handleSaveReceive = () => {
     if (!selectedMaterial) return;
-    const cantidad = parseInt(receiveForm.cantidad);
+    const cantidad = parseFloat(receiveForm.cantidad);
+    if (isNaN(cantidad) || cantidad <= 0) return;
 
     setOrders(
       orders.map((order) => {
@@ -280,9 +347,12 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
               mat.id === selectedMaterial.material.id
                 ? {
                     ...mat,
-                    cantidadRecibida: mat.cantidadRecibida + cantidad,
+                    recibido: mat.recibido + cantidad,
                     remision: receiveForm.remision || mat.remision,
-                    fechaRecepcion: new Date().toLocaleDateString("es-MX"),
+                    remisionFoto: receiveForm.foto
+                      ? `FOTO-${receiveForm.foto.name}`
+                      : mat.remisionFoto,
+                    fechaRecepcion: receiveForm.fechaRecepcion,
                     notas: receiveForm.notas || mat.notas,
                   }
                 : mat
@@ -295,13 +365,13 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
 
     setShowReceiveDialog(false);
     setSelectedMaterial(null);
-    setReceiveForm({ cantidad: "", remision: "", notas: "" });
   };
 
-  // Marcar envío
-  const handleSend = () => {
+  // Guardar salida
+  const handleSaveSalida = () => {
     if (!selectedMaterial) return;
-    const cantidad = parseInt(sendForm.cantidad);
+    const cantidad = parseFloat(salidaForm.cantidad);
+    if (isNaN(cantidad) || cantidad <= 0) return;
 
     setOrders(
       orders.map((order) => {
@@ -312,8 +382,8 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
               mat.id === selectedMaterial.material.id
                 ? {
                     ...mat,
-                    cantidadEnviada: mat.cantidadEnviada + cantidad,
-                    notas: sendForm.notas || mat.notas,
+                    salio: mat.salio + cantidad,
+                    notas: salidaForm.notas || mat.notas,
                   }
                 : mat
             ),
@@ -323,9 +393,8 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
       })
     );
 
-    setShowSendDialog(false);
+    setShowSalidaDialog(false);
     setSelectedMaterial(null);
-    setSendForm({ cantidad: "", transportista: "", notas: "" });
   };
 
   // Calcular inventario
@@ -334,26 +403,26 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
 
     orders.forEach((order) => {
       order.materiales.forEach((mat) => {
-        const enBodega = mat.cantidadRecibida - mat.cantidadEnviada;
-        if (enBodega > 0) {
+        const queda = mat.recibido - mat.salio;
+        if (queda > 0) {
           const key = `${mat.descripcion}-${mat.unidad}`;
           if (inventarioMap.has(key)) {
             const existing = inventarioMap.get(key);
-            existing.cantidad += enBodega;
+            existing.cantidad += queda;
             existing.ubicaciones.push({
               oc: order.id,
-              cantidad: enBodega,
+              cantidad: queda,
               fechaRecepcion: mat.fechaRecepcion,
             });
           } else {
             inventarioMap.set(key, {
               descripcion: mat.descripcion,
               unidad: mat.unidad,
-              cantidad: enBodega,
+              cantidad: queda,
               ubicaciones: [
                 {
                   oc: order.id,
-                  cantidad: enBodega,
+                  cantidad: queda,
                   fechaRecepcion: mat.fechaRecepcion,
                 },
               ],
@@ -366,43 +435,40 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
     return Array.from(inventarioMap.values());
   };
 
+  // Filtros
+  const filteredOrders = orders.filter((order) => {
+    const matchesWork = selectedWork === "ALL" || order.obra === selectedWork;
+    const matchesSearch =
+      order.id.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesWork && matchesSearch;
+  });
+
+  const inventario = calcularInventario();
+
   // Alertas
-  const materialesPagadosSinRecibir = orders.flatMap((order) =>
+  const materialesSinRecibir = orders.flatMap((order) =>
     order.materiales
-      .filter((mat) => order.fechaPago && mat.cantidadRecibida === 0)
+      .filter((mat) => mat.recibido === 0)
       .map((mat) => ({
         oc: order.id,
         material: mat.descripcion,
-        cantidadOrdenada: mat.cantidadOrdenada,
+        cantidad: mat.cantidad,
         unidad: mat.unidad,
-        fechaPago: order.fechaPago,
       }))
   );
 
   const recepcionParcial = orders.flatMap((order) =>
     order.materiales
-      .filter(
-        (mat) =>
-          mat.cantidadRecibida > 0 && mat.cantidadRecibida < mat.cantidadOrdenada
-      )
+      .filter((mat) => mat.recibido > 0 && mat.recibido < mat.cantidad)
       .map((mat) => ({
         oc: order.id,
         material: mat.descripcion,
-        cantidadOrdenada: mat.cantidadOrdenada,
-        cantidadRecibida: mat.cantidadRecibida,
-        faltante: mat.cantidadOrdenada - mat.cantidadRecibida,
+        ordenado: mat.cantidad,
+        recibido: mat.recibido,
+        faltante: mat.cantidad - mat.recibido,
         unidad: mat.unidad,
       }))
   );
-
-  // Filtros
-  const filteredOrders = orders.filter((order) => {
-    const matchesWork = selectedWork === "ALL" || order.workCode === selectedWork;
-    const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesWork && matchesSearch;
-  });
-
-  const inventario = calcularInventario();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
@@ -424,7 +490,7 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
                 <Warehouse className="h-10 w-10 text-white" />
                 <div>
                   <h1 className="text-3xl font-bold text-white">Almacén Central</h1>
-                  <p className="text-orange-100">Control de recepción y envío de materiales</p>
+                  <p className="text-orange-100">Control de recepción y salida de materiales</p>
                 </div>
               </div>
             </div>
@@ -434,57 +500,6 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="border-orange-200">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Órdenes Activas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-orange-700">{orders.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-orange-200">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Materiales en Bodega
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-orange-700">{inventario.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-orange-200">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Recepción Parcial
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-amber-600">
-                {recepcionParcial.length}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-orange-200">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Pagados Sin Recibir
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-red-600">
-                {materialesPagadosSinRecibir.length}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Filters */}
         <Card className="mb-6 border-orange-200">
           <CardContent className="pt-6">
@@ -493,7 +508,7 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Buscar por OC..."
+                    placeholder="Buscar por OC o proveedor..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -521,65 +536,64 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
         {/* Tabs */}
         <Tabs defaultValue="orders" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3 bg-orange-100">
-            <TabsTrigger value="orders">Registro de Órdenes de Compra</TabsTrigger>
-            <TabsTrigger value="inventory">Inventario en Bodega</TabsTrigger>
-            <TabsTrigger value="alerts">Alertas</TabsTrigger>
+            <TabsTrigger value="orders">Órdenes de Compra</TabsTrigger>
+            <TabsTrigger value="inventory">Inventario</TabsTrigger>
+            <TabsTrigger value="alerts">
+              Alertas
+              {(materialesSinRecibir.length + recepcionParcial.length > 0) && (
+                <Badge className="ml-2 bg-red-600 text-white">
+                  {materialesSinRecibir.length + recepcionParcial.length}
+                </Badge>
+              )}
+            </TabsTrigger>
           </TabsList>
 
-          {/* TAB 1: REGISTRO DE ÓRDENES */}
+          {/* TAB 1: ÓRDENES DE COMPRA */}
           <TabsContent value="orders">
             <Card className="border-orange-200">
               <CardContent className="p-0">
-                {/* Header de tabla */}
-                <div className="grid grid-cols-12 gap-4 p-4 bg-gray-100 border-b font-semibold text-sm text-gray-700">
+                {/* Header de tabla de OCs */}
+                <div className="grid grid-cols-10 gap-4 p-4 bg-gray-50 border-b font-semibold text-sm text-gray-700">
                   <div className="col-span-3">OC / Fecha</div>
-                  <div className="col-span-2">Fecha de Pago</div>
-                  <div className="col-span-7 text-right">Acciones</div>
+                  <div className="col-span-2">Obra</div>
+                  <div className="col-span-2">F. Entrega Esperada</div>
+                  <div className="col-span-2 text-center">Tipo</div>
+                  <div className="col-span-1 text-right">Acciones</div>
                 </div>
 
                 {/* Filas de órdenes */}
                 <div className="divide-y">
                   {filteredOrders.map((order) => (
                     <div key={order.id}>
-                      {/* Fila principal */}
-                      <div className="grid grid-cols-12 gap-4 p-4 hover:bg-orange-50 transition-colors">
+                      {/* Fila de OC */}
+                      <div className="grid grid-cols-10 gap-4 p-4 hover:bg-orange-50 transition-colors">
                         <div className="col-span-3">
                           <p className="font-semibold text-gray-900">{order.id}</p>
-                          <p className="text-sm text-gray-500">{order.fechaCompra}</p>
+                          <p className="text-xs text-gray-500">{order.fechaOC}</p>
                         </div>
                         <div className="col-span-2">
-                          {order.fechaPago ? (
-                            <div>
-                              <p className="text-sm font-medium text-green-700">
-                                {order.fechaPago}
-                              </p>
-                              <Badge className="bg-green-100 text-green-800 text-xs mt-1">
-                                Pagado
-                              </Badge>
-                            </div>
-                          ) : (
-                            <Badge variant="outline" className="text-xs">
-                              Pendiente Pago
-                            </Badge>
-                          )}
+                          <p className="text-sm font-medium text-gray-700">{order.obra}</p>
+                          <p className="text-xs text-gray-500">{order.obraName}</p>
                         </div>
-                        <div className="col-span-7 flex items-center justify-end gap-2">
+                        <div className="col-span-2">
+                          <p className="text-sm text-gray-700">{order.fechaEntregaEsperada}</p>
+                          <p className="text-xs text-gray-500">Programada</p>
+                        </div>
+                        <div className="col-span-2 text-center">
+                          <Badge variant="outline" className="text-xs">
+                            {order.tipoEntrega}
+                          </Badge>
+                        </div>
+                        <div className="col-span-1 text-right">
                           <Button
                             size="sm"
-                            variant="outline"
+                            variant="ghost"
                             onClick={() => toggleOrder(order.id)}
-                            className="gap-2"
                           >
                             {order.expanded ? (
-                              <>
-                                <ChevronDown className="h-4 w-4" />
-                                Ocultar Materiales
-                              </>
+                              <ChevronDown className="h-4 w-4" />
                             ) : (
-                              <>
-                                <ChevronRight className="h-4 w-4" />
-                                Ver Materiales
-                              </>
+                              <ChevronRight className="h-4 w-4" />
                             )}
                           </Button>
                         </div>
@@ -587,107 +601,118 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
 
                       {/* Tabla de materiales expandida */}
                       {order.expanded && (
-                        <div className="bg-gray-50 border-t border-b">
+                        <div className="bg-gray-50 border-t">
                           <div className="p-6">
-                            <h4 className="font-semibold text-gray-700 mb-4">Conceptos</h4>
-
                             {/* Header de tabla de materiales */}
                             <div className="bg-white rounded-lg border overflow-hidden">
-                              <div className="grid grid-cols-12 gap-4 p-3 bg-gray-100 border-b text-sm font-semibold text-gray-700">
-                                <div className="col-span-4">Descripción</div>
-                                <div className="col-span-2 text-center">Cantidad</div>
+                              <div className="grid grid-cols-12 gap-4 p-3 bg-gray-100 border-b text-xs font-semibold text-gray-700">
+                                <div className="col-span-3">Descripción</div>
+                                <div className="col-span-1 text-center">Cantidad</div>
                                 <div className="col-span-1 text-center">Unidad</div>
-                                <div className="col-span-2 text-center">Cant. Recibida</div>
-                                <div className="col-span-3 text-right">Acciones</div>
+                                <div className="col-span-1 text-center">Recibido</div>
+                                <div className="col-span-1 text-center">Salió</div>
+                                <div className="col-span-1 text-center">Queda</div>
+                                <div className="col-span-2">Remisión</div>
+                                <div className="col-span-2 text-right">Acciones</div>
                               </div>
 
                               {/* Materiales */}
                               <div className="divide-y">
                                 {order.materiales.map((mat) => {
-                                  const enBodega = mat.cantidadRecibida - mat.cantidadEnviada;
-                                  const faltante = mat.cantidadOrdenada - mat.cantidadRecibida;
+                                  const queda = mat.recibido - mat.salio;
+                                  const faltaRecibir = mat.cantidad - mat.recibido;
 
                                   return (
                                     <div
                                       key={mat.id}
                                       className="grid grid-cols-12 gap-4 p-3 hover:bg-gray-50"
                                     >
-                                      <div className="col-span-4">
+                                      <div className="col-span-3">
                                         <p className="text-sm font-medium text-gray-900">
                                           {mat.descripcion}
                                         </p>
                                         {mat.fechaRecepcion && (
                                           <p className="text-xs text-gray-500 mt-1">
                                             Recibido: {mat.fechaRecepcion}
-                                            {mat.remision && ` • Rem: ${mat.remision}`}
                                           </p>
                                         )}
                                         {mat.notas && (
-                                          <p className="text-xs text-amber-700 bg-amber-50 p-1 rounded mt-1">
+                                          <p className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded mt-1">
                                             {mat.notas}
                                           </p>
                                         )}
                                       </div>
-                                      <div className="col-span-2 text-center">
+                                      <div className="col-span-1 text-center">
                                         <p className="text-sm font-semibold text-gray-900">
-                                          {mat.cantidadOrdenada}
+                                          {mat.cantidad}
                                         </p>
                                       </div>
                                       <div className="col-span-1 text-center">
                                         <p className="text-sm text-gray-600">{mat.unidad}</p>
                                       </div>
-                                      <div className="col-span-2 text-center">
+                                      <div className="col-span-1 text-center">
                                         <p
                                           className={`text-sm font-bold ${
-                                            mat.cantidadRecibida >= mat.cantidadOrdenada
+                                            mat.recibido >= mat.cantidad
                                               ? "text-green-700"
-                                              : mat.cantidadRecibida > 0
+                                              : mat.recibido > 0
                                               ? "text-amber-700"
                                               : "text-gray-400"
                                           }`}
                                         >
-                                          {mat.cantidadRecibida}
+                                          {mat.recibido}
                                         </p>
-                                        {faltante > 0 && (
-                                          <p className="text-xs text-red-600 mt-1">
-                                            Faltan: {faltante}
-                                          </p>
+                                      </div>
+                                      <div className="col-span-1 text-center">
+                                        <p className="text-sm font-semibold text-red-700">
+                                          {mat.salio}
+                                        </p>
+                                      </div>
+                                      <div className="col-span-1 text-center">
+                                        <p
+                                          className={`text-sm font-bold ${
+                                            queda > 0 ? "text-blue-700" : "text-gray-400"
+                                          }`}
+                                        >
+                                          {queda}
+                                        </p>
+                                      </div>
+                                      <div className="col-span-2">
+                                        {mat.remision && (
+                                          <div className="flex items-center gap-1">
+                                            <FileText className="h-3 w-3 text-gray-500" />
+                                            <p className="text-xs text-gray-700">{mat.remision}</p>
+                                          </div>
                                         )}
-                                        {enBodega > 0 && (
-                                          <p className="text-xs text-blue-600 mt-1">
-                                            En bodega: {enBodega}
-                                          </p>
+                                        {mat.remisionFoto && (
+                                          <div className="flex items-center gap-1 mt-1">
+                                            <ImageIcon className="h-3 w-3 text-blue-500" />
+                                            <p className="text-xs text-blue-700">
+                                              {mat.remisionFoto}
+                                            </p>
+                                          </div>
+                                        )}
+                                        {!mat.remision && !mat.remisionFoto && (
+                                          <p className="text-xs text-gray-400">Sin remisión</p>
                                         )}
                                       </div>
-                                      <div className="col-span-3 flex items-center justify-end gap-2">
-                                        {faltante > 0 && (
+                                      <div className="col-span-2 flex items-center justify-end gap-2">
+                                        {faltaRecibir > 0 && (
                                           <Button
                                             size="sm"
-                                            onClick={() => {
-                                              setSelectedMaterial({
-                                                orderId: order.id,
-                                                material: mat,
-                                              });
-                                              setShowReceiveDialog(true);
-                                            }}
-                                            className="bg-green-600 hover:bg-green-700 text-xs"
+                                            onClick={() => handleOpenReceive(order.id, mat)}
+                                            className="bg-green-600 hover:bg-green-700 text-xs px-2 py-1 h-7"
                                           >
-                                            Recibir
+                                            + Recibir
                                           </Button>
                                         )}
-                                        {enBodega > 0 && (
+                                        {queda > 0 && (
                                           <Button
                                             size="sm"
-                                            onClick={() => {
-                                              setSelectedMaterial({
-                                                orderId: order.id,
-                                                material: mat,
-                                              });
-                                              setShowSendDialog(true);
-                                            }}
-                                            className="bg-purple-600 hover:bg-purple-700 text-xs"
+                                            onClick={() => handleOpenSalida(order.id, mat)}
+                                            className="bg-red-600 hover:bg-red-700 text-xs px-2 py-1 h-7"
                                           >
-                                            Enviar
+                                            - Salida
                                           </Button>
                                         )}
                                       </div>
@@ -710,7 +735,7 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
           <TabsContent value="inventory">
             <Card className="border-orange-200">
               <CardHeader>
-                <CardTitle>Material en Bodega</CardTitle>
+                <CardTitle>Inventario en Bodega</CardTitle>
               </CardHeader>
               <CardContent>
                 {inventario.length === 0 ? (
@@ -720,15 +745,6 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {/* Header */}
-                    <div className="grid grid-cols-12 gap-4 p-3 bg-gray-100 rounded-lg text-sm font-semibold text-gray-700">
-                      <div className="col-span-6">Descripción</div>
-                      <div className="col-span-2 text-center">Cantidad</div>
-                      <div className="col-span-1 text-center">Unidad</div>
-                      <div className="col-span-3">Ubicaciones</div>
-                    </div>
-
-                    {/* Items */}
                     {inventario.map((item, idx) => (
                       <div
                         key={idx}
@@ -770,31 +786,23 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
               <CardHeader>
                 <CardTitle className="text-red-900 flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5" />
-                  Pagados Sin Recibir ({materialesPagadosSinRecibir.length})
+                  Sin Recibir ({materialesSinRecibir.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {materialesPagadosSinRecibir.length === 0 ? (
-                  <p className="text-gray-600">✓ No hay materiales pendientes</p>
+                {materialesSinRecibir.length === 0 ? (
+                  <p className="text-gray-600">✓ Todos los materiales han sido recibidos</p>
                 ) : (
                   <div className="space-y-2">
-                    {materialesPagadosSinRecibir.map((item, idx) => (
+                    {materialesSinRecibir.map((item, idx) => (
                       <div
                         key={idx}
                         className="bg-white p-3 rounded-lg border border-red-300"
                       >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-semibold">{item.material}</p>
-                            <p className="text-sm text-gray-600">
-                              OC: {item.oc} • {item.cantidadOrdenada} {item.unidad}
-                            </p>
-                            <p className="text-xs text-green-700 mt-1">
-                              Pagado: {item.fechaPago}
-                            </p>
-                          </div>
-                          <Badge variant="destructive">URGENTE</Badge>
-                        </div>
+                        <p className="font-semibold">{item.material}</p>
+                        <p className="text-sm text-gray-600">
+                          OC: {item.oc} • {item.cantidad} {item.unidad}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -823,8 +831,8 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
                           <div>
                             <p className="font-semibold">{item.material}</p>
                             <p className="text-sm text-gray-600">
-                              OC: {item.oc} • Recibido: {item.cantidadRecibida}/
-                              {item.cantidadOrdenada} {item.unidad}
+                              OC: {item.oc} • Recibido: {item.recibido}/{item.ordenado}{" "}
+                              {item.unidad}
                             </p>
                           </div>
                           <Badge variant="outline" className="bg-amber-200">
@@ -847,7 +855,7 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
           <DialogHeader>
             <DialogTitle>Marcar Material Recibido</DialogTitle>
             <DialogDescription>
-              Registre la cantidad de material que acaba de recibir del proveedor
+              Registre la cantidad recibida y adjunte la remisión
             </DialogDescription>
           </DialogHeader>
 
@@ -856,13 +864,13 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
               <div className="bg-blue-50 p-3 rounded">
                 <p className="font-semibold">{selectedMaterial.material.descripcion}</p>
                 <p className="text-sm text-gray-600">
-                  Ordenado: {selectedMaterial.material.cantidadOrdenada}{" "}
+                  Ordenado: {selectedMaterial.material.cantidad}{" "}
                   {selectedMaterial.material.unidad}
                 </p>
                 <p className="text-sm text-red-600">
                   Falta recibir:{" "}
-                  {selectedMaterial.material.cantidadOrdenada -
-                    selectedMaterial.material.cantidadRecibida}{" "}
+                  {selectedMaterial.material.cantidad -
+                    selectedMaterial.material.recibido}{" "}
                   {selectedMaterial.material.unidad}
                 </p>
               </div>
@@ -875,6 +883,7 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
                   onChange={(e) =>
                     setReceiveForm({ ...receiveForm, cantidad: e.target.value })
                   }
+                  placeholder="0"
                 />
               </div>
 
@@ -890,13 +899,43 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
               </div>
 
               <div>
+                <Label>O adjuntar foto de remisión</Label>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    setReceiveForm({ ...receiveForm, foto: file || null });
+                  }}
+                  className="mt-1"
+                />
+                {receiveForm.foto && (
+                  <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                    <ImageIcon className="h-3 w-3" />
+                    {receiveForm.foto.name}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Label>Fecha de Recepción</Label>
+                <Input
+                  type="date"
+                  value={receiveForm.fechaRecepcion}
+                  onChange={(e) =>
+                    setReceiveForm({ ...receiveForm, fechaRecepcion: e.target.value })
+                  }
+                />
+              </div>
+
+              <div>
                 <Label>Notas</Label>
-                <Textarea
+                <Input
                   value={receiveForm.notas}
                   onChange={(e) =>
                     setReceiveForm({ ...receiveForm, notas: e.target.value })
                   }
-                  rows={3}
+                  placeholder="Opcional"
                 />
               </div>
             </div>
@@ -908,25 +947,27 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
               onClick={() => {
                 setShowReceiveDialog(false);
                 setSelectedMaterial(null);
-                setReceiveForm({ cantidad: "", remision: "", notas: "" });
               }}
             >
               Cancelar
             </Button>
-            <Button onClick={handleReceive} className="bg-green-600 hover:bg-green-700">
+            <Button
+              onClick={handleSaveReceive}
+              className="bg-green-600 hover:bg-green-700"
+            >
               Confirmar Recepción
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog - Enviar Material */}
-      <Dialog open={showSendDialog} onOpenChange={setShowSendDialog}>
+      {/* Dialog - Registrar Salida */}
+      <Dialog open={showSalidaDialog} onOpenChange={setShowSalidaDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Enviar Material a Obra</DialogTitle>
+            <DialogTitle>Registrar Salida de Material</DialogTitle>
             <DialogDescription>
-              Registre el material que está enviando desde el almacén hacia la obra
+              Registre la cantidad de material que salió del almacén
             </DialogDescription>
           </DialogHeader>
 
@@ -936,38 +977,31 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
                 <p className="font-semibold">{selectedMaterial.material.descripcion}</p>
                 <p className="text-sm text-gray-600">
                   Disponible:{" "}
-                  {selectedMaterial.material.cantidadRecibida -
-                    selectedMaterial.material.cantidadEnviada}{" "}
+                  {selectedMaterial.material.recibido - selectedMaterial.material.salio}{" "}
                   {selectedMaterial.material.unidad}
                 </p>
               </div>
 
               <div>
-                <Label>Cantidad a Enviar</Label>
+                <Label>Cantidad que Salió</Label>
                 <Input
                   type="number"
-                  value={sendForm.cantidad}
-                  onChange={(e) => setSendForm({ ...sendForm, cantidad: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <Label>Transportista</Label>
-                <Input
-                  value={sendForm.transportista}
+                  value={salidaForm.cantidad}
                   onChange={(e) =>
-                    setSendForm({ ...sendForm, transportista: e.target.value })
+                    setSalidaForm({ ...salidaForm, cantidad: e.target.value })
                   }
-                  placeholder="Nombre del transportista"
+                  placeholder="0"
                 />
               </div>
 
               <div>
                 <Label>Notas</Label>
-                <Textarea
-                  value={sendForm.notas}
-                  onChange={(e) => setSendForm({ ...sendForm, notas: e.target.value })}
-                  rows={3}
+                <Input
+                  value={salidaForm.notas}
+                  onChange={(e) =>
+                    setSalidaForm({ ...salidaForm, notas: e.target.value })
+                  }
+                  placeholder="Opcional"
                 />
               </div>
             </div>
@@ -977,16 +1011,18 @@ export default function WarehouseManagement({ onBack }: WarehouseManagementProps
             <Button
               variant="outline"
               onClick={() => {
-                setShowSendDialog(false);
+                setShowSalidaDialog(false);
                 setSelectedMaterial(null);
-                setSendForm({ cantidad: "", transportista: "", notas: "" });
               }}
             >
               Cancelar
             </Button>
-            <Button onClick={handleSend} className="bg-purple-600 hover:bg-purple-700">
-              <TruckIcon className="h-4 w-4 mr-2" />
-              Confirmar Envío
+            <Button
+              onClick={handleSaveSalida}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <Minus className="h-4 w-4 mr-2" />
+              Confirmar Salida
             </Button>
           </DialogFooter>
         </DialogContent>

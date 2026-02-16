@@ -40,6 +40,10 @@ import {
   Edit,
   DollarSign,
   Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Minus,
+  Plus,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { Textarea } from "./components/ui/textarea";
@@ -70,6 +74,19 @@ interface WeeklyRecord {
   observaciones: string;
   fechaInicio: string;
   fechaFin: string;
+}
+
+// Destajista para consolidado
+interface Destajista {
+  inicial: string;
+  nombre: string;
+  importe: number;
+}
+
+// Registro de personal para la semana actual (editable)
+interface PersonalWeekRecord {
+  empleadoId: string;
+  diasTrabajados: number;
 }
 
 interface PersonalManagementProps {
@@ -161,6 +178,37 @@ const initialEmployees: Employee[] = [
   },
 ];
 
+// Mock data - Destajistas de la semana (viniendo del módulo de Destajos)
+const mockDestajistas: Destajista[] = [
+  { inicial: "JP", nombre: "Juan Pérez", importe: 125000 },
+  { inicial: "MG", nombre: "María González", importe: 98000 },
+  { inicial: "LS", nombre: "Luis Sánchez", importe: 112000 },
+  { inicial: "AC", nombre: "Ana Cruz", importe: 87500 },
+  { inicial: "RH", nombre: "Roberto Hernández", importe: 95000 },
+  { inicial: "CF", nombre: "Carlos Flores", importe: 103000 },
+  { inicial: "PM", nombre: "Pedro Morales", importe: 88500 },
+  { inicial: "DV", nombre: "Diana Vega", importe: 91000 },
+  { inicial: "JR", nombre: "José Ramírez", importe: 107000 },
+  { inicial: "LM", nombre: "Laura Méndez", importe: 94500 },
+  { inicial: "AM", nombre: "Alberto Mata", importe: 89000 },
+  { inicial: "SR", nombre: "Sandra Rojas", importe: 96000 },
+];
+
+// Generar iniciales de 3 letras del nombre
+const getInitials = (nombre: string): string => {
+  const palabras = nombre.trim().split(/\s+/);
+  if (palabras.length === 1) {
+    // Un solo nombre, tomar primeras 3 letras
+    return palabras[0].substring(0, 3).toUpperCase();
+  } else if (palabras.length === 2) {
+    // Dos palabras: primera letra de cada una + primera del apellido
+    return (palabras[0][0] + palabras[1].substring(0, 2)).toUpperCase();
+  } else {
+    // Tres o más: primera letra de nombre, primera de segundo nombre, primera de apellido
+    return (palabras[0][0] + palabras[1][0] + palabras[2][0]).toUpperCase();
+  }
+};
+
 // Mock data - Registros semanales (últimas 8 semanas como ejemplo)
 const generateMockWeeklyRecords = (): WeeklyRecord[] => {
   const records: WeeklyRecord[] = [];
@@ -209,6 +257,23 @@ export default function PersonalManagement({ onBack }: PersonalManagementProps) 
   const [weeklyRecords, setWeeklyRecords] = useState<WeeklyRecord[]>(generateMockWeeklyRecords());
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedObra, setSelectedObra] = useState<string>("ALL");
+  
+  // Consolidado - Navegación de semanas
+  const [semanaActual, setSemanaActual] = useState(7);
+  const [añoActual, setAñoActual] = useState(new Date().getFullYear());
+  
+  // Estado para días trabajados del personal en la semana actual (editable)
+  const [personalWeekRecords, setPersonalWeekRecords] = useState<PersonalWeekRecord[]>(
+    initialEmployees.map(emp => ({
+      empleadoId: emp.id,
+      diasTrabajados: emp.diasSemana, // Por defecto, los días normales
+    }))
+  );
+  
+  // Dialog para editar días trabajados
+  const [showEditDaysDialog, setShowEditDaysDialog] = useState(false);
+  const [editingPersonal, setEditingPersonal] = useState<{ empleadoId: string; nombre: string } | null>(null);
+  const [tempDiasTrabajados, setTempDiasTrabajados] = useState("");
   
   // Weekly tab state
   const [selectedEmployeeForWeekly, setSelectedEmployeeForWeekly] = useState<string>("");
@@ -312,6 +377,16 @@ export default function PersonalManagement({ onBack }: PersonalManagementProps) 
     };
 
     setEmployees([...employees, newEmployee]);
+    
+    // Agregar registro de días trabajados para el nuevo empleado
+    setPersonalWeekRecords([
+      ...personalWeekRecords,
+      {
+        empleadoId: newEmployee.id,
+        diasTrabajados: newEmployee.diasSemana,
+      },
+    ]);
+    
     setShowAddDialog(false);
     setAddForm({
       nombre: "",
@@ -323,6 +398,28 @@ export default function PersonalManagement({ onBack }: PersonalManagementProps) 
       banco: "",
       observaciones: "",
     });
+  };
+  
+  // Funciones para editar días trabajados del personal
+  const handleOpenEditDays = (empleadoId: string, nombre: string, diasActuales: number) => {
+    setEditingPersonal({ empleadoId, nombre });
+    setTempDiasTrabajados(diasActuales.toString());
+    setShowEditDaysDialog(true);
+  };
+  
+  const handleSaveDays = () => {
+    if (!editingPersonal) return;
+    
+    setPersonalWeekRecords(
+      personalWeekRecords.map(record =>
+        record.empleadoId === editingPersonal.empleadoId
+          ? { ...record, diasTrabajados: parseFloat(tempDiasTrabajados) }
+          : record
+      )
+    );
+    
+    setShowEditDaysDialog(false);
+    setEditingPersonal(null);
   };
 
   // CRUD Weekly Records
@@ -405,7 +502,7 @@ export default function PersonalManagement({ onBack }: PersonalManagementProps) 
       "231": "bg-pink-100 text-pink-800 border-pink-300",
       "232": "bg-cyan-100 text-cyan-800 border-cyan-300",
       "233": "bg-orange-100 text-orange-800 border-orange-300",
-      "OFICINA": "bg-purple-100 text-purple-800 border-purple-300",
+      "OFICINA": "bg-slate-100 text-slate-800 border-slate-300",
     };
     return colores[codigo] || "bg-gray-100 text-gray-800 border-gray-300";
   };
@@ -432,9 +529,9 @@ export default function PersonalManagement({ onBack }: PersonalManagementProps) 
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-700 to-purple-800 border-b-4 border-purple-600 shadow-xl">
+      <div className="bg-gradient-to-r from-gray-700 to-gray-900 border-b border-gray-800 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -450,17 +547,17 @@ export default function PersonalManagement({ onBack }: PersonalManagementProps) 
               <div className="flex items-center gap-3">
                 <UserCog className="h-10 w-10 text-white" />
                 <div>
-                  <h1 className="text-3xl font-bold text-white">Gestión de Personal</h1>
-                  <p className="text-purple-100">Control de empleados y registro semanal</p>
+                  <h1 className="text-2xl font-bold text-white">Gestión de Personal</h1>
+                  <p className="text-gray-200 text-sm">Control y administración de nómina</p>
                 </div>
               </div>
             </div>
             <Button
               onClick={() => setShowAddDialog(true)}
-              className="gap-2 bg-white text-purple-700 hover:bg-purple-50"
+              className="gap-2 bg-white text-gray-800 hover:bg-gray-100"
             >
               <UserPlus className="h-5 w-5" />
-              Agregar Empleado
+              Nuevo Empleado
             </Button>
           </div>
         </div>
@@ -468,76 +565,236 @@ export default function PersonalManagement({ onBack }: PersonalManagementProps) 
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="border-purple-200">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Total Empleados
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-purple-700">{totalEmpleados}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-purple-200">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                En Obras
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-purple-700">{empleadosObras}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-purple-200">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                En Oficina
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-purple-700">{empleadosOficina}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-purple-200">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <DollarSign className="h-4 w-4" />
-                Nómina Semanal
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-700">
-                ${nominaSemanalEstimada.toLocaleString()}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Tabs */}
-        <Tabs defaultValue="employees" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 bg-purple-100">
+        <Tabs defaultValue="consolidado" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 bg-gray-200">
+            <TabsTrigger value="consolidado" className="gap-2">
+              <Calendar className="h-4 w-4" />
+              Consolidado de Nómina
+            </TabsTrigger>
             <TabsTrigger value="employees" className="gap-2">
               <Users className="h-4 w-4" />
-              Registro de Personal
-            </TabsTrigger>
-            <TabsTrigger value="weekly" className="gap-2">
-              <Calendar className="h-4 w-4" />
-              Registro Semanal
+              Administración de Personal
             </TabsTrigger>
           </TabsList>
 
-          {/* TAB 1: REGISTRO DE PERSONAL */}
+          {/* TAB 1: CONSOLIDADO DE NÓMINA */}
+          <TabsContent value="consolidado" className="space-y-6">
+            <Card className="border-gray-300 bg-white">
+              <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-300">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-2xl font-bold text-gray-900">
+                    Consolidado Total - Semana {semanaActual}
+                  </CardTitle>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600 font-medium">
+                      Año {añoActual}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {mockDestajistas.length} Destajistas + {employees.length} Personal
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                {/* Controles de Navegación de Semana */}
+                <div className="flex items-center justify-between mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (semanaActual === 1) {
+                          setSemanaActual(52);
+                          setAñoActual(añoActual - 1);
+                        } else {
+                          setSemanaActual(semanaActual - 1);
+                        }
+                      }}
+                      className="gap-1 bg-white hover:bg-slate-100"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Anterior
+                    </Button>
+                    
+                    <div className="flex items-center gap-2">
+                      <Select 
+                        value={semanaActual.toString()}
+                        onValueChange={(v) => setSemanaActual(parseInt(v))}
+                      >
+                        <SelectTrigger className="w-[140px] bg-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          {Array.from({ length: 52 }, (_, i) => i + 1).map(week => (
+                            <SelectItem key={week} value={week.toString()}>
+                              Semana {week}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      <Select 
+                        value={añoActual.toString()}
+                        onValueChange={(v) => setAñoActual(parseInt(v))}
+                      >
+                        <SelectTrigger className="w-[110px] bg-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="2024">2024</SelectItem>
+                          <SelectItem value="2025">2025</SelectItem>
+                          <SelectItem value="2026">2026</SelectItem>
+                          <SelectItem value="2027">2027</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (semanaActual === 52) {
+                          setSemanaActual(1);
+                          setAñoActual(añoActual + 1);
+                        } else {
+                          setSemanaActual(semanaActual + 1);
+                        }
+                      }}
+                      className="gap-1 bg-white hover:bg-slate-100"
+                    >
+                      Siguiente
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  <div className="text-sm text-gray-600">
+                    {getWeekDates(añoActual, semanaActual).inicio} - {getWeekDates(añoActual, semanaActual).fin}
+                  </div>
+                </div>
+                
+                <div className="border rounded-lg bg-white border-gray-300 overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-800">
+                      <tr>
+                        <th className="text-white font-bold text-left px-4 py-3">Tipo</th>
+                        <th className="text-white font-bold text-left px-4 py-3">Nombre</th>
+                        <th className="text-white font-bold text-left px-4 py-3">Clave</th>
+                        <th className="text-white font-bold text-center px-4 py-3">Días</th>
+                        <th className="text-white font-bold text-right px-4 py-3">Monto de Pago S{semanaActual}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* DESTAJISTAS */}
+                      {mockDestajistas.map((destajista, idx) => {
+                        const codigoPago = `DEST-${destajista.inicial}-S${semanaActual.toString().padStart(2, '0')}-${añoActual.toString().slice(-2)}`;
+                        
+                        return (
+                          <tr
+                            key={`dest-${destajista.inicial}`}
+                            className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                          >
+                            <td className="px-4 py-3">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
+                                Destajista
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-gray-900 font-medium">{destajista.nombre}</td>
+                            <td className="px-4 py-3 font-mono text-sm text-gray-700">{codigoPago}</td>
+                            <td className="px-4 py-3 text-center text-gray-500">-</td>
+                            <td className="px-4 py-3 text-right font-bold text-gray-900">
+                              ${destajista.importe.toLocaleString()}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      
+                      {/* PERSONAL */}
+                      {employees.map((emp, idx) => {
+                        const iniciales = getInitials(emp.nombre);
+                        const codigoPago = `NOM-${iniciales}-S${semanaActual.toString().padStart(2, '0')}-${añoActual.toString().slice(-2)}`;
+                        const diasTrabajados = personalWeekRecords.find(r => r.empleadoId === emp.id)?.diasTrabajados || emp.diasSemana;
+                        const monto = emp.salarioDia * diasTrabajados;
+                        const globalIdx = mockDestajistas.length + idx;
+                        
+                        return (
+                          <tr
+                            key={`emp-${emp.id}`}
+                            className={globalIdx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                          >
+                            <td className="px-4 py-3">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-200 text-gray-800">
+                                Personal
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-gray-900 font-medium">{emp.nombre}</td>
+                            <td className="px-4 py-3 font-mono text-sm text-gray-700">{codigoPago}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    setPersonalWeekRecords(
+                                      personalWeekRecords.map(record =>
+                                        record.empleadoId === emp.id && record.diasTrabajados > 0
+                                          ? { ...record, diasTrabajados: Math.max(0, record.diasTrabajados - 0.5) }
+                                          : record
+                                      )
+                                    );
+                                  }}
+                                  className="w-7 h-7 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </button>
+                                <span className="font-semibold text-gray-900 min-w-[2rem] text-center">{diasTrabajados}</span>
+                                <button
+                                  onClick={() => {
+                                    setPersonalWeekRecords(
+                                      personalWeekRecords.map(record =>
+                                        record.empleadoId === emp.id && record.diasTrabajados < 7
+                                          ? { ...record, diasTrabajados: Math.min(7, record.diasTrabajados + 0.5) }
+                                          : record
+                                      )
+                                    );
+                                  }}
+                                  className="w-7 h-7 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-right font-bold text-gray-900">
+                              ${monto.toLocaleString()}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      
+                      {/* TOTALES */}
+                      <tr className="bg-gradient-to-r from-gray-800 to-gray-900 text-white font-bold">
+                        <td colSpan={4} className="px-4 py-4 text-right text-lg">
+                          TOTAL SEMANA {semanaActual}:
+                        </td>
+                        <td className="px-4 py-4 text-right text-xl">
+                          ${(
+                            mockDestajistas.reduce((sum, d) => sum + d.importe, 0) +
+                            employees.reduce((sum, emp) => {
+                              const dias = personalWeekRecords.find(r => r.empleadoId === emp.id)?.diasTrabajados || emp.diasSemana;
+                              return sum + (emp.salarioDia * dias);
+                            }, 0)
+                          ).toLocaleString()}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* TAB 2: ADMINISTRACIÓN DE PERSONAL */}
           <TabsContent value="employees" className="space-y-6">
             {/* Filters */}
-            <Card className="border-purple-200">
+            <Card className="border-gray-300">
               <CardContent className="pt-6">
                 <div className="flex flex-col sm:flex-row gap-4">
                   <div className="flex-1">
@@ -571,7 +828,7 @@ export default function PersonalManagement({ onBack }: PersonalManagementProps) 
             </Card>
 
             {/* Tabla de Empleados */}
-            <Card className="border-purple-200">
+            <Card className="border-gray-300">
               <CardHeader>
                 <CardTitle>Empleados Activos</CardTitle>
               </CardHeader>
@@ -580,7 +837,7 @@ export default function PersonalManagement({ onBack }: PersonalManagementProps) 
                 <div className="grid grid-cols-12 gap-4 p-4 bg-gray-100 border-b font-semibold text-sm text-gray-700">
                   <div className="col-span-3">Obra Asignada</div>
                   <div className="col-span-3">Nombre</div>
-                  <div className="col-span-2 text-center">Salario/Día</div>
+                  <div className="col-span-2 text-center">Salario</div>
                   <div className="col-span-2 text-center">Días/Sem</div>
                   <div className="col-span-2 text-right">Acciones</div>
                 </div>
@@ -599,33 +856,30 @@ export default function PersonalManagement({ onBack }: PersonalManagementProps) 
                       return (
                         <div
                           key={emp.id}
-                          className="grid grid-cols-12 gap-4 p-4 hover:bg-purple-50 transition-colors"
+                          className="grid grid-cols-12 gap-4 p-4 hover:bg-gray-50 transition-colors"
                         >
                           <div className="col-span-3">
-                            <Badge
-                              variant="outline"
-                              className={getObraColor(emp.obraAsignada)}
-                            >
+                            <p className="font-semibold text-gray-900">
                               {emp.obraAsignada === "OFICINA"
                                 ? "OFICINA"
                                 : `${emp.obraAsignada} - ${emp.nombreObra}`}
-                            </Badge>
+                            </p>
                           </div>
                           <div className="col-span-3">
                             <p className="font-semibold text-gray-900">{emp.nombre}</p>
                             <p className="text-xs text-gray-500">{emp.id}</p>
                             {emp.observaciones && (
-                              <p className="text-xs text-purple-600 mt-1">
+                              <p className="text-xs text-gray-700 mt-1">
                                 📝 {emp.observaciones}
                               </p>
                             )}
                           </div>
                           <div className="col-span-2 text-center">
-                            <p className="text-sm font-bold text-green-700">
-                              ${emp.salarioDia.toLocaleString()}
+                            <p className="text-lg font-bold text-green-600">
+                              ${salarioSemanal.toLocaleString()}
                             </p>
                             <p className="text-xs text-gray-500">
-                              ${salarioSemanal.toLocaleString()}/sem
+                              ${emp.salarioDia.toLocaleString()}/día
                             </p>
                           </div>
                           <div className="col-span-2 text-center">
@@ -651,178 +905,6 @@ export default function PersonalManagement({ onBack }: PersonalManagementProps) 
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          {/* TAB 2: REGISTRO SEMANAL */}
-          <TabsContent value="weekly" className="space-y-6">
-            {/* Selector de Empleado y Año */}
-            <Card className="border-purple-200">
-              <CardContent className="pt-6">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="flex-1">
-                    <Label>Seleccionar Empleado</Label>
-                    <Select
-                      value={selectedEmployeeForWeekly}
-                      onValueChange={setSelectedEmployeeForWeekly}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccione un empleado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {employees.map((emp) => (
-                          <SelectItem key={emp.id} value={emp.id}>
-                            {emp.nombre} ({emp.id})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="w-full sm:w-[180px]">
-                    <Label>Año</Label>
-                    <Select
-                      value={selectedYear.toString()}
-                      onValueChange={(v) => setSelectedYear(parseInt(v))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="2024">2024</SelectItem>
-                        <SelectItem value="2025">2025</SelectItem>
-                        <SelectItem value="2026">2026</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {selectedEmployeeForWeekly && (
-                  <div className="mt-4 bg-purple-50 p-4 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-sm font-semibold text-gray-700">
-                          Total Pagado en {selectedYear}
-                        </p>
-                        <p className="text-2xl font-bold text-purple-700">
-                          ${totalPagadoAnual.toLocaleString()}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-gray-700">
-                          Semanas Registradas
-                        </p>
-                        <p className="text-2xl font-bold text-purple-700">
-                          {employeeWeeklyRecords.length}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Tabla de Semanas */}
-            {selectedEmployeeForWeekly ? (
-              <Card className="border-purple-200">
-                <CardHeader>
-                  <CardTitle>
-                    Registro de 52 Semanas -{" "}
-                    {employees.find((e) => e.id === selectedEmployeeForWeekly)?.nombre}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {/* Header */}
-                  <div className="grid grid-cols-12 gap-4 p-4 bg-gray-100 border-b font-semibold text-sm text-gray-700">
-                    <div className="col-span-1 text-center">Sem</div>
-                    <div className="col-span-2">Fechas</div>
-                    <div className="col-span-3">Obra</div>
-                    <div className="col-span-1 text-center">Días</div>
-                    <div className="col-span-2 text-center">Salario</div>
-                    <div className="col-span-3 text-right">Acciones</div>
-                  </div>
-
-                  {/* Filas de semanas */}
-                  <div className="divide-y max-h-[600px] overflow-y-auto">
-                    {Array.from({ length: 52 }, (_, i) => i + 1).map((semana) => {
-                      const record = employeeWeeklyRecords.find((r) => r.semana === semana);
-                      const dates = getWeekDates(selectedYear, semana);
-                      const emp = employees.find((e) => e.id === selectedEmployeeForWeekly);
-
-                      return (
-                        <div
-                          key={semana}
-                          className={`grid grid-cols-12 gap-4 p-3 hover:bg-purple-50 transition-colors ${
-                            !record ? "bg-gray-50" : ""
-                          }`}
-                        >
-                          <div className="col-span-1 text-center">
-                            <p className="text-sm font-semibold text-gray-700">{semana}</p>
-                          </div>
-                          <div className="col-span-2">
-                            <p className="text-xs text-gray-600">
-                              {dates.inicio} - {dates.fin}
-                            </p>
-                          </div>
-                          <div className="col-span-3">
-                            {record ? (
-                              <Badge
-                                variant="outline"
-                                className={getObraColor(record.obraAsignada)}
-                              >
-                                {record.obraAsignada === "OFICINA"
-                                  ? "OFICINA"
-                                  : `${record.obraAsignada} - ${record.nombreObra}`}
-                              </Badge>
-                            ) : (
-                              <p className="text-xs text-gray-400">Sin registro</p>
-                            )}
-                            {record?.observaciones && (
-                              <p className="text-xs text-purple-600 mt-1">
-                                📝 {record.observaciones}
-                              </p>
-                            )}
-                          </div>
-                          <div className="col-span-1 text-center">
-                            <p className="text-sm font-semibold text-gray-900">
-                              {record?.diasTrabajados || "-"}
-                            </p>
-                          </div>
-                          <div className="col-span-2 text-center">
-                            <p className="text-sm font-bold text-green-700">
-                              {record
-                                ? `$${record.salarioPagado.toLocaleString()}`
-                                : "-"}
-                            </p>
-                          </div>
-                          <div className="col-span-3 flex items-center justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                handleOpenEditWeek(semana, selectedEmployeeForWeekly)
-                              }
-                              className="gap-1 text-xs"
-                            >
-                              <Edit className="h-3 w-3" />
-                              {record ? "Editar" : "Registrar"}
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="border-purple-200">
-                <CardContent className="p-12 text-center">
-                  <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 text-lg">
-                    Seleccione un empleado para ver su registro semanal
-                  </p>
-                </CardContent>
-              </Card>
-            )}
           </TabsContent>
         </Tabs>
       </div>
@@ -936,7 +1018,7 @@ export default function PersonalManagement({ onBack }: PersonalManagementProps) 
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSaveEdit} className="bg-purple-600 hover:bg-purple-700">
+            <Button onClick={handleSaveEdit} className="bg-blue-600 hover:bg-blue-700">
               Guardar Cambios
             </Button>
           </DialogFooter>
@@ -1045,7 +1127,7 @@ export default function PersonalManagement({ onBack }: PersonalManagementProps) 
             </Button>
             <Button
               onClick={handleAddEmployee}
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-blue-600 hover:bg-blue-700"
               disabled={
                 !addForm.nombre ||
                 !addForm.puesto ||
@@ -1056,6 +1138,79 @@ export default function PersonalManagement({ onBack }: PersonalManagementProps) 
             >
               <UserPlus className="h-4 w-4 mr-2" />
               Agregar Empleado
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog - Editar Días Trabajados (Consolidado) */}
+      <Dialog open={showEditDaysDialog} onOpenChange={setShowEditDaysDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ajustar Días Trabajados</DialogTitle>
+            <DialogDescription>
+              Edite los días trabajados de {editingPersonal?.nombre} para la Semana {semanaActual}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <p className="text-sm font-semibold text-gray-700">
+                {editingPersonal?.nombre}
+              </p>
+              <p className="text-xs text-gray-600 mt-1">
+                Semana {semanaActual} del {añoActual}
+              </p>
+            </div>
+
+            <div>
+              <Label>Días Trabajados</Label>
+              <Input
+                type="number"
+                min="0"
+                max="7"
+                step="0.5"
+                value={tempDiasTrabajados}
+                onChange={(e) => setTempDiasTrabajados(e.target.value)}
+                placeholder="6"
+                className="text-lg font-semibold"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Puede ingresar medios días (ejemplo: 5.5)
+              </p>
+            </div>
+
+            {tempDiasTrabajados && editingPersonal && (() => {
+              const emp = employees.find(e => e.id === editingPersonal.empleadoId);
+              if (!emp) return null;
+              const monto = emp.salarioDia * parseFloat(tempDiasTrabajados);
+              
+              return (
+                <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                  <p className="text-sm text-gray-700">
+                    <span className="font-semibold">Pago Calculado:</span>
+                  </p>
+                  <p className="text-2xl font-bold text-green-700 mt-1">
+                    ${monto.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    ${emp.salarioDia.toLocaleString()}/día × {tempDiasTrabajados} días
+                  </p>
+                </div>
+              );
+            })()}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDaysDialog(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSaveDays}
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={!tempDiasTrabajados || parseFloat(tempDiasTrabajados) < 0 || parseFloat(tempDiasTrabajados) > 7}
+            >
+              Guardar Cambios
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1138,10 +1293,10 @@ export default function PersonalManagement({ onBack }: PersonalManagementProps) 
             </div>
 
             {weekForm.diasTrabajados && selectedEmployeeForWeekly && (
-              <div className="bg-purple-50 p-3 rounded-lg">
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
                 <p className="text-sm text-gray-700">
                   <span className="font-semibold">Salario a Pagar:</span>{" "}
-                  <span className="text-purple-700 font-bold">
+                  <span className="text-blue-700 font-bold">
                     $
                     {(
                       (employees.find((e) => e.id === selectedEmployeeForWeekly)
@@ -1159,7 +1314,7 @@ export default function PersonalManagement({ onBack }: PersonalManagementProps) 
             </Button>
             <Button
               onClick={handleSaveWeek}
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-blue-600 hover:bg-blue-700"
               disabled={!weekForm.obraAsignada || !weekForm.diasTrabajados}
             >
               Guardar Registro
