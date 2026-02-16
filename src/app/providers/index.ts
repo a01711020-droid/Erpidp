@@ -1,20 +1,9 @@
-/**
- * DATA PROVIDER - Solo Mock (Frontend Puro)
- * 
- * Sistema simplificado sin backend.
- * Todos los datos se manejan en memoria local.
- */
-
-import { MockProvider, mockProvider } from './MockProvider';
 import type { IDataProvider } from './DataProvider.interface';
 
 /**
- * Provider activo (solo mock - frontend puro)
+ * Provider de runtime deshabilitado en Fase 1.
+ * El consumo de datos se realiza vía hooks en src/core.
  */
-export const dataProvider = mockProvider;
+export const dataProvider: IDataProvider | null = null;
 
-/**
- * Exportar tipos y clases
- */
 export type { IDataProvider } from './DataProvider.interface';
-export { MockProvider, mockProvider };

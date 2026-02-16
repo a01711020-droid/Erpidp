@@ -1,19 +1,11 @@
-import MainApp from "./MainApp";
-import { DevModeProvider } from "@/core/contexts/DevModeContext";
-import { useDevModeSync } from "@/core/hooks/useDevModeSync";
-
-function AppWithSync() {
-  // Sincronizar contexto con mockAdapter
-  useDevModeSync();
-  
-  return <MainApp />;
-}
+import { RouterProvider } from "react-router";
+import { router } from "@/app/routes";
 
 export default function App() {
-  // App original con DevModeProvider
   return (
-    <DevModeProvider>
-      <div className="min-h-screen" style={{
+    <div
+      className="min-h-screen"
+      style={{
         backgroundImage: `
           linear-gradient(to bottom, #f5f3f0 0%, #f8f6f3 100%),
           repeating-linear-gradient(
@@ -24,10 +16,10 @@ export default function App() {
             rgba(0, 0, 0, 0.008) 4px
           )
         `,
-        backgroundBlendMode: 'overlay'
-      }}>
-        <AppWithSync />
-      </div>
-    </DevModeProvider>
+        backgroundBlendMode: "overlay",
+      }}
+    >
+      <RouterProvider router={router} />
+    </div>
   );
 }

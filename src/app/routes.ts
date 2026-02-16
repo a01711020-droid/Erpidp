@@ -3,7 +3,7 @@ import { createBrowserRouter } from "react-router";
 
 // ==================== COMPONENTES DE PÁGINAS ====================
 // Importar páginas principales
-import Home from "./Home";
+import HomePage from "@/pages/HomePage";
 
 // Layouts por módulo
 import DashboardLayout from "./layouts/DashboardLayout";
@@ -13,20 +13,20 @@ import DestajosLayout from "./layouts/DestajosLayout";
 import RequisicionesLayout from "./layouts/RequisicionesLayout";
 
 // Páginas del Dashboard
-import GlobalDashboard from "./GlobalDashboard";
+import GlobalDashboardPage from "@/pages/dashboard/GlobalDashboardPage";
 import DashboardObras from "./pages/dashboard/DashboardObras";
 import DashboardObraDetalle from "./pages/dashboard/DashboardObraDetalle";
 
 // Páginas de Compras
-import OrdenesCompraList from "./pages/compras/OrdenesCompraList";
+import OrdenesCompraListPage from "@/pages/compras/OrdenesCompraListPage";
 import OrdenCompraCreate from "./pages/compras/OrdenCompraCreate";
 import OrdenCompraDetail from "./pages/compras/OrdenCompraDetail";
-import ProveedoresList from "./pages/compras/ProveedoresList";
+import ProveedoresListPage from "@/pages/compras/ProveedoresListPage";
 import ProveedorCreate from "./pages/compras/ProveedorCreate";
 import ProveedorDetail from "./pages/compras/ProveedorDetail";
 
 // Páginas de Pagos
-import PagosProgramacion from "./pages/pagos/PagosProgramacion";
+import PagosProgramacionPage from "@/pages/pagos/PagosProgramacionPage";
 import FacturasList from "./pages/pagos/FacturasList";
 import FacturaCreate from "./pages/pagos/FacturaCreate";
 import PagosProcesar from "./pages/pagos/PagosProcesar";
@@ -34,11 +34,11 @@ import PagosHistorial from "./pages/pagos/PagosHistorial";
 
 // Páginas de Destajos
 import DestajistasCatalogo from "./pages/destajos/DestajistasCatalogo";
-import CapturaAvances from "./pages/destajos/CapturaAvances";
+import CapturaAvancesPage from "@/pages/destajos/CapturaAvancesPage";
 import ResumenDestajos from "./pages/destajos/ResumenDestajos";
 
 // Páginas de Requisiciones
-import RequisicionesList from "./pages/requisiciones/RequisicionesList";
+import RequisicionesListPage from "@/pages/requisiciones/RequisicionesListPage";
 import RequisicionCreate from "./pages/requisiciones/RequisicionCreate";
 import RequisicionDetail from "./pages/requisiciones/RequisicionDetail";
 
@@ -51,7 +51,7 @@ export const router = createBrowserRouter([
   // ========== HOME DE DESARROLLO ==========
   {
     path: "/",
-    Component: Home,
+    Component: HomePage,
   },
   
   // ========== MÓDULO DASHBOARD ==========
@@ -61,7 +61,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        Component: GlobalDashboard,
+        Component: GlobalDashboardPage,
       },
       {
         path: "obras",
@@ -81,11 +81,11 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        Component: OrdenesCompraList,
+        Component: OrdenesCompraListPage,
       },
       {
         path: "ordenes",
-        Component: OrdenesCompraList,
+        Component: OrdenesCompraListPage,
       },
       {
         path: "ordenes/nueva",
@@ -97,7 +97,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "proveedores",
-        Component: ProveedoresList,
+        Component: ProveedoresListPage,
       },
       {
         path: "proveedores/nuevo",
@@ -117,11 +117,11 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        Component: PagosProgramacion,
+        Component: PagosProgramacionPage,
       },
       {
         path: "programacion",
-        Component: PagosProgramacion,
+        Component: PagosProgramacionPage,
       },
       {
         path: "facturas",
@@ -157,7 +157,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "captura",
-        Component: CapturaAvances,
+        Component: CapturaAvancesPage,
       },
       {
         path: "resumen",
@@ -173,7 +173,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        Component: RequisicionesList,
+        Component: RequisicionesListPage,
       },
       {
         path: "nueva",

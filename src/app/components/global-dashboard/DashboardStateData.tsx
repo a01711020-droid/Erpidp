@@ -21,21 +21,33 @@ import {
   Archive,
   BarChart3,
 } from "lucide-react";
-import { obrasDashboardMock } from "/spec/dashboard/obras.mock";
 
-// DATOS MOCK COMPLETOS - 6 obras reales (importado desde spec)
-const mockWorks = obrasDashboardMock;
+interface DashboardWork {
+  code: string;
+  name: string;
+  client: string;
+  resident: string;
+  contractAmount: number;
+  actualBalance: number;
+  totalEstimates: number;
+  totalExpenses: number;
+  status: string;
+  location: string;
+  completionDate: string;
+}
 
 interface DashboardStateDataProps {
+  works?: DashboardWork[];
   onSelectProject?: (projectId: string) => void;
   onCreateWork?: () => void;
 }
 
 export function DashboardStateData({
+  works = [],
   onSelectProject,
   onCreateWork,
 }: DashboardStateDataProps) {
-  const activeWorks = mockWorks;
+  const activeWorks = works;
   const totalContracts = activeWorks.reduce(
     (sum, w) => sum + w.contractAmount,
     0
@@ -146,7 +158,7 @@ export function DashboardStateData({
                     Avance Global
                   </p>
                   <p className="text-3xl font-bold">
-                    {((totalEstimates / totalContracts) * 100).toFixed(0)}%
+                    {totalContracts > 0 ? ((totalEstimates / totalContracts) * 100).toFixed(0) : "0"}%
                   </p>
                 </div>
                 <div className="p-3 bg-purple-100 rounded-lg">
