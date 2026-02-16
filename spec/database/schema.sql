@@ -53,6 +53,72 @@ CREATE TABLE proveedores (
 CREATE INDEX idx_proveedores_alias ON proveedores(alias_proveedor);
 CREATE INDEX idx_proveedores_activo ON proveedores(activo);
 
+-- Tabla: usuarios
+-- Usuarios del sistema con roles
+CREATE TABLE usuarios (
+  usuario_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  nombre_completo VARCHAR(255) NOT NULL,
+  rol VARCHAR(50) CHECK (rol IN ('admin', 'gerente', 'residente', 'comprador', 'contador', 'auditor')),
+  obras_asignadas TEXT[], -- Array de IDs de obras
+  activo BOOLEAN DEFAULT TRUE,
+  ultimo_acceso TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- MÓDULO: PERSONAL Y DESTAJOS
+-- ============================================================================
+
+-- Tabla: personal
+-- Empleados y colaboradores
+CREATE TABLE personal (
+  personal_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre_completo VARCHAR(255) NOT NULL,
+  puesto VARCHAR(100) NOT NULL,
+  obra_default_id VARCHAR(50) REFERENCES obras(obra_id),
+  salario_diario DECIMAL(10, 2) NOT NULL,
+  dias_semana_base DECIMAL(3, 1) DEFAULT 6,
+  banco VARCHAR(100),
+  numero_cuenta VARCHAR(50),
+  observaciones TEXT,
+  activo BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Tabla: nomina_semanal
+-- Registro histórico de pagos semanales
+CREATE TABLE nomina_semanal (
+  nomina_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  personal_id UUID REFERENCES personal(personal_id),
+  obra_id VARCHAR(50) REFERENCES obras(obra_id),
+  semana INTEGER NOT NULL,
+  anio INTEGER NOT NULL,
+  fecha_inicio DATE NOT NULL,
+  fecha_fin DATE NOT NULL,
+  dias_trabajados DECIMAL(3, 1) NOT NULL,
+  salario_diario DECIMAL(10, 2) NOT NULL,
+  importe_pagado DECIMAL(10, 2) NOT NULL,
+  observaciones TEXT,
+  estado VARCHAR(20) DEFAULT 'pagado',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Tabla: destajistas
+-- Catálogo de destajistas
+CREATE TABLE destajistas (
+  destajista_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  inicial VARCHAR(10) UNIQUE NOT NULL,
+  nombre VARCHAR(255) NOT NULL,
+  color VARCHAR(20),
+  especialidad VARCHAR(100),
+  activo BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- MÓDULO: REQUISICIONES
 -- ============================================================================
 

@@ -17,7 +17,7 @@ import {
   PaymentManagementStateError,
   PaymentManagementStateEmpty,
 } from "@/app/components/payment-management";
-import { purchaseOrdersPaymentMock } from "/spec/pagos/purchase-orders-payment.mock";
+import { purchaseOrdersPaymentMock } from "@/spec/pagos/purchase-orders-payment.mock";
 import {
   Upload,
   DollarSign,

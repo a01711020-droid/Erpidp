@@ -41,7 +41,7 @@ import type {
 } from './types';
 
 // Importar seed data
-import { mockDatabase, emptyDatabase } from '/spec/mock-db/seed';
+import { mockDatabase, emptyDatabase } from '@/spec/mocks/seed';
 import { TEST_EMPTY_STATE } from '../config';
 
 // ============================================================================

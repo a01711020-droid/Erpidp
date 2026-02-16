@@ -153,7 +153,7 @@ Ejemplo: 227-A01GM-CEMEX
 
 | Campo | Tipo | Requerido | Descripción | Valores/Formato |
 |-------|------|-----------|-------------|-----------------|
-| `item_id` | UUID | ��� | ID único (PK) | UUID v4 |
+| `item_id` | UUID |  | ID único (PK) | UUID v4 |
 | `orden_compra_id` | UUID | ✅ | ID de la orden (FK) | → ordenes_compra.orden_compra_id |
 | `numero_linea` | INTEGER | ✅ | Número de línea en la orden | >= 1 |
 | `cantidad` | DECIMAL | ✅ | Cantidad del item | > 0 |

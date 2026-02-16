@@ -15,7 +15,7 @@ import {
   createErrorResponse,
   createSuccessListResponse,
 } from './dataAdapter';
-import { mockDatabase, emptyDatabase } from '/spec/mock-db/seed';
+import { mockDatabase, emptyDatabase } from '@/spec/mocks/seed';
 import type { DevMode } from '../contexts/DevModeContext';
 
 // ============================================================================

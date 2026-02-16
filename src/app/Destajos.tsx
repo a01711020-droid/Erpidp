@@ -8,9 +8,9 @@ import {
 import CatalogoImportExport from "@/app/components/CatalogoImportExport";
 import CatalogoImporter from "@/app/components/CatalogoImporter";
 import ResumenDestajosWithStates from "@/app/components/ResumenDestajosWithStates";
-import { destajistasMock } from "/spec/destajos/destajistas.mock";
-import { obrasMock } from "/spec/destajos/obras.mock";
-import { resumenObrasMock } from "/spec/destajos/resumen.mock";
+import { destajistasMock } from "@/spec/destajos/destajistas.mock";
+import { obrasMock } from "@/spec/destajos/obras.mock";
+import { resumenObrasMock } from "@/spec/destajos/resumen.mock";
 import { Card } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
