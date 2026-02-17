@@ -4,16 +4,19 @@ import {
   DestajosStateLoading,
 } from "@/app/components/destajos";
 import type { DestajoSemanaDto } from "@/core/types/entities";
+import type { ReactNode } from "react";
 import type { ViewState } from "./viewState";
 
 interface DestajosViewProps {
   viewState: ViewState;
   data?: DestajoSemanaDto[];
   onRetry: () => void;
+  renderFull: (data: DestajoSemanaDto[]) => ReactNode;
 }
 
-export function DestajosView({ viewState, onRetry }: DestajosViewProps) {
+export function DestajosView({ viewState, data = [], onRetry, renderFull }: DestajosViewProps) {
   if (viewState === "loading") return <DestajosStateLoading />;
   if (viewState === "error") return <DestajosStateError onRetry={onRetry} />;
-  return <DestajosStateEmpty />;
+  if (viewState === "empty") return <DestajosStateEmpty />;
+  return <>{renderFull(Array.isArray(data) ? data : [])}</>;
 }

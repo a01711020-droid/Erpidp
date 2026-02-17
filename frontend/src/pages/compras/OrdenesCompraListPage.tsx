@@ -1,6 +1,7 @@
 import { useOrdenesCompra } from "@/core/hooks/useResources";
-import { PurchaseOrderManagementView } from "@/ui/PurchaseOrderManagementView";
 import { resolveViewState } from "@/pages/viewState";
+import { PurchaseOrderManagementView } from "@/ui/PurchaseOrderManagementView";
+import PurchaseOrderManagementFull from "@/ui/compras/PurchaseOrderManagementFullView";
 
 export default function OrdenesCompraListPage() {
   const { data, isLoading, error, refetch } = useOrdenesCompra();
@@ -9,8 +10,14 @@ export default function OrdenesCompraListPage() {
     <PurchaseOrderManagementView
       viewState={resolveViewState(isLoading, error, data.length)}
       data={data}
-      errorMessage={error ?? undefined}
       onRetry={refetch}
+      renderFull={(fullData) => (
+        <PurchaseOrderManagementFull
+          worksData={[]}
+          buyersData={[]}
+          suppliersData={[]}
+        />
+      )}
     />
   );
 }

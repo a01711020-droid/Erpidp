@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "audit:mocks": "node scripts/audit-mocks.js"
+    "audit:mocks": "node scripts/audit-mocks.js",
+    "audit:full-coverage": "node scripts/audit-full-coverage.js",
+    "test:screenshots": "playwright test"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
@@ -78,7 +80,9 @@
     "@tailwindcss/vite": "4.1.12",
     "@vitejs/plugin-react": "4.7.0",
     "tailwindcss": "4.1.12",
-    "vite": "6.3.5"
+    "vite": "6.3.5",
+    "@playwright/test": "^1.55.0",
+    "wait-on": "^7.2.0"
   },
   "pnpm": {
     "overrides": {
