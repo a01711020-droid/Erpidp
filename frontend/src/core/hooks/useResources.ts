@@ -13,6 +13,7 @@ export const useObras = (): ResourceHookResult<ObraDto> => createEmptyResourceSt
 export const useProveedores = (): ResourceHookResult<ProveedorDto> => createEmptyResourceState<ProveedorDto>();
 export const useRequisiciones = (): ResourceHookResult<RequisicionDto> => createEmptyResourceState<RequisicionDto>();
 export const useOrdenesCompra = (): ResourceHookResult<OrdenCompraDto> => createEmptyResourceState<OrdenCompraDto>();
+// Fase 1: pagos inicia vacío por defecto
 export const usePagos = (): ResourceHookResult<PagoDto> => createEmptyResourceState<PagoDto>();
 export const useDestajos = (): ResourceHookResult<DestajoSemanaDto> => createEmptyResourceState<DestajoSemanaDto>();
 

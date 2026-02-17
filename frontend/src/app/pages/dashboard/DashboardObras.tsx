@@ -7,6 +7,7 @@ import { resolveViewState } from "@/pages/viewState";
 export default function DashboardObras() {
   const { data, isLoading, error, refetch } = useObras();
   const viewState = resolveViewState(isLoading, error, data.length);
+  const showEmpty = viewState === "empty" || viewState === "data";
 
   return (
     <div>
@@ -25,7 +26,7 @@ export default function DashboardObras() {
         />
       )}
 
-      {(viewState === "empty" || viewState === "data") && (
+      {showEmpty && (
         <EmptyState
           icon={Building2}
           title="Sin obras disponibles"

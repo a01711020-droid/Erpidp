@@ -4,16 +4,19 @@ import {
   PaymentManagementStateLoading,
 } from "@/app/components/payment-management";
 import type { PagoDto } from "@/core/types/entities";
+import type { ReactNode } from "react";
 import type { ViewState } from "./viewState";
 
 interface PaymentManagementViewProps {
   viewState: ViewState;
   data?: PagoDto[];
   onRetry: () => void;
+  renderFull: (data: PagoDto[]) => ReactNode;
 }
 
-export function PaymentManagementView({ viewState, onRetry }: PaymentManagementViewProps) {
+export function PaymentManagementView({ viewState, data = [], onRetry, renderFull }: PaymentManagementViewProps) {
   if (viewState === "loading") return <PaymentManagementStateLoading />;
   if (viewState === "error") return <PaymentManagementStateError onRetry={onRetry} />;
-  return <PaymentManagementStateEmpty />;
+  if (viewState === "empty") return <PaymentManagementStateEmpty />;
+  return <>{renderFull(data)}</>;
 }
