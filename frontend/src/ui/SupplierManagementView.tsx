@@ -1,6 +1,6 @@
-import { EmptyState, ErrorState, LoadingState } from "@/app/components/states";
-import { Users } from "lucide-react";
+import { ErrorState, LoadingState } from "@/app/components/states";
 import type { ProveedorDto } from "@/core/types/entities";
+import type { ReactNode } from "react";
 import type { ViewState } from "./viewState";
 
 interface SupplierManagementViewProps {
@@ -8,11 +8,20 @@ interface SupplierManagementViewProps {
   data?: ProveedorDto[];
   errorMessage?: string;
   onRetry: () => void;
+  renderFull: (data: ProveedorDto[]) => ReactNode;
+  renderEmpty: () => ReactNode;
 }
 
-export function SupplierManagementView({ viewState, errorMessage, onRetry }: SupplierManagementViewProps) {
+export function SupplierManagementView({
+  viewState,
+  data = [],
+  errorMessage,
+  onRetry,
+  renderFull,
+  renderEmpty,
+}: SupplierManagementViewProps) {
   if (viewState === "loading") {
-    return <LoadingState title="Cargando proveedores" message="Consultando catálogo de proveedores" />;
+    return <LoadingState type="table" rows={6} />;
   }
 
   if (viewState === "error") {
@@ -25,11 +34,9 @@ export function SupplierManagementView({ viewState, errorMessage, onRetry }: Sup
     );
   }
 
-  return (
-    <EmptyState
-      icon={Users}
-      title="Sin proveedores"
-      description="Cuando existan proveedores en el sistema aparecerán aquí."
-    />
-  );
+  if (viewState === "empty") {
+    return <>{renderEmpty()}</>;
+  }
+
+  return <>{renderFull(Array.isArray(data) ? data : [])}</>;
 }
