@@ -18,5 +18,7 @@ export function PaymentManagementView({ viewState, data = [], onRetry, renderFul
   if (viewState === "loading") return <PaymentManagementStateLoading />;
   if (viewState === "error") return <PaymentManagementStateError onRetry={onRetry} />;
   if (viewState === "empty") return <PaymentManagementStateEmpty />;
-  return <>{renderFull(data)}</>;
+
+  const safeData = Array.isArray(data) ? data : [];
+  return <>{renderFull(safeData)}</>;
 }
