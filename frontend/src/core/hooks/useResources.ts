@@ -1,4 +1,5 @@
 import type {
+  DestajistaDto,
   DestajoSemanaDto,
   ObraDto,
   OrdenCompraDto,
@@ -14,3 +15,5 @@ export const useRequisiciones = (): ResourceHookResult<RequisicionDto> => create
 export const useOrdenesCompra = (): ResourceHookResult<OrdenCompraDto> => createEmptyResourceState<OrdenCompraDto>();
 export const usePagos = (): ResourceHookResult<PagoDto> => createEmptyResourceState<PagoDto>();
 export const useDestajos = (): ResourceHookResult<DestajoSemanaDto> => createEmptyResourceState<DestajoSemanaDto>();
+
+export const useDestajistas = (): ResourceHookResult<DestajistaDto> => createEmptyResourceState<DestajistaDto>();

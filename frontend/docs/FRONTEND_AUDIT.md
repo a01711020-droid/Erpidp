@@ -5,7 +5,6 @@
 - `frontend/src/core` (infraestructura FE)
 - `frontend/src/ui` (UI pura por props)
 - `frontend/src/pages` (conectores por ruta)
-- `frontend/src/_legacy` (código histórico fuera de runtime)
 - `frontend/docs/spec` y `frontend/spec` (documentación de referencia)
 
 ## Router runtime
@@ -27,8 +26,8 @@
 - `frontend/src/pages/*`
 
 ### ELIMINAR / NO RUNTIME
-- `frontend/src/_legacy/*.legacy.tsx` (sin imports ni exports)
 - Eliminado `frontend/src/spec` (movido fuera de `src`)
+- Eliminados archivos legacy contaminados dentro de `frontend/src/app/**`
 - Eliminados runtime mock/devmode de `frontend/src/core/*` y providers legacy
 
 ## Evidencia de cumplimiento

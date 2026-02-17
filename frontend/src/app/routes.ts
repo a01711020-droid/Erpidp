@@ -33,7 +33,7 @@ import PagosProcesar from "./pages/pagos/PagosProcesar";
 import PagosHistorial from "./pages/pagos/PagosHistorial";
 
 // Páginas de Destajos
-import DestajistasCatalogo from "./pages/destajos/DestajistasCatalogo";
+import DestajistasCatalogoPage from "@/pages/destajos/DestajistasCatalogoPage";
 import CapturaAvancesPage from "@/pages/destajos/CapturaAvancesPage";
 import ResumenDestajos from "./pages/destajos/ResumenDestajos";
 
@@ -149,11 +149,11 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        Component: DestajistasCatalogo,
+        Component: DestajistasCatalogoPage,
       },
       {
         path: "catalogo",
-        Component: DestajistasCatalogo,
+        Component: DestajistasCatalogoPage,
       },
       {
         path: "captura",
