@@ -1,0 +1,30 @@
+name: frontend-e2e
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --legacy-peer-deps
+      - run: npx playwright install --with-deps
+      - run: npm run dev -- --host 0.0.0.0 --port 4173 &
+      - run: npx wait-on http://127.0.0.1:4173
+      - run: npm run test:screenshots
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-screenshots-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results

@@ -1,11 +1,21 @@
+# ERP IDP Monorepo (Fase 1)
 
-  # ERP-IDP
+Estructura top-level:
 
-  This is a code bundle for ERP-IDP. The original project is available at https://www.figma.com/design/nwrcB30P37qgs9qkI3xOcv/ERP-IDP.
+- `frontend/` → aplicación React + Vite + TypeScript (Fase 1)
+- `backend/` → reservado (sin implementación en esta fase)
+- `database/` → reservado (sin implementación en esta fase)
 
-  ## Running the code
+## Ejecutar Frontend
 
-  Run `npm i` to install the dependencies.
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-  Run `npm run dev` to start the development server.
-  
+## Variables de entorno (frontend/.env)
+
+```env
+VITE_API_URL=/api
+```
