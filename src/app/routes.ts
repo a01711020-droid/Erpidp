@@ -1,9 +1,14 @@
-// Configuración de rutas con React Router Data Mode
-import { createBrowserRouter } from "react-router";
+/**
+ * RUTAS DEL SISTEMA
+ * Todas las rutas protegidas con RequireAuth + RBAC.
+ * La ruta raíz redirige a /login.
+ */
 
-// ==================== COMPONENTES DE PÁGINAS ====================
-// Importar páginas principales
-import Home from "./Home";
+import { createBrowserRouter, Navigate } from "react-router";
+import RequireAuth from "./components/RequireAuth";
+
+// Auth
+import LoginPage from "./pages/LoginPage";
 
 // Layouts por módulo
 import DashboardLayout from "./layouts/DashboardLayout";
@@ -42,151 +47,91 @@ import RequisicionesList from "./pages/requisiciones/RequisicionesList";
 import RequisicionCreate from "./pages/requisiciones/RequisicionCreate";
 import RequisicionDetail from "./pages/requisiciones/RequisicionDetail";
 
-// Páginas de error
+// Error
 import NotFoundPage from "./pages/NotFoundPage";
 
-// ==================== CONFIGURACIÓN DE RUTAS ====================
+// Helper: envuelve children en RequireAuth
+const auth = (children: React.ReactNode) => (
+  <RequireAuth>{children}</RequireAuth>
+);
 
 export const router = createBrowserRouter([
-  // ========== HOME DE DESARROLLO ==========
+  // ── Raíz → login
   {
     path: "/",
-    Component: Home,
+    element: <Navigate to="/login" replace />,
   },
-  
-  // ========== MÓDULO DASHBOARD ==========
+
+  // ── Login (pública)
+  {
+    path: "/login",
+    Component: LoginPage,
+  },
+
+  // ── Dashboard
   {
     path: "/dashboard",
-    Component: DashboardLayout,
+    element: auth(<DashboardLayout />),
     children: [
-      {
-        index: true,
-        Component: GlobalDashboard,
-      },
-      {
-        path: "obras",
-        Component: DashboardObras,
-      },
-      {
-        path: "obras/:codigoObra",
-        Component: DashboardObraDetalle,
-      },
+      { index: true, Component: GlobalDashboard },
+      { path: "obras", Component: DashboardObras },
+      { path: "obras/:codigoObra", Component: DashboardObraDetalle },
     ],
   },
-  
-  // ========== MÓDULO COMPRAS ==========
+
+  // ── Compras
   {
     path: "/compras",
-    Component: ComprasLayout,
+    element: auth(<ComprasLayout />),
     children: [
-      {
-        index: true,
-        Component: OrdenesCompraList,
-      },
-      {
-        path: "ordenes",
-        Component: OrdenesCompraList,
-      },
-      {
-        path: "ordenes/nueva",
-        Component: OrdenCompraCreate,
-      },
-      {
-        path: "ordenes/:id",
-        Component: OrdenCompraDetail,
-      },
-      {
-        path: "proveedores",
-        Component: ProveedoresList,
-      },
-      {
-        path: "proveedores/nuevo",
-        Component: ProveedorCreate,
-      },
-      {
-        path: "proveedores/:id",
-        Component: ProveedorDetail,
-      },
+      { index: true, Component: OrdenesCompraList },
+      { path: "ordenes", Component: OrdenesCompraList },
+      { path: "ordenes/nueva", Component: OrdenCompraCreate },
+      { path: "ordenes/:id", Component: OrdenCompraDetail },
+      { path: "proveedores", Component: ProveedoresList },
+      { path: "proveedores/nuevo", Component: ProveedorCreate },
+      { path: "proveedores/:id", Component: ProveedorDetail },
     ],
   },
-  
-  // ========== MÓDULO PAGOS ==========
+
+  // ── Pagos
   {
     path: "/pagos",
-    Component: PagosLayout,
+    element: auth(<PagosLayout />),
     children: [
-      {
-        index: true,
-        Component: PagosProgramacion,
-      },
-      {
-        path: "programacion",
-        Component: PagosProgramacion,
-      },
-      {
-        path: "facturas",
-        Component: FacturasList,
-      },
-      {
-        path: "facturas/nueva",
-        Component: FacturaCreate,
-      },
-      {
-        path: "procesar",
-        Component: PagosProcesar,
-      },
-      {
-        path: "historial",
-        Component: PagosHistorial,
-      },
+      { index: true, Component: PagosProgramacion },
+      { path: "programacion", Component: PagosProgramacion },
+      { path: "facturas", Component: FacturasList },
+      { path: "facturas/nueva", Component: FacturaCreate },
+      { path: "procesar", Component: PagosProcesar },
+      { path: "historial", Component: PagosHistorial },
     ],
   },
-  
-  // ========== MÓDULO DESTAJOS ==========
+
+  // ── Destajos
   {
     path: "/destajos",
-    Component: DestajosLayout,
+    element: auth(<DestajosLayout />),
     children: [
-      {
-        index: true,
-        Component: DestajistasCatalogo,
-      },
-      {
-        path: "catalogo",
-        Component: DestajistasCatalogo,
-      },
-      {
-        path: "captura",
-        Component: CapturaAvances,
-      },
-      {
-        path: "resumen",
-        Component: ResumenDestajos,
-      },
+      { index: true, Component: DestajistasCatalogo },
+      { path: "catalogo", Component: DestajistasCatalogo },
+      { path: "captura", Component: CapturaAvances },
+      { path: "resumen", Component: ResumenDestajos },
     ],
   },
-  
-  // ========== MÓDULO REQUISICIONES ==========
+
+  // ── Requisiciones
   {
     path: "/requisiciones",
-    Component: RequisicionesLayout,
+    element: auth(<RequisicionesLayout />),
     children: [
-      {
-        index: true,
-        Component: RequisicionesList,
-      },
-      {
-        path: "nueva",
-        Component: RequisicionCreate,
-      },
-      {
-        path: ":id",
-        Component: RequisicionDetail,
-      },
+      { index: true, Component: RequisicionesList },
+      { path: "nueva", Component: RequisicionCreate },
+      { path: ":id", Component: RequisicionDetail },
     ],
   },
-  
-  // ========== PÁGINA NO ENCONTRADA ==========
+
+  // ── 404
   {
     path: "*",
     Component: NotFoundPage,
