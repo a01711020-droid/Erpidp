@@ -1,7 +1,9 @@
 /**
  * CONFIGURACIÓN GLOBAL
- * 
- * Configuración centralizada de la aplicación
+ *
+ * Toda la configuración se lee desde variables de entorno.
+ * En desarrollo: archivo .env.local
+ * En producción: variables configuradas en Azure / CI
  */
 
 // ============================================================================
@@ -10,93 +12,72 @@
 
 /**
  * MOCK_MODE
- * 
- * true: Usa mockAdapter con datos de /spec/mock-db/seed.ts
- * false: Usa apiAdapter real (pendiente integración con Codex)
- * 
- * Para testing de empty states, modifica seed.ts directamente
+ *
+ * true  → usa mockAdapter (datos en memoria, sin backend)
+ * false → usa apiAdapter real (requiere VITE_API_BASE_URL apuntando al backend)
+ *
+ * Controlado por variable de entorno VITE_MOCK_MODE
+ * Por defecto: true (seguro para desarrollo sin backend)
  */
-export const MOCK_MODE = true;
+export const MOCK_MODE = import.meta.env.VITE_MOCK_MODE !== 'false';
 
 /**
  * TEST_EMPTY_STATE
- * 
- * true: Usa emptyDatabase (sin datos) para probar estados vacíos
- * false: Usa mockDatabase (con datos de ejemplo)
+ * Usa base de datos vacía para probar empty states
  */
-export const TEST_EMPTY_STATE = false;
+export const TEST_EMPTY_STATE = import.meta.env.VITE_TEST_EMPTY_STATE === 'true';
 
 /**
  * SIMULATE_NETWORK_DELAY
- * 
- * Simula latencia de red en mockAdapter para UX realista
+ * Simula latencia en mockAdapter para UX realista
  */
-export const SIMULATE_NETWORK_DELAY = true;
+export const SIMULATE_NETWORK_DELAY = import.meta.env.VITE_SIMULATE_DELAY !== 'false';
 
 // ============================================================================
-// CONFIGURACIÓN DE API (para futuro apiAdapter)
+// CONFIGURACIÓN DE API
 // ============================================================================
 
 /**
- * URL del backend FastAPI
- * Esta URL será usada cuando se implemente apiAdapter
+ * URL base del backend FastAPI
+ * Ejemplo desarrollo : http://localhost:8000/api/v1
+ * Ejemplo producción : https://erp-api.azurewebsites.net/api/v1
  */
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 /**
- * Timeout de requests (ms)
+ * Timeout de requests en ms
  */
-export const API_TIMEOUT = 30000;
+export const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 30000;
 
 // ============================================================================
 // CONFIGURACIÓN DE UI
 // ============================================================================
 
-/**
- * Mostrar indicadores de carga
- */
 export const SHOW_LOADING_INDICATORS = true;
 
-/**
- * Duración mínima de loading states (ms)
- * Evita flashes visuales en respuestas muy rápidas
- */
+/** Duración mínima del loading state (evita flashes) */
 export const MIN_LOADING_DURATION = 300;
 
-/**
- * Máximo de items por página en listas
- */
+/** Items por página en listas */
 export const DEFAULT_PAGE_SIZE = 50;
 
 // ============================================================================
-// CONFIGURACIÓN DE FORMATO
+// FORMATO
 // ============================================================================
 
-/**
- * Formato de fechas
- */
 export const DATE_FORMAT = 'es-MX';
 
-/**
- * Formato de moneda
- */
 export const CURRENCY_FORMAT = {
   style: 'currency',
   currency: 'MXN',
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
-};
+} as const;
 
 // ============================================================================
 // DEBUGGING
 // ============================================================================
 
-/**
- * Habilitar logs de debug en consola
- */
 export const DEBUG_MODE = import.meta.env.DEV;
-
-/**
- * Log de llamadas al adapter
- */
-export const LOG_ADAPTER_CALLS = DEBUG_MODE && false;
+export const LOG_ADAPTER_CALLS = DEBUG_MODE && import.meta.env.VITE_LOG_ADAPTER === 'true';
