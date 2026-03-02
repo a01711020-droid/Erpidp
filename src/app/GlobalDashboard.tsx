@@ -1,93 +1,87 @@
 /**
- * GLOBAL DASHBOARD - Con estados (loading, empty, error, data)
- * Sistema consolidado con estado real
+ * GLOBAL DASHBOARD
+ *
+ * Carga obras reales desde el dataAdapter.
+ * Maneja estados: loading → error → empty → data
+ * Sin datos hardcodeados.
  */
 
-import { useState } from "react";
-import { ViewState } from "@/app/components/states";
+import { useState, useEffect } from 'react';
+import { dataAdapter } from '@/core/data';
+import type { Obra } from '@/core/data/types';
 import {
   DashboardStateLoading,
   DashboardStateError,
   DashboardStateEmpty,
-  DashboardStateData,
-} from "@/app/components/global-dashboard";
-import { WorkForm } from "@/app/components/WorkForm";
+} from '@/app/components/global-dashboard';
+import DashboardData from '@/app/components/global-dashboard/DashboardStateData';
+import { WorkForm } from '@/app/components/WorkForm';
 
 interface GlobalDashboardProps {
   onSelectProject?: (projectId: string) => void;
-  initialState?: ViewState;
 }
 
-export default function GlobalDashboard({
-  onSelectProject,
-  initialState = "data",
-}: GlobalDashboardProps) {
-  const [viewState, setViewState] = useState<ViewState>(initialState);
+export default function GlobalDashboard({ onSelectProject }: GlobalDashboardProps) {
+  const [obras, setObras] = useState<Obra[]>([]);
+  const [status, setStatus] = useState<'loading' | 'error' | 'empty' | 'data'>('loading');
+  const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Handler para abrir modal de crear obra
-  const handleCreateWork = () => {
-    setShowModal(true);
-  };
+  async function cargarObras() {
+    setStatus('loading');
+    setError(null);
+    try {
+      const res = await dataAdapter.listObras({ estatus: 'activa' });
+      if (res.status === 'error') {
+        setError(res.error || 'Error al cargar obras');
+        setStatus('error');
+        return;
+      }
+      if (!res.data || res.data.length === 0) {
+        setStatus('empty');
+        return;
+      }
+      setObras(res.data);
+      setStatus('data');
+    } catch (e) {
+      setError('Error inesperado al cargar obras');
+      setStatus('error');
+    }
+  }
 
-  // Handler para cerrar modal
-  const handleCloseModal = () => {
-    setShowModal(false);
-  };
+  useEffect(() => { cargarObras(); }, []);
 
-  // Handler cuando se crea la obra exitosamente
   const handleObraCreada = () => {
     setShowModal(false);
-    // Forzar re-render del dashboard
-    setRefreshKey(prev => prev + 1);
-    console.log("Obra creada exitosamente");
+    cargarObras();
   };
 
-  const handleRetry = () => {
-    console.log("Reintentar carga");
-    setViewState("loading");
-    // Simular carga
-    setTimeout(() => setViewState("data"), 1000);
-  };
+  if (status === 'loading') return <DashboardStateLoading />;
 
-  // ESTADO: LOADING
-  if (viewState === "loading") {
-    return <DashboardStateLoading />;
+  if (status === 'error') {
+    return <DashboardStateError onRetry={cargarObras} />;
   }
 
-  // ESTADO: ERROR
-  if (viewState === "error") {
-    return <DashboardStateError onRetry={handleRetry} />;
-  }
-
-  // ESTADO: EMPTY
-  if (viewState === "empty") {
+  if (status === 'empty') {
     return (
       <>
-        <DashboardStateEmpty onCreateWork={handleCreateWork} />
+        <DashboardStateEmpty onCreateWork={() => setShowModal(true)} />
         {showModal && (
-          <WorkForm
-            onClose={handleCloseModal}
-            onSuccess={handleObraCreada}
-          />
+          <WorkForm onClose={() => setShowModal(false)} onSuccess={handleObraCreada} />
         )}
       </>
     );
   }
 
-  // ESTADO: DATA
   return (
     <>
-      <DashboardStateData
+      <DashboardData
+        obras={obras}
         onSelectProject={onSelectProject}
-        onCreateWork={handleCreateWork}
+        onCreateWork={() => setShowModal(true)}
       />
       {showModal && (
-        <WorkForm
-          onClose={handleCloseModal}
-          onSuccess={handleObraCreada}
-        />
+        <WorkForm onClose={() => setShowModal(false)} onSuccess={handleObraCreada} />
       )}
     </>
   );
