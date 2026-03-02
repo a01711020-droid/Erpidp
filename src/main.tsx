@@ -1,8 +1,11 @@
-import { createRoot } from "react-dom/client";
-import { RouterProvider } from "react-router";
-import { router } from "./app/routes";
-import "./styles/index.css";
+import { createRoot } from 'react-dom/client';
+import { RouterProvider } from 'react-router';
+import { AuthProvider } from './app/contexts/AuthContext';
+import { router } from './app/routes';
+import './styles/index.css';
 
-createRoot(document.getElementById("root")!).render(
-  <RouterProvider router={router} />
+createRoot(document.getElementById('root')!).render(
+  <AuthProvider>
+    <RouterProvider router={router} />
+  </AuthProvider>
 );
