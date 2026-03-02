@@ -1,16 +1,8 @@
 /**
- * RUTAS DEL SISTEMA — Completas
+ * RUTAS DEL SISTEMA — 7 módulos completos
  *
- * Todos los módulos protegidos con ProtectedRoute por rol.
- *
- * Roles:
- *   admin       → acceso total
- *   director    → /dashboard
- *   comprador   → /compras, /requisiciones
- *   residente   → /requisiciones, /destajos
- *   finanzas    → /pagos
- *   almacenista → /almacen
- *   rh          → /personal
+ * Todas las rutas protegidas por AuthProvider + ProtectedRoute.
+ * Cada módulo tiene su propio layout y roles permitidos.
  */
 
 import { createBrowserRouter, Navigate } from 'react-router';
@@ -59,27 +51,22 @@ import RequisicionCreate from './pages/requisiciones/RequisicionCreate';
 import RequisicionDetail from './pages/requisiciones/RequisicionDetail';
 
 // Almacén
-import AlmacenInventario from './pages/almacen/AlmacenInventario';
+import AlmacenIndex from './pages/almacen/AlmacenIndex';
 import AlmacenEntradas from './pages/almacen/AlmacenEntradas';
 import AlmacenSalidas from './pages/almacen/AlmacenSalidas';
 
 // Personal
-import PersonalDirectorio from './pages/personal/PersonalDirectorio';
+import PersonalIndex from './pages/personal/PersonalIndex';
 import PersonalNuevo from './pages/personal/PersonalNuevo';
-import PersonalAsistencia from './pages/personal/PersonalAsistencia';
-import PersonalReportes from './pages/personal/PersonalReportes';
 
 // Error
 import NotFoundPage from './pages/NotFoundPage';
 
 export const router = createBrowserRouter([
-  // ── Raíz ────────────────────────────────────────────────────────────────
   { path: '/', element: <Navigate to="/login" replace /> },
-
-  // ── Login (pública) ──────────────────────────────────────────────────────
   { path: '/login', Component: LoginPage },
 
-  // ── Dashboard ────────────────────────────────────────────────────────────
+  // ── Dashboard ──────────────────────────────────────────────────
   {
     path: '/dashboard',
     element: <ProtectedRoute allowedRoles={['admin', 'director']} />,
@@ -93,7 +80,7 @@ export const router = createBrowserRouter([
     }],
   },
 
-  // ── Compras ───────────────────────────────────────────────────────────────
+  // ── Compras ────────────────────────────────────────────────────
   {
     path: '/compras',
     element: <ProtectedRoute allowedRoles={['admin', 'comprador']} />,
@@ -111,7 +98,7 @@ export const router = createBrowserRouter([
     }],
   },
 
-  // ── Pagos ─────────────────────────────────────────────────────────────────
+  // ── Pagos ──────────────────────────────────────────────────────
   {
     path: '/pagos',
     element: <ProtectedRoute allowedRoles={['admin', 'finanzas']} />,
@@ -128,7 +115,7 @@ export const router = createBrowserRouter([
     }],
   },
 
-  // ── Destajos ──────────────────────────────────────────────────────────────
+  // ── Destajos ───────────────────────────────────────────────────
   {
     path: '/destajos',
     element: <ProtectedRoute allowedRoles={['admin', 'residente']} />,
@@ -143,7 +130,7 @@ export const router = createBrowserRouter([
     }],
   },
 
-  // ── Requisiciones ─────────────────────────────────────────────────────────
+  // ── Requisiciones ──────────────────────────────────────────────
   {
     path: '/requisiciones',
     element: <ProtectedRoute allowedRoles={['admin', 'residente', 'comprador']} />,
@@ -157,35 +144,32 @@ export const router = createBrowserRouter([
     }],
   },
 
-  // ── Almacén ───────────────────────────────────────────────────────────────
+  // ── Almacén ────────────────────────────────────────────────────
   {
     path: '/almacen',
     element: <ProtectedRoute allowedRoles={['admin', 'almacenista']} />,
     children: [{
       Component: AlmacenLayout,
       children: [
-        { index: true, Component: AlmacenInventario },
+        { index: true, Component: AlmacenIndex },
         { path: 'entradas', Component: AlmacenEntradas },
         { path: 'salidas', Component: AlmacenSalidas },
       ],
     }],
   },
 
-  // ── Personal ──────────────────────────────────────────────────────────────
+  // ── Personal ───────────────────────────────────────────────────
   {
     path: '/personal',
     element: <ProtectedRoute allowedRoles={['admin', 'rh']} />,
     children: [{
       Component: PersonalLayout,
       children: [
-        { index: true, Component: PersonalDirectorio },
+        { index: true, Component: PersonalIndex },
         { path: 'nuevo', Component: PersonalNuevo },
-        { path: 'asistencia', Component: PersonalAsistencia },
-        { path: 'reportes', Component: PersonalReportes },
       ],
     }],
   },
 
-  // ── 404 ───────────────────────────────────────────────────────────────────
   { path: '*', Component: NotFoundPage },
 ]);

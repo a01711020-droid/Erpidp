@@ -1,12 +1,14 @@
 /**
- * PERSONAL — ALTA DE PERSONAL
- * Formulario para registrar nuevo empleado.
+ * PERSONAL — Nuevo empleado
  */
+import { UserPlus } from 'lucide-react';
+
 export default function PersonalNuevo() {
   return (
-    <div className="flex flex-col items-center justify-center h-64 text-slate-500 gap-3">
-      <p className="text-lg font-medium">Alta de Personal</p>
-      <p className="text-sm text-slate-400">Módulo disponible cuando el backend esté conectado.</p>
+    <div className="flex flex-col items-center justify-center h-64 gap-4 text-slate-500">
+      <UserPlus className="w-12 h-12 text-slate-300" />
+      <h2 className="text-xl font-semibold">Nuevo Empleado</h2>
+      <p className="text-sm">Próximamente — pendiente integración con backend</p>
     </div>
   );
 }
