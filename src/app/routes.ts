@@ -1,19 +1,16 @@
 /**
- * RUTAS DEL SISTEMA
+ * RUTAS DEL SISTEMA — Completas
  *
- * Todas las rutas de módulos están protegidas con ProtectedRoute.
- * Cada módulo define qué roles tienen acceso.
+ * Todos los módulos protegidos con ProtectedRoute por rol.
  *
- * Flujo:
- *   / → LoginPage (si no hay sesión)
- *         → redirige a ruta del rol automáticamente
- *   /dashboard   → admin, director
- *   /compras     → admin, comprador
- *   /requisiciones → admin, residente, comprador
- *   /pagos       → admin, finanzas
- *   /destajos    → admin, residente
- *   /almacen     → admin, almacenista
- *   /personal    → admin, rh
+ * Roles:
+ *   admin       → acceso total
+ *   director    → /dashboard
+ *   comprador   → /compras, /requisiciones
+ *   residente   → /requisiciones, /destajos
+ *   finanzas    → /pagos
+ *   almacenista → /almacen
+ *   rh          → /personal
  */
 
 import { createBrowserRouter, Navigate } from 'react-router';
@@ -28,6 +25,8 @@ import ComprasLayout from './layouts/ComprasLayout';
 import PagosLayout from './layouts/PagosLayout';
 import DestajosLayout from './layouts/DestajosLayout';
 import RequisicionesLayout from './layouts/RequisicionesLayout';
+import AlmacenLayout from './layouts/AlmacenLayout';
+import PersonalLayout from './layouts/PersonalLayout';
 
 // Dashboard
 import GlobalDashboard from './GlobalDashboard';
@@ -59,149 +58,134 @@ import RequisicionesList from './pages/requisiciones/RequisicionesList';
 import RequisicionCreate from './pages/requisiciones/RequisicionCreate';
 import RequisicionDetail from './pages/requisiciones/RequisicionDetail';
 
+// Almacén
+import AlmacenInventario from './pages/almacen/AlmacenInventario';
+import AlmacenEntradas from './pages/almacen/AlmacenEntradas';
+import AlmacenSalidas from './pages/almacen/AlmacenSalidas';
+
+// Personal
+import PersonalDirectorio from './pages/personal/PersonalDirectorio';
+import PersonalNuevo from './pages/personal/PersonalNuevo';
+import PersonalAsistencia from './pages/personal/PersonalAsistencia';
+import PersonalReportes from './pages/personal/PersonalReportes';
+
 // Error
 import NotFoundPage from './pages/NotFoundPage';
 
 export const router = createBrowserRouter([
-  // ── Ruta raíz → redirige a login (la sesión decide a dónde después) ──────
-  {
-    path: '/',
-    element: <Navigate to="/login" replace />,
-  },
+  // ── Raíz ────────────────────────────────────────────────────────────────
+  { path: '/', element: <Navigate to="/login" replace /> },
 
   // ── Login (pública) ──────────────────────────────────────────────────────
-  {
-    path: '/login',
-    Component: LoginPage,
-  },
+  { path: '/login', Component: LoginPage },
 
-  // ── Dashboard (director, admin) ──────────────────────────────────────────
+  // ── Dashboard ────────────────────────────────────────────────────────────
   {
     path: '/dashboard',
     element: <ProtectedRoute allowedRoles={['admin', 'director']} />,
-    children: [
-      {
-        Component: DashboardLayout,
-        children: [
-          { index: true, Component: GlobalDashboard },
-          { path: 'obras', Component: DashboardObras },
-          { path: 'obras/:codigoObra', Component: DashboardObraDetalle },
-        ],
-      },
-    ],
+    children: [{
+      Component: DashboardLayout,
+      children: [
+        { index: true, Component: GlobalDashboard },
+        { path: 'obras', Component: DashboardObras },
+        { path: 'obras/:codigoObra', Component: DashboardObraDetalle },
+      ],
+    }],
   },
 
-  // ── Compras (comprador, admin) ───────────────────────────────────────────
+  // ── Compras ───────────────────────────────────────────────────────────────
   {
     path: '/compras',
     element: <ProtectedRoute allowedRoles={['admin', 'comprador']} />,
-    children: [
-      {
-        Component: ComprasLayout,
-        children: [
-          { index: true, Component: OrdenesCompraList },
-          { path: 'ordenes', Component: OrdenesCompraList },
-          { path: 'ordenes/nueva', Component: OrdenCompraCreate },
-          { path: 'ordenes/:id', Component: OrdenCompraDetail },
-          { path: 'proveedores', Component: ProveedoresList },
-          { path: 'proveedores/nuevo', Component: ProveedorCreate },
-          { path: 'proveedores/:id', Component: ProveedorDetail },
-        ],
-      },
-    ],
+    children: [{
+      Component: ComprasLayout,
+      children: [
+        { index: true, Component: OrdenesCompraList },
+        { path: 'ordenes', Component: OrdenesCompraList },
+        { path: 'ordenes/nueva', Component: OrdenCompraCreate },
+        { path: 'ordenes/:id', Component: OrdenCompraDetail },
+        { path: 'proveedores', Component: ProveedoresList },
+        { path: 'proveedores/nuevo', Component: ProveedorCreate },
+        { path: 'proveedores/:id', Component: ProveedorDetail },
+      ],
+    }],
   },
 
-  // ── Pagos (finanzas, admin) ──────────────────────────────────────────────
+  // ── Pagos ─────────────────────────────────────────────────────────────────
   {
     path: '/pagos',
     element: <ProtectedRoute allowedRoles={['admin', 'finanzas']} />,
-    children: [
-      {
-        Component: PagosLayout,
-        children: [
-          { index: true, Component: PagosProgramacion },
-          { path: 'programacion', Component: PagosProgramacion },
-          { path: 'facturas', Component: FacturasList },
-          { path: 'facturas/nueva', Component: FacturaCreate },
-          { path: 'procesar', Component: PagosProcesar },
-          { path: 'historial', Component: PagosHistorial },
-        ],
-      },
-    ],
+    children: [{
+      Component: PagosLayout,
+      children: [
+        { index: true, Component: PagosProgramacion },
+        { path: 'programacion', Component: PagosProgramacion },
+        { path: 'facturas', Component: FacturasList },
+        { path: 'facturas/nueva', Component: FacturaCreate },
+        { path: 'procesar', Component: PagosProcesar },
+        { path: 'historial', Component: PagosHistorial },
+      ],
+    }],
   },
 
-  // ── Destajos (residente, admin) ──────────────────────────────────────────
+  // ── Destajos ──────────────────────────────────────────────────────────────
   {
     path: '/destajos',
     element: <ProtectedRoute allowedRoles={['admin', 'residente']} />,
-    children: [
-      {
-        Component: DestajosLayout,
-        children: [
-          { index: true, Component: DestajistasCatalogo },
-          { path: 'catalogo', Component: DestajistasCatalogo },
-          { path: 'captura', Component: CapturaAvances },
-          { path: 'resumen', Component: ResumenDestajos },
-        ],
-      },
-    ],
+    children: [{
+      Component: DestajosLayout,
+      children: [
+        { index: true, Component: DestajistasCatalogo },
+        { path: 'catalogo', Component: DestajistasCatalogo },
+        { path: 'captura', Component: CapturaAvances },
+        { path: 'resumen', Component: ResumenDestajos },
+      ],
+    }],
   },
 
-  // ── Requisiciones (residente, comprador, admin) ──────────────────────────
+  // ── Requisiciones ─────────────────────────────────────────────────────────
   {
     path: '/requisiciones',
     element: <ProtectedRoute allowedRoles={['admin', 'residente', 'comprador']} />,
-    children: [
-      {
-        Component: RequisicionesLayout,
-        children: [
-          { index: true, Component: RequisicionesList },
-          { path: 'nueva', Component: RequisicionCreate },
-          { path: ':id', Component: RequisicionDetail },
-        ],
-      },
-    ],
+    children: [{
+      Component: RequisicionesLayout,
+      children: [
+        { index: true, Component: RequisicionesList },
+        { path: 'nueva', Component: RequisicionCreate },
+        { path: ':id', Component: RequisicionDetail },
+      ],
+    }],
   },
 
-  // ── Almacén y Personal → stub hasta Commit 5 ────────────────────────────
+  // ── Almacén ───────────────────────────────────────────────────────────────
   {
     path: '/almacen',
     element: <ProtectedRoute allowedRoles={['admin', 'almacenista']} />,
-    children: [
-      {
-        index: true,
-        element: (
-          <div className="min-h-screen flex items-center justify-center bg-slate-50">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">Módulo Almacén</h2>
-              <p className="text-slate-500">En construcción — próximos commits</p>
-            </div>
-          </div>
-        ),
-      },
-    ],
+    children: [{
+      Component: AlmacenLayout,
+      children: [
+        { index: true, Component: AlmacenInventario },
+        { path: 'entradas', Component: AlmacenEntradas },
+        { path: 'salidas', Component: AlmacenSalidas },
+      ],
+    }],
   },
+
+  // ── Personal ──────────────────────────────────────────────────────────────
   {
     path: '/personal',
     element: <ProtectedRoute allowedRoles={['admin', 'rh']} />,
-    children: [
-      {
-        index: true,
-        element: (
-          <div className="min-h-screen flex items-center justify-center bg-slate-50">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">Módulo Personal</h2>
-              <p className="text-slate-500">En construcción — próximos commits</p>
-            </div>
-          </div>
-        ),
-      },
-    ],
+    children: [{
+      Component: PersonalLayout,
+      children: [
+        { index: true, Component: PersonalDirectorio },
+        { path: 'nuevo', Component: PersonalNuevo },
+        { path: 'asistencia', Component: PersonalAsistencia },
+        { path: 'reportes', Component: PersonalReportes },
+      ],
+    }],
   },
 
-  // ── 404 ─────────────────────────────────────────────────────────────────
-  {
-    path: '*',
-    Component: NotFoundPage,
-  },
+  // ── 404 ───────────────────────────────────────────────────────────────────
+  { path: '*', Component: NotFoundPage },
 ]);
