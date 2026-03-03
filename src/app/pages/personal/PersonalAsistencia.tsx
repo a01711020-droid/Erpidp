@@ -1,12 +1,13 @@
-/**
- * PERSONAL — ASISTENCIA
- * Control de asistencia del personal.
- */
+import { PageEmpty } from '@/app/components/PageStates';
+import { CalendarCheck } from 'lucide-react';
+
 export default function PersonalAsistencia() {
   return (
-    <div className="flex flex-col items-center justify-center h-64 text-slate-500 gap-3">
-      <p className="text-lg font-medium">Control de Asistencia</p>
-      <p className="text-sm text-slate-400">Módulo disponible cuando el backend esté conectado.</p>
-    </div>
+    <PageEmpty
+      icon={CalendarCheck}
+      titulo="Módulo de asistencia"
+      descripcion="El control de asistencia y nómina estará disponible en la siguiente fase del sistema."
+      iconBg="bg-blue-100" iconColor="text-blue-500"
+    />
   );
 }

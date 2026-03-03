@@ -1,113 +1,84 @@
-/**
- * PAGOS — PROGRAMACIÓN SEMANAL
- *
- * Carga pagos pendientes reales desde el dataAdapter.
- */
-
-import { useState, useEffect } from 'react';
-import { dataAdapter } from '@/core/data';
-import type { Pago } from '@/core/data/types';
-import { Button } from '@/app/components/ui/button';
+import { useApi, EP } from '@/core/api';
+import { PageLoading, PageError, PageEmpty } from '@/app/components/PageStates';
 import { Badge } from '@/app/components/ui/badge';
-import { Card, CardContent } from '@/app/components/ui/card';
-import { Loader2, AlertCircle, CreditCard, RefreshCw } from 'lucide-react';
+import { Button } from '@/app/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { CreditCard, CheckCircle } from 'lucide-react';
 
-const METODO_LABEL: Record<string, string> = {
-  transferencia: 'Transferencia',
-  cheque: 'Cheque',
-  efectivo: 'Efectivo',
-  tarjeta: 'Tarjeta',
-};
+interface CxP {
+  cxp_id: string;
+  numero_oc: string;
+  proveedor_alias: string;
+  obra_nombre: string;
+  monto_pendiente: number;
+  fecha_vencimiento: string;
+  estatus: string;
+  dias_restantes: number;
+}
 
-const ESTATUS_STYLE: Record<string, string> = {
-  pendiente: 'bg-yellow-50 text-yellow-700 border-yellow-300',
-  aplicado: 'bg-green-50 text-green-700 border-green-300',
-  cancelado: 'bg-red-50 text-red-700 border-red-300',
-};
+interface CxPRes { data: CxP[]; total: number; }
 
 export default function PagosProgramacion() {
-  const [pagos, setPagos] = useState<Pago[]>([]);
-  const [status, setStatus] = useState<'loading' | 'error' | 'empty' | 'data'>('loading');
-  const [error, setError] = useState<string | null>(null);
+  const { status, data, error, reload } = useApi<CxPRes>(EP.cxp, d => d.data.length === 0);
 
-  async function cargar() {
-    setStatus('loading');
-    setError(null);
-    try {
-      const res = await dataAdapter.listPagos();
-      if (res.status === 'error') { setError(res.error); setStatus('error'); return; }
-      setPagos(res.data);
-      setStatus(res.data.length === 0 ? 'empty' : 'data');
-    } catch { setError('Error inesperado'); setStatus('error'); }
-  }
-
-  useEffect(() => { cargar(); }, []);
-
-  if (status === 'loading') {
-    return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-slate-400" /></div>;
-  }
-
-  if (status === 'error') {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 gap-3 text-red-600">
-        <AlertCircle className="w-8 h-8" />
-        <p className="text-sm">{error}</p>
-        <Button variant="outline" size="sm" onClick={cargar} className="gap-2"><RefreshCw className="w-4 h-4" />Reintentar</Button>
-      </div>
-    );
-  }
-
-  if (status === 'empty') {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4 text-slate-500">
-        <CreditCard className="w-12 h-12 text-slate-300" />
-        <p className="text-lg font-medium">No hay pagos programados</p>
-      </div>
-    );
-  }
-
-  const pendientes = pagos.filter(p => p.estatus === 'pendiente');
-  const totalPendiente = pendientes.reduce((s, p) => s + p.monto_pagado, 0);
+  if (status === 'loading') return <PageLoading mensaje="Cargando cuentas por pagar..." />;
+  if (status === 'error')   return <PageError mensaje={error} onRetry={reload} />;
+  if (status === 'empty') return (
+    <PageEmpty
+      icon={CreditCard}
+      titulo="Sin cuentas por pagar"
+      descripcion="No hay compromisos de pago pendientes. Cuando se generen órdenes de compra apareceran aquí para programar su pago."
+      iconBg="bg-green-100" iconColor="text-green-500"
+    />
+  );
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 bg-green-600 rounded-lg"><CreditCard className="h-6 w-6 text-white" /></div>
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Programación de Pagos</h2>
-          <p className="text-slate-500 text-sm mt-1">
-            {pendientes.length} pago{pendientes.length !== 1 ? 's' : ''} pendiente{pendientes.length !== 1 ? 's' : ''} — 
-            Total: <span className="font-semibold text-slate-800">${totalPendiente.toLocaleString('es-MX')}</span>
-          </p>
+          <h1 className="text-2xl font-bold">Programación de Pagos</h1>
+          <p className="text-sm text-muted-foreground">Cuentas por pagar activas</p>
         </div>
       </div>
-
       <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-slate-50">
-                  {['Número', 'OC', 'Fecha Programada', 'Monto', 'Método', 'Estado'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-600">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {pagos.map(p => (
-                  <tr key={p.pago_id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-mono font-semibold">{p.numero_pago}</td>
-                    <td className="px-4 py-3 text-slate-600">{p.oc_id}</td>
-                    <td className="px-4 py-3">{new Date(p.fecha_pago).toLocaleDateString('es-MX')}</td>
-                    <td className="px-4 py-3 font-semibold">${p.monto_pagado.toLocaleString('es-MX')}</td>
-                    <td className="px-4 py-3">{METODO_LABEL[p.metodo_pago] || p.metodo_pago}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant="outline" className={ESTATUS_STYLE[p.estatus] || ''}>{p.estatus}</Badge>
-                    </td>
-                  </tr>
+        <CardHeader><CardTitle>Cuentas por Pagar</CardTitle></CardHeader>
+        <CardContent>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-gray-50">
+                {['OC','Proveedor','Obra','Monto','Vencimiento','Días','Estado',''].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {data!.data.map(c => (
+                <tr key={c.cxp_id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 font-mono font-semibold">{c.numero_oc}</td>
+                  <td className="px-4 py-3">{c.proveedor_alias}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{c.obra_nombre}</td>
+                  <td className="px-4 py-3 font-semibold">${c.monto_pendiente.toLocaleString('es-MX')}</td>
+                  <td className="px-4 py-3">{new Date(c.fecha_vencimiento).toLocaleDateString('es-MX')}</td>
+                  <td className="px-4 py-3">
+                    <span className={c.dias_restantes < 0 ? 'text-red-600 font-bold' : c.dias_restantes <= 3 ? 'text-orange-600 font-semibold' : ''}>
+                      {c.dias_restantes < 0 ? `${Math.abs(c.dias_restantes)}d vencido` : `${c.dias_restantes}d`}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge variant="outline" className={c.estatus === 'vencido' ? 'text-red-700 border-red-300' : 'text-yellow-700 border-yellow-300'}>
+                      {c.estatus}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Button size="sm" variant="outline" className="gap-1">
+                      <CheckCircle className="h-3 w-3" /> Pagar
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </CardContent>
       </Card>
     </div>

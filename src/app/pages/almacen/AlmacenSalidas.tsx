@@ -1,12 +1,19 @@
-/**
- * ALMACÉN — SALIDAS DE MATERIAL
- * Registro de salidas del inventario hacia obras.
- */
+import { useApi, EP } from '@/core/api';
+import { PageLoading, PageError, PageEmpty } from '@/app/components/PageStates';
+import { PackageMinus } from 'lucide-react';
+
 export default function AlmacenSalidas() {
+  const { status, error, reload } = useApi<any>(`${EP.prestamos}`, d => !d?.data?.length);
+
+  if (status === 'loading') return <PageLoading mensaje="Cargando salidas..." />;
+  if (status === 'error')   return <PageError mensaje={error} onRetry={reload} />;
+
   return (
-    <div className="flex flex-col items-center justify-center h-64 text-slate-500 gap-3">
-      <p className="text-lg font-medium">Salidas de Almacén</p>
-      <p className="text-sm text-slate-400">Módulo disponible cuando el backend esté conectado.</p>
-    </div>
+    <PageEmpty
+      icon={PackageMinus}
+      titulo="Sin salidas / préstamos registrados"
+      descripcion="Los préstamos de herramientas y material crítico aparecerán aquí cuando se registren."
+      iconBg="bg-yellow-100" iconColor="text-yellow-500"
+    />
   );
 }

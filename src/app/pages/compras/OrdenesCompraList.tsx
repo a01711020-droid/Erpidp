@@ -1,123 +1,98 @@
-/**
- * LISTA DE ÓRDENES DE COMPRA
- *
- * Carga órdenes reales desde el dataAdapter.
- * Maneja estados loading / error / empty / data.
- */
-
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router';
-import { dataAdapter } from '@/core/data';
-import type { OrdenCompra } from '@/core/data/types';
+import { useNavigate } from 'react-router';
+import { useApi, EP } from '@/core/api';
+import { PageLoading, PageError, PageEmpty } from '@/app/components/PageStates';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
-import { Card, CardContent } from '@/app/components/ui/card';
-import { Plus, Loader2, AlertCircle, ShoppingCart, RefreshCw } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Plus, ShoppingCart, Eye, FileText } from 'lucide-react';
 
-const ESTATUS_STYLE: Record<string, string> = {
+interface OC {
+  oc_id: string;
+  numero_oc: string;
+  obra_nombre: string;
+  proveedor_alias: string;
+  comprador: string;
+  fecha_entrega: string;
+  total: number;
+  estatus: string;
+}
+
+interface OCsResponse { data: OC[]; total: number; }
+
+const ESTATUS: Record<string, string> = {
   pendiente: 'bg-yellow-50 text-yellow-700 border-yellow-300',
-  aprobada: 'bg-blue-50 text-blue-700 border-blue-300',
-  rechazada: 'bg-red-50 text-red-700 border-red-300',
-  entregada: 'bg-green-50 text-green-700 border-green-300',
-  cancelada: 'bg-slate-50 text-slate-500 border-slate-300',
+  aprobada:  'bg-green-50 text-green-700 border-green-300',
+  entregada: 'bg-blue-50 text-blue-700 border-blue-300',
+  cancelada: 'bg-red-50 text-red-700 border-red-300',
+  rechazada: 'bg-gray-50 text-gray-700 border-gray-300',
 };
 
 export default function OrdenesCompraList() {
-  const [ordenes, setOrdenes] = useState<OrdenCompra[]>([]);
-  const [status, setStatus] = useState<'loading' | 'error' | 'empty' | 'data'>('loading');
-  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { status, data, error, reload } = useApi<OCsResponse>(EP.ocs, d => d.data.length === 0);
 
-  async function cargar() {
-    setStatus('loading');
-    setError(null);
-    try {
-      const res = await dataAdapter.listOrdenesCompra();
-      if (res.status === 'error') { setError(res.error); setStatus('error'); return; }
-      setOrdenes(res.data);
-      setStatus(res.data.length === 0 ? 'empty' : 'data');
-    } catch { setError('Error inesperado'); setStatus('error'); }
-  }
+  if (status === 'loading') return <PageLoading mensaje="Cargando órdenes de compra..." />;
+  if (status === 'error')   return <PageError mensaje={error} onRetry={reload} />;
+  if (status === 'empty') return (
+    <PageEmpty
+      icon={ShoppingCart}
+      titulo="Sin órdenes de compra"
+      descripcion="Aún no hay órdenes de compra registradas. Crea la primera directamente o desde una requisición."
+      ctaLabel="Nueva Orden de Compra"
+      onCta={() => navigate('/compras/ordenes/nueva')}
+      iconBg="bg-blue-100" iconColor="text-blue-500"
+    />
+  );
 
-  useEffect(() => { cargar(); }, []);
-
-  if (status === 'loading') {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
-      </div>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 gap-3 text-red-600">
-        <AlertCircle className="w-8 h-8" />
-        <p className="text-sm">{error}</p>
-        <Button variant="outline" size="sm" onClick={cargar} className="gap-2">
-          <RefreshCw className="w-4 h-4" /> Reintentar
-        </Button>
-      </div>
-    );
-  }
-
-  if (status === 'empty') {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4 text-slate-500">
-        <ShoppingCart className="w-12 h-12 text-slate-300" />
-        <p className="text-lg font-medium">No hay órdenes de compra</p>
-        <Button asChild size="sm">
-          <Link to="/compras/ordenes/nueva"><Plus className="w-4 h-4 mr-2" />Nueva Orden</Link>
-        </Button>
-      </div>
-    );
-  }
-
+  const ocs = data!.data;
   return (
-    <div>
+    <div className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900">Órdenes de Compra</h2>
-          <p className="text-slate-500 text-sm mt-1">{ordenes.length} orden{ordenes.length !== 1 ? 'es' : ''} encontrada{ordenes.length !== 1 ? 's' : ''}</p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-700 rounded-lg"><ShoppingCart className="h-6 w-6 text-white" /></div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Órdenes de Compra</h1>
+            <p className="text-sm text-muted-foreground">{data!.total} órdenes registradas</p>
+          </div>
         </div>
-        <Button asChild>
-          <Link to="/compras/ordenes/nueva"><Plus className="w-4 h-4 mr-2" />Nueva Orden</Link>
+        <Button onClick={() => navigate('/compras/ordenes/nueva')} className="gap-2 bg-blue-700 hover:bg-blue-800">
+          <Plus className="h-4 w-4" /> Nueva OC
         </Button>
       </div>
-
       <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-slate-50">
-                  {['Número OC', 'Obra', 'Proveedor', 'Fecha Entrega', 'Total', 'Estado', ''].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-600">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {ordenes.map(oc => (
-                  <tr key={oc.oc_id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-mono font-semibold">{oc.numero_oc}</td>
-                    <td className="px-4 py-3 text-slate-600">{oc.obra_id}</td>
-                    <td className="px-4 py-3 text-slate-600">{oc.proveedor_id}</td>
-                    <td className="px-4 py-3">{new Date(oc.fecha_entrega).toLocaleDateString('es-MX')}</td>
-                    <td className="px-4 py-3 font-semibold">${oc.total.toLocaleString('es-MX')}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant="outline" className={ESTATUS_STYLE[oc.estatus] || ''}>
-                        {oc.estatus}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Button asChild size="sm" variant="outline">
-                        <Link to={`/compras/ordenes/${oc.oc_id}`}>Ver</Link>
-                      </Button>
-                    </td>
-                  </tr>
+        <CardHeader><CardTitle>Registro de Órdenes</CardTitle></CardHeader>
+        <CardContent>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-gray-50">
+                {['Folio / Fecha','Obra','Proveedor','Comprador','F. Entrega','Total','Estado',''].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {ocs.map(oc => (
+                <tr key={oc.oc_id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium">{oc.numero_oc}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{oc.obra_nombre}</td>
+                  <td className="px-4 py-3">{oc.proveedor_alias}</td>
+                  <td className="px-4 py-3">{oc.comprador}</td>
+                  <td className="px-4 py-3">{new Date(oc.fecha_entrega).toLocaleDateString('es-MX')}</td>
+                  <td className="px-4 py-3 font-semibold">${oc.total.toLocaleString('es-MX')}</td>
+                  <td className="px-4 py-3">
+                    <Badge variant="outline" className={ESTATUS[oc.estatus] ?? ''}>
+                      {oc.estatus}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Button size="sm" variant="ghost" onClick={() => navigate(`/compras/ordenes/${oc.oc_id}`)}>
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </CardContent>
       </Card>
     </div>

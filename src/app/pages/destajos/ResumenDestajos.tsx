@@ -1,11 +1,19 @@
-// Página: Resumen de Destajos por Obra
+import { useApi, EP } from '@/core/api';
+import { PageLoading, PageError, PageEmpty } from '@/app/components/PageStates';
+import { BarChart3 } from 'lucide-react';
+
 export default function ResumenDestajos() {
+  const { status, error, reload } = useApi<any>(`${EP.destajos}?resumen=true`, d => !d?.data?.length);
+
+  if (status === 'loading') return <PageLoading mensaje="Cargando resumen..." />;
+  if (status === 'error')   return <PageError mensaje={error} onRetry={reload} />;
+
   return (
-    <div>
-      <h2 className="text-2xl font-bold text-slate-900 mb-6">Resumen por Obra</h2>
-      <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
-        <p className="text-slate-500">Resumen de destajos - Próximamente</p>
-      </div>
-    </div>
+    <PageEmpty
+      icon={BarChart3}
+      titulo="Sin datos de resumen"
+      descripcion="El resumen de destajos por obra y periodo aparecerá aquí una vez que se capturen avances."
+      iconBg="bg-purple-100" iconColor="text-purple-500"
+    />
   );
 }

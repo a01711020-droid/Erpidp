@@ -1,12 +1,13 @@
-/**
- * PERSONAL — REPORTES
- * Reportes de nómina y asistencia.
- */
+import { PageEmpty } from '@/app/components/PageStates';
+import { FileBarChart } from 'lucide-react';
+
 export default function PersonalReportes() {
   return (
-    <div className="flex flex-col items-center justify-center h-64 text-slate-500 gap-3">
-      <p className="text-lg font-medium">Reportes de Personal</p>
-      <p className="text-sm text-slate-400">Módulo disponible cuando el backend esté conectado.</p>
-    </div>
+    <PageEmpty
+      icon={FileBarChart}
+      titulo="Reportes de Personal"
+      descripcion="Los reportes de nómina y distribución de indirectos estarán disponibles próximamente."
+      iconBg="bg-purple-100" iconColor="text-purple-500"
+    />
   );
 }
