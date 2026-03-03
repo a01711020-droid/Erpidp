@@ -1,338 +1,164 @@
 /**
- * GLOBAL DASHBOARD
- *
- * Conectado al backend real via api client.
- * Estados: loading → error → empty → data
- * Diseño 100% fiel a Figma.
+ * GLOBAL DASHBOARD — Estado vacío y con datos 100% fiel a Figma imagen 2
+ * Fondo beige, 4 KPIs con iconos grises, tabla con empty state central
  */
-
-import { useState, useEffect } from 'react';
-import { api, ApiError, EP } from '@/core/api';
-import { Card, CardContent } from '@/app/components/ui/card';
-import { Badge } from '@/app/components/ui/badge';
+import { useState } from 'react';
+import { useNavigate } from 'react-router';
+import { api, ApiError, EP, useApi } from '@/core/api';
+import { PageLoading, PageError } from '@/app/components/PageStates';
 import { Button } from '@/app/components/ui/button';
-import {
-  Building2,
-  DollarSign,
-  BarChart3,
-  Plus,
-  Archive,
-  AlertCircle,
-  RefreshCw,
-  Loader2,
-  Target,
-  TrendingUp,
-} from 'lucide-react';
-
-// ─── Types ───────────────────────────────────────────────────────────────────
+import { ArrowLeft, Archive, Plus, Building2, DollarSign, TrendingUp, BarChart2 } from 'lucide-react';
 
 interface Obra {
   obra_id: string;
   codigo_obra: string;
   nombre_obra: string;
-  cliente: string;
   residente: string | null;
   presupuesto_total: number;
+  avance_pct: number;
+  saldo: number;
   estatus: 'activa' | 'pausada' | 'terminada' | 'cancelada';
-  fecha_inicio: string | null;
-  fecha_fin_estimada: string | null;
 }
 
-interface ObrasResponse {
-  data: Obra[];
-  total: number;
-}
+interface ObrasRes { data: Obra[]; total: number; }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-const ESTATUS_STYLE: Record<string, { label: string; cls: string }> = {
-  activa:    { label: 'Activa',    cls: 'bg-green-50 text-green-700 border-green-300' },
-  pausada:   { label: 'Pausada',   cls: 'bg-yellow-50 text-yellow-700 border-yellow-300' },
-  terminada: { label: 'Terminada', cls: 'bg-slate-50 text-slate-700 border-slate-300' },
-  cancelada: { label: 'Cancelada', cls: 'bg-red-50 text-red-700 border-red-300' },
+const ESTATUS_CLS: Record<string, string> = {
+  activa:    'bg-green-50 text-green-700 border-green-200',
+  pausada:   'bg-yellow-50 text-yellow-700 border-yellow-200',
+  terminada: 'bg-slate-50 text-slate-600 border-slate-200',
+  cancelada: 'bg-red-50 text-red-600 border-red-200',
 };
 
-function fmtPesos(n: number) {
-  return n.toLocaleString('es-MX', { minimumFractionDigits: 0 });
-}
+function fmtM(n: number) { return `$${(n/1_000_000).toFixed(1)} M`; }
+function fmtPct(n: number) { return `${n.toFixed(0)}%`; }
 
-function fmtMillones(n: number) {
-  return `$${(n / 1_000_000).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`;
-}
+export default function GlobalDashboard() {
+  const navigate = useNavigate();
+  const { status, data, error, reload } = useApi<ObrasRes>(`${EP.obras}?estatus=activa`, d => d.data.length === 0);
 
-// ─── Estado: Loading ─────────────────────────────────────────────────────────
+  if (status === 'loading') return <PageLoading mensaje="Cargando obras..." />;
+  if (status === 'error')   return <PageError mensaje={error} onRetry={reload} />;
 
-function DashboardLoading() {
+  const obras = data?.data ?? [];
+  const totalContrato = obras.reduce((s, o) => s + o.presupuesto_total, 0);
+  const totalSaldo    = obras.reduce((s, o) => s + o.saldo, 0);
+  const avanceGlobal  = obras.length ? obras.reduce((s, o) => s + o.avance_pct, 0) / obras.length : 0;
+
+  const kpis = [
+    { label: 'Obras Activas',      value: obras.length,        Icon: Building2,  },
+    { label: 'Contratos Totales',  value: fmtM(totalContrato), Icon: DollarSign, },
+    { label: 'Saldo Global',       value: fmtM(totalSaldo),    Icon: TrendingUp, },
+    { label: 'Avance Global',      value: fmtPct(avanceGlobal),Icon: BarChart2,  },
+  ];
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="text-center">
-        <Loader2 className="h-10 w-10 text-slate-600 animate-spin mx-auto mb-4" />
-        <p className="text-muted-foreground">Cargando obras...</p>
-      </div>
-    </div>
-  );
-}
-
-// ─── Estado: Error ───────────────────────────────────────────────────────────
-
-function DashboardError({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="p-3 bg-slate-700 rounded-lg">
-            <Building2 className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard Empresarial</h1>
-            <p className="text-muted-foreground">Gestión financiera global de proyectos constructivos</p>
-          </div>
-        </div>
-        <div className="flex flex-col items-center justify-center py-24">
-          <div className="p-4 bg-red-100 rounded-full mb-4">
-            <AlertCircle className="h-10 w-10 text-red-600" />
-          </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Error al cargar obras</h3>
-          <p className="text-muted-foreground mb-6 text-center max-w-md">{message}</p>
-          <Button onClick={onRetry} className="gap-2">
-            <RefreshCw className="h-4 w-4" />
-            Reintentar
+    <div className="min-h-screen" style={{ background: '#f0ece6' }}>
+      {/* Barra volver */}
+      <div className="bg-white border-b shadow-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <Button variant="outline" size="sm" onClick={() => navigate('/')} className="gap-2">
+            <ArrowLeft className="h-4 w-4" /> Volver al Inicio
           </Button>
         </div>
       </div>
-    </div>
-  );
-}
 
-// ─── Estado: Vacío ───────────────────────────────────────────────────────────
-
-function DashboardEmpty({ onCrear }: { onCrear: () => void }) {
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header igual a cuando hay datos */}
-        <div className="mb-6 flex items-center gap-3">
-          <div className="p-3 bg-slate-700 rounded-lg">
-            <Building2 className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard Empresarial</h1>
-            <p className="text-muted-foreground">Gestión financiera global de proyectos constructivos</p>
-          </div>
-        </div>
-
-        {/* Cards en cero */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          {[
-            { label: 'Obras Activas',      value: '0',   icon: Building2,  bg: 'bg-slate-100',  ic: 'text-slate-600' },
-            { label: 'Presupuesto Total',  value: '$0',  icon: DollarSign, bg: 'bg-blue-100',   ic: 'text-blue-600'  },
-            { label: 'Módulos activos',    value: '7',   icon: BarChart3,  bg: 'bg-purple-100', ic: 'text-purple-600'},
-          ].map(({ label, value, icon: Icon, bg, ic }) => (
-            <Card key={label}>
-              <CardContent className="p-6 flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">{label}</p>
-                  <p className="text-3xl font-bold text-gray-400">{value}</p>
-                </div>
-                <div className={`p-3 ${bg} rounded-lg`}>
-                  <Icon className={`h-6 w-6 ${ic}`} />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Call to action central */}
-        <div className="border-2 border-dashed border-slate-200 rounded-2xl p-16 text-center bg-slate-50">
-          <div className="inline-flex p-4 bg-slate-100 rounded-full mb-6">
-            <Building2 className="h-12 w-12 text-slate-400" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">No hay obras registradas</h2>
-          <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
-            Comienza registrando tu primera obra para llevar el control financiero
-            y operativo de todos tus proyectos constructivos.
-          </p>
-          <Button size="lg" className="gap-2 bg-slate-700 hover:bg-slate-800" onClick={onCrear}>
-            <Plus className="h-5 w-5" />
-            Crear Primera Obra
-          </Button>
-
-          {/* Beneficios */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12 text-left">
-            {[
-              { icon: DollarSign, title: 'Control Financiero',      desc: 'Monitorea contratos, estimaciones y gastos en tiempo real',      bg: 'bg-green-100',  ic: 'text-green-600'  },
-              { icon: BarChart3,  title: 'Reportes Consolidados',   desc: 'Vista ejecutiva de todas tus obras con métricas clave',         bg: 'bg-blue-100',   ic: 'text-blue-600'   },
-              { icon: Target,     title: 'Seguimiento de Avance',   desc: 'Compara avance financiero vs físico en cada proyecto',          bg: 'bg-purple-100', ic: 'text-purple-600' },
-              { icon: AlertCircle,title: 'Alertas Automáticas',     desc: 'Detecta desviaciones y problemas de forma temprana',           bg: 'bg-orange-100', ic: 'text-orange-600' },
-            ].map(({ icon: Icon, title, desc, bg, ic }) => (
-              <div key={title} className="flex gap-3">
-                <div className={`p-2 ${bg} rounded-lg h-fit`}>
-                  <Icon className={`h-5 w-5 ${ic}`} />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900 text-sm">{title}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Estado: Con datos ────────────────────────────────────────────────────────
-
-function DashboardData({
-  obras,
-  onCrear,
-  onSeleccionar,
-}: {
-  obras: Obra[];
-  onCrear: () => void;
-  onSeleccionar?: (id: string) => void;
-}) {
-  const totalPresupuesto = obras.reduce((s, o) => s + o.presupuesto_total, 0);
-
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-slate-700 rounded-lg">
-              <Building2 className="h-8 w-8 text-white" />
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-slate-700 rounded-xl">
+              <Building2 className="h-7 w-7 text-white" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Dashboard Empresarial</h1>
-              <p className="text-muted-foreground">Gestión financiera global de proyectos constructivos</p>
+              <p className="text-muted-foreground text-sm">Gestión financiera global de proyectos constructivos</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Archive className="h-4 w-4" />
-            Ver Archivadas
+          <Button variant="outline" size="sm" className="gap-2 text-slate-600">
+            <Archive className="h-4 w-4" /> Ver Archivadas ({obras.filter(o=>o.estatus!=='activa').length})
           </Button>
         </div>
 
-        {/* Cards resumen */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card>
-            <CardContent className="p-6 flex items-center justify-between">
+        {/* KPIs — igual a Figma: borde, fondo blanco, icono gris derecha */}
+        <div className="grid grid-cols-4 gap-4 mb-8">
+          {kpis.map(({ label, value, Icon }) => (
+            <div key={label} className="bg-white rounded-xl border border-gray-200 p-5 flex items-center justify-between shadow-sm">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Obras Activas</p>
-                <p className="text-3xl font-bold">{obras.length}</p>
+                <p className="text-sm text-gray-400 mb-1">{label}</p>
+                <p className="text-3xl font-bold text-gray-900">{value}</p>
               </div>
-              <div className="p-3 bg-slate-100 rounded-lg">
-                <Building2 className="h-6 w-6 text-slate-600" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6 flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Presupuesto Total</p>
-                <p className="text-3xl font-bold">{fmtMillones(totalPresupuesto)}</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <DollarSign className="h-6 w-6 text-blue-600" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6 flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Módulos activos</p>
-                <p className="text-3xl font-bold">7</p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <BarChart3 className="h-6 w-6 text-purple-600" />
-              </div>
-            </CardContent>
-          </Card>
+              <Icon className="h-8 w-8 text-gray-200" />
+            </div>
+          ))}
         </div>
 
-        {/* Tabla */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Obras Activas</h2>
-              <Button size="sm" className="gap-2 bg-slate-700 hover:bg-slate-800" onClick={onCrear}>
-                <Plus className="h-4 w-4" />
-                Nueva Obra
-              </Button>
-            </div>
+        {/* Card principal — tabla */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between px-6 py-5 border-b">
+            <h2 className="text-xl font-bold text-gray-900">Obras Activas</h2>
+            <Button className="gap-2 bg-slate-800 hover:bg-slate-900" size="sm">
+              <Plus className="h-4 w-4" /> Nueva Obra
+            </Button>
+          </div>
+
+          {obras.length === 0 ? (
+            /* Empty state fiel a Figma: ícono gris, texto centrado, botón outline */
+            <>
+              {/* Cabeceras igual que cuando hay datos */}
+              <div className="grid grid-cols-8 gap-4 px-6 py-3 border-b bg-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                {['Código','Nombre de la Obra','Residente','Contrato','Saldo','Avance','Estado','Acciones'].map(h=><div key={h}>{h}</div>)}
+              </div>
+              <div className="flex flex-col items-center justify-center py-20">
+                <Building2 className="h-16 w-16 text-gray-200 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-500 mb-2">No hay obras registradas</h3>
+                <p className="text-sm text-gray-400 text-center max-w-sm mb-6">
+                  Comienza registrando tu primera obra para llevar el control financiero y operativo.
+                </p>
+                <Button variant="outline" className="gap-2">
+                  <Plus className="h-4 w-4" /> Registrar Primera Obra
+                </Button>
+              </div>
+            </>
+          ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b-2 bg-gray-50">
-                    {['Código', 'Nombre', 'Cliente', 'Residente', 'Presupuesto', 'Estado', 'Acciones'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600">{h}</th>
+                  <tr className="border-b bg-gray-50">
+                    {['Código','Nombre de la Obra','Residente','Contrato','Saldo','Avance','Estado','Acciones'].map(h=>(
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {obras.map(obra => {
-                    const est = ESTATUS_STYLE[obra.estatus] ?? ESTATUS_STYLE.activa;
-                    return (
-                      <tr key={obra.obra_id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-mono font-semibold">{obra.codigo_obra}</td>
-                        <td className="px-4 py-3 font-medium">{obra.nombre_obra}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{obra.cliente}</td>
-                        <td className="px-4 py-3">{obra.residente ?? '—'}</td>
-                        <td className="px-4 py-3 font-semibold">${fmtPesos(obra.presupuesto_total)}</td>
-                        <td className="px-4 py-3">
-                          <Badge variant="outline" className={est.cls}>{est.label}</Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Button size="sm" variant="outline" onClick={() => onSeleccionar?.(obra.obra_id)}>
-                            Ver detalle
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {obras.map(o => (
+                    <tr key={o.obra_id} className="hover:bg-gray-50">
+                      <td className="px-4 py-4 font-mono font-semibold text-slate-700">{o.codigo_obra}</td>
+                      <td className="px-4 py-4 font-medium">{o.nombre_obra}</td>
+                      <td className="px-4 py-4 text-gray-500">{o.residente ?? '—'}</td>
+                      <td className="px-4 py-4 font-semibold">{fmtM(o.presupuesto_total)}</td>
+                      <td className="px-4 py-4">{fmtM(o.saldo)}</td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-blue-500 rounded-full" style={{ width: `${o.avance_pct}%` }} />
+                          </div>
+                          <span className="text-xs">{fmtPct(o.avance_pct)}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className={`text-xs px-2 py-1 rounded border capitalize ${ESTATUS_CLS[o.estatus]}`}>{o.estatus}</span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <Button size="sm" variant="outline" onClick={() => navigate(`/dashboard/obras/${o.codigo_obra}`)}>Ver</Button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-          </CardContent>
-        </Card>
+          )}
+        </div>
       </div>
     </div>
   );
-}
-
-// ─── Componente principal ─────────────────────────────────────────────────────
-
-interface Props {
-  onSelectProject?: (id: string) => void;
-}
-
-export default function GlobalDashboard({ onSelectProject }: Props) {
-  const [obras, setObras]   = useState<Obra[]>([]);
-  const [status, setStatus] = useState<'loading' | 'error' | 'empty' | 'data'>('loading');
-  const [error, setError]   = useState<string>('');
-
-  async function cargar() {
-    setStatus('loading');
-    try {
-      const res = await api.get<ObrasResponse>(`${EP.obras}?estatus=activa`);
-      const data = res.data ?? [];
-      setObras(data);
-      setStatus(data.length === 0 ? 'empty' : 'data');
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Error inesperado');
-      setStatus('error');
-    }
-  }
-
-  useEffect(() => { cargar(); }, []);
-
-  // TODO: abrir modal real de creación cuando esté el endpoint POST /obras
-  const handleCrear = () => console.log('TODO: modal crear obra');
-
-  if (status === 'loading') return <DashboardLoading />;
-  if (status === 'error')   return <DashboardError message={error} onRetry={cargar} />;
-  if (status === 'empty')   return <DashboardEmpty onCrear={handleCrear} />;
-  return <DashboardData obras={obras} onCrear={handleCrear} onSeleccionar={onSelectProject} />;
 }
