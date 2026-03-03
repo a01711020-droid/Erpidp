@@ -1,13 +1,12 @@
 /**
  * GLOBAL DASHBOARD
  *
- * Carga obras reales desde el dataAdapter.
- * Maneja estados: loading → error → empty → data
- * Sin datos hardcodeados.
+ * Fetch real a /api/obras via MSW (dev) o backend real (prod).
+ * Sin dataAdapter, sin mocks importados.
+ * Estados: loading → error → empty → data
  */
 
 import { useState, useEffect } from 'react';
-import { dataAdapter } from '@/core/data';
 import type { Obra } from '@/core/data/types';
 import {
   DashboardStateLoading,
@@ -16,6 +15,8 @@ import {
 } from '@/app/components/global-dashboard';
 import DashboardData from '@/app/components/global-dashboard/DashboardStateData';
 import { WorkForm } from '@/app/components/WorkForm';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
 interface GlobalDashboardProps {
   onSelectProject?: (projectId: string) => void;
@@ -31,20 +32,18 @@ export default function GlobalDashboard({ onSelectProject }: GlobalDashboardProp
     setStatus('loading');
     setError(null);
     try {
-      const res = await dataAdapter.listObras({ estatus: 'activa' });
-      if (res.status === 'error') {
-        setError(res.error || 'Error al cargar obras');
-        setStatus('error');
-        return;
-      }
-      if (!res.data || res.data.length === 0) {
+      const res = await fetch(`${API_BASE}/obras?estatus=activa`);
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      const json = await res.json();
+      const data: Obra[] = json.data ?? [];
+      if (data.length === 0) {
         setStatus('empty');
-        return;
+      } else {
+        setObras(data);
+        setStatus('data');
       }
-      setObras(res.data);
-      setStatus('data');
     } catch (e) {
-      setError('Error inesperado al cargar obras');
+      setError(e instanceof Error ? e.message : 'Error inesperado');
       setStatus('error');
     }
   }
@@ -57,11 +56,7 @@ export default function GlobalDashboard({ onSelectProject }: GlobalDashboardProp
   };
 
   if (status === 'loading') return <DashboardStateLoading />;
-
-  if (status === 'error') {
-    return <DashboardStateError onRetry={cargarObras} />;
-  }
-
+  if (status === 'error') return <DashboardStateError onRetry={cargarObras} />;
   if (status === 'empty') {
     return (
       <>
